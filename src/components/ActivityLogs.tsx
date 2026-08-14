@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Clock, User, Activity } from 'lucide-react';
+import { FileText, Clock, User, Activity, ArrowLeft } from 'lucide-react';
 import { AuditLog } from '../types';
 import { storageService } from '../services/storageService';
 
-export const ActivityLogs: React.FC = () => {
+interface ActivityLogsProps {
+  onBack?: () => void;
+}
+
+export const ActivityLogs: React.FC<ActivityLogsProps> = ({ onBack }) => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
 
   useEffect(() => {
@@ -12,14 +16,34 @@ export const ActivityLogs: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 bg-gradient-to-r from-slate-800/60 to-transparent p-6 rounded-2xl border border-slate-800">
-        <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-300">
-          <Activity className="w-6 h-6" />
+      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-slate-800/60 to-transparent p-6 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              title="Volver a la Plataforma"
+              className="p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all flex items-center justify-center group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          )}
+          <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-300 flex-shrink-0">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">REGISTRO DE ACTIVIDAD (AUDIT TRAIL)</h1>
+            <p className="text-slate-400 text-sm">Historial cronológico de accesos, logins y cambios de permisos.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white">REGISTRO DE ACTIVIDAD (AUDIT TRAIL)</h1>
-          <p className="text-slate-400 text-sm">Historial cronológico de accesos, logins y cambios de permisos.</p>
-        </div>
+
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700"
+          >
+            <ArrowLeft className="w-4 h-4" /> Plataforma
+          </button>
+        )}
       </div>
 
       <div className="glass-panel p-6 rounded-2xl space-y-4">

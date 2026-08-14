@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route } from 'lucide-react';
+import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft } from 'lucide-react';
 import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+
+interface LoreAppProps {
+  onBack?: () => void;
+}
 
 const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371; // km
@@ -17,7 +21,7 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
   return Number((R * c).toFixed(1));
 };
 
-export const LoreApp: React.FC = () => {
+export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('lore');
 
@@ -230,19 +234,36 @@ export const LoreApp: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-600/10 via-cyan-600/10 to-transparent p-6 rounded-2xl border border-blue-500/20">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
+          {onBack && (
+            <button
+              onClick={onBack}
+              title="Volver a la Plataforma"
+              className="p-3 rounded-xl bg-slate-800/80 hover:bg-blue-600 hover:text-white text-slate-300 border border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          )}
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25 flex-shrink-0">
             <Navigation className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              GESTOR DE RUTAS Y MAPA COMERCIAL
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-white">GESTOR DE RUTAS Y MAPA COMERCIAL</h1>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Módulo Activo</span>
-            </h1>
+            </div>
             <p className="text-slate-400 text-sm">Optimización de itinerarios por Deciles (D07-D10), mapa GPS y recomendaciones de visita.</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700"
+            >
+              <ArrowLeft className="w-4 h-4" /> Plataforma
+            </button>
+          )}
           <button
             onClick={generateRecommendedRoute}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"

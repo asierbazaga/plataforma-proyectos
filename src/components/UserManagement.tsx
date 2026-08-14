@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { ShieldCheck, UserPlus, Dumbbell, DollarSign, BookOpen, BookMarked, CheckCircle2, XCircle, Edit3, Eye, Lock } from 'lucide-react';
+import { ShieldCheck, UserPlus, Dumbbell, DollarSign, BookOpen, BookMarked, CheckCircle2, XCircle, Edit3, Eye, Lock, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppId, Role } from '../types';
 
-export const UserManagement: React.FC = () => {
+interface UserManagementProps {
+  onBack?: () => void;
+}
+
+export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const { allProfiles, permissions, updatePermissions, addUser } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -67,7 +71,16 @@ export const UserManagement: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-indigo-600/10 via-purple-600/10 to-transparent p-6 rounded-2xl border border-indigo-500/20">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          {onBack && (
+            <button
+              onClick={onBack}
+              title="Volver a la Plataforma"
+              className="p-3 rounded-xl bg-slate-800/80 hover:bg-indigo-600 hover:text-white text-slate-300 border border-slate-700 hover:border-indigo-400 transition-all flex items-center justify-center group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          )}
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 flex-shrink-0">
             <ShieldCheck className="w-7 h-7 text-white" />
           </div>
           <div>
@@ -78,13 +91,23 @@ export const UserManagement: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:scale-105"
-        >
-          <UserPlus className="w-5 h-5" />
-          Crear Nuevo Usuario
-        </button>
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700"
+            >
+              <ArrowLeft className="w-4 h-4" /> Plataforma
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:scale-105"
+          >
+            <UserPlus className="w-5 h-5" />
+            Crear Nuevo Usuario
+          </button>
+        </div>
       </div>
 
       {/* Permissions Table Matrix */}

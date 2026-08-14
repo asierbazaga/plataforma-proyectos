@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, Plus, Flame, Clock, Calendar, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Dumbbell, Plus, Flame, Clock, Calendar, CheckCircle2, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { FitnessWorkout } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
 
-export const FitnessApp: React.FC = () => {
+interface FitnessAppProps {
+  onBack?: () => void;
+}
+
+export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('fitness');
   const [workouts, setWorkouts] = useState<FitnessWorkout[]>([]);
@@ -53,32 +57,51 @@ export const FitnessApp: React.FC = () => {
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent p-6 rounded-2xl border border-orange-500/20">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+          {onBack && (
+            <button
+              onClick={onBack}
+              title="Volver a la Plataforma"
+              className="p-3 rounded-xl bg-slate-800/80 hover:bg-orange-500 hover:text-white text-slate-300 border border-slate-700 hover:border-orange-400 transition-all flex items-center justify-center group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          )}
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0">
             <Dumbbell className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              APP FITNESS & SALUD
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-white">APP FITNESS & SALUD</h1>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">Módulo Activo</span>
-            </h1>
+            </div>
             <p className="text-slate-400 text-sm">Registro de entrenamientos, gasto calórico y objetivos físicos.</p>
           </div>
         </div>
 
-        {canEdit ? (
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all hover:scale-105"
-          >
-            <Plus className="w-5 h-5" />
-            Nuevo Entrenamiento
-          </button>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20">
-            <ShieldAlert className="w-4 h-4" />
-            Modo Solo Lectura
-          </div>
-        )}
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700"
+            >
+              <ArrowLeft className="w-4 h-4" /> Plataforma
+            </button>
+          )}
+          {canEdit ? (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all hover:scale-105"
+            >
+              <Plus className="w-5 h-5" />
+              Nuevo Entrenamiento
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20">
+              <ShieldAlert className="w-4 h-4" />
+              Modo Solo Lectura
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards */}
