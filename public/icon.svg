@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bg-glow" cx="50%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#1E1B4B" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#0F172A" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#07090E" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Vibrant Brand Gradients -->
+    <linearGradient id="brand-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="50%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+
+    <linearGradient id="brand-grad-2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+
+    <linearGradient id="brand-grad-accent" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#F43F5E"/>
+      <stop offset="50%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+
+    <!-- Metallic Edge Gradient -->
+    <linearGradient id="border-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="30%" stop-color="#818CF8" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#C084FC" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+    </linearGradient>
+
+    <!-- Glass Specular Reflection -->
+    <linearGradient id="glass-shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Drop Shadows & Glow Filters -->
+    <filter id="core-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="ambient-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="32" result="blur"/>
+    </filter>
+
+    <filter id="subtle-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Base Squircle Container (iOS / Modern PWA style) -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#bg-glow)"/>
+  
+  <!-- Outer Subtle Stroke -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="none" stroke="url(#border-stroke)" stroke-width="3"/>
+
+  <!-- Ambient Light Spot Behind Icon -->
+  <circle cx="256" cy="240" r="140" fill="url(#brand-grad-1)" opacity="0.35" filter="url(#ambient-glow)"/>
+  <circle cx="280" cy="280" r="100" fill="#06B6D4" opacity="0.2" filter="url(#ambient-glow)"/>
+
+  <!-- Specular Top Glass Reflection -->
+  <path d="M 16 124 C 16 64.7 64.7 16 124 16 L 388 16 C 447.3 16 496 64.7 496 124 C 496 170 360 210 256 210 C 152 210 16 170 16 124 Z" fill="url(#glass-shine)"/>
+
+  <!-- Central Shield / Nexus Icon -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Outer Hexagonal Shield Matrix -->
+    <path d="M 256 90 L 385 155 L 385 305 L 256 395 L 127 305 L 127 155 Z" 
+          fill="#111827" 
+          fill-opacity="0.85" 
+          stroke="url(#brand-grad-1)" 
+          stroke-width="7" 
+          stroke-linejoin="round"/>
+
+    <!-- Inner Geometric Facets (Unified 4 Projects Concept) -->
+    <!-- Top-Left Facet -->
+    <path d="M 256 112 L 360 166 L 256 222 L 152 166 Z" 
+          fill="url(#brand-grad-2)" 
+          opacity="0.95"/>
+
+    <!-- Left Wing (Fitness / Vitality node) -->
+    <path d="M 144 182 L 244 236 L 244 350 L 144 286 Z" 
+          fill="url(#brand-grad-1)" 
+          opacity="0.9"/>
+
+    <!-- Right Wing (Gastos & Lore node) -->
+    <path d="M 368 182 L 368 286 L 268 350 L 268 236 Z" 
+          fill="url(#brand-grad-accent)" 
+          opacity="0.92"/>
+
+    <!-- Central Nexus Core (Interconnected Star / Portal Center) -->
+    <g filter="url(#core-glow)">
+      <!-- Center Diamond -->
+      <polygon points="256,195 295,245 256,295 217,245" fill="#FFFFFF" opacity="0.95"/>
+      <polygon points="256,215 280,245 256,275 232,245" fill="url(#brand-grad-1)"/>
+      <circle cx="256" cy="245" r="5" fill="#FFFFFF"/>
+    </g>
+
+    <!-- Circuit Connection Lines / Tech Accents -->
+    <circle cx="256" cy="112" r="5" fill="#38BDF8"/>
+    <circle cx="360" cy="166" r="5" fill="#C084FC"/>
+    <circle cx="368" cy="286" r="5" fill="#F43F5E"/>
+    <circle cx="256" cy="372" r="5" fill="#A855F7"/>
+    <circle cx="144" cy="286" r="5" fill="#6366F1"/>
+    <circle cx="152" cy="166" r="5" fill="#38BDF8"/>
+
+    <!-- Micro Tech Details -->
+    <line x1="256" y1="372" x2="256" y2="390" stroke="#818CF8" stroke-width="3" stroke-linecap="round"/>
+    <line x1="127" y1="210" x2="140" y2="210" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
+    <line x1="372" y1="210" x2="385" y2="210" stroke="#F43F5E" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Modern Subtle Wordmark / Emblem Badge at the Bottom -->
+  <g opacity="0.9">
+    <rect x="186" y="415" width="140" height="24" rx="12" fill="#1E293B" stroke="url(#border-stroke)" stroke-width="1.5"/>
+    <text x="256" y="431" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="800" fill="#F1F5F9" letter-spacing="2.5" text-anchor="middle">PROYECTOS</text>
+  </g>
+</svg>

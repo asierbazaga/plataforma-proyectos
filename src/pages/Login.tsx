@@ -30,9 +30,9 @@ export const Login: React.FC = () => {
 
       <div className="glass-panel bg-slate-900/80 border border-slate-800 rounded-3xl w-full max-w-lg p-8 shadow-2xl space-y-6 relative z-10">
         {/* Brand Logo Header */}
-        <div className="text-center space-y-2">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 mx-auto flex items-center justify-center shadow-xl shadow-indigo-500/30">
-            <ShieldCheck className="w-9 h-9 text-white" />
+        <div className="text-center space-y-3">
+          <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-2xl shadow-indigo-500/30 ring-1 ring-white/20">
+            <img src="/favicon.svg" alt="Plataforma Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">PLATAFORMA UNIFICADA</h1>
           <p className="text-xs text-slate-400">Control de Acceso Centralizado a tus 4 Aplicaciones</p>

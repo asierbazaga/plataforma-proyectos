@@ -11,8 +11,8 @@ export const Navbar: React.FC = () => {
       {/* Brand & Database Status */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <ShieldCheck className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 flex-shrink-0">
+            <img src="/favicon.svg" alt="Plataforma Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-bold text-white text-base tracking-tight leading-tight">PLATAFORMA PROYECTOS</h1>
