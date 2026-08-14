@@ -1,7 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { UserProfile, AppPermission, AuditLog, AppId, FitnessWorkout, ExpenseItem, LibraryItem, LoreEntry } from '../types';
+import { UserProfile, AppPermission, AuditLog, FitnessWorkout, ExpenseItem, LibraryItem, LoreClient, LoreSavedRoute } from '../types';
 
-// Datos por defecto para fallback LocalStorage
 const DEFAULT_PROFILES: UserProfile[] = [
   {
     id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -33,19 +32,16 @@ const DEFAULT_PROFILES: UserProfile[] = [
 ];
 
 const DEFAULT_PERMISSIONS: AppPermission[] = [
-  // Admin: Acceso a las 4 Apps
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'lore', can_access: true, can_edit: true },
 
-  // Usuario: Fitness y Gastos habilitados, Libros-Juegos y Lore denegados
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'libros-juegos', can_access: false, can_edit: false },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'lore', can_access: false, can_edit: false },
 
-  // Invitado: Solo Libros-Juegos
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'fitness', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'gastos', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'libros-juegos', can_access: true, can_edit: false },
@@ -68,9 +64,115 @@ const DEFAULT_LIBRARY: LibraryItem[] = [
   { id: '2', title: 'The Witcher 3: Wild Hunt', media_type: 'game', genre: 'RPG', status: 'completed', rating: 5, progress_percentage: 100 }
 ];
 
-const DEFAULT_LORE: LoreEntry[] = [
-  { id: '1', title: 'Guía de Despliegue en Vercel', category: 'Procedimientos', content: 'Instrucciones para vincular el repositorio en Vercel e ingresar las variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.', tags: ['vercel', 'deploy', 'guia'], updated_at: '2026-08-14' },
-  { id: '2', title: 'Arquitectura RBAC de Permisos', category: 'Arquitectura', content: 'Matriz de control de acceso por usuario y aplicación con persisitencia inmediata en la tabla app_permissions.', tags: ['rbac', 'permisos', 'seguridad'], updated_at: '2026-08-14' }
+const DEFAULT_CLIENTS: LoreClient[] = [
+  {
+    id: 'cli-001',
+    nombre: 'Farmacia Central Gran Vía',
+    tipo: 'Farmacia VIP',
+    contacto_nombre: 'Dra. Elena Ruiz',
+    direccion: 'Gran Vía 42, Madrid',
+    latitud: 40.4203,
+    longitud: -3.7058,
+    ultima_visita_at: '2026-08-01',
+    codigo: 'FAR-001',
+    decil: 'D10',
+    total_2025: 85000,
+    total_2026: 92000,
+    telefono: '912 345 678',
+    provincia: 'Madrid',
+    ciudad: 'Madrid',
+    activo: true
+  },
+  {
+    id: 'cli-002',
+    nombre: 'Farmacia Salamanca 24h',
+    tipo: 'Farmacia VIP',
+    contacto_nombre: 'Dr. Javier Ortega',
+    direccion: 'Calle Serrano 88, Madrid',
+    latitud: 40.4320,
+    longitud: -3.6870,
+    ultima_visita_at: '2026-07-28',
+    codigo: 'FAR-002',
+    decil: 'D10',
+    total_2025: 78000,
+    total_2026: 84000,
+    telefono: '913 888 999',
+    provincia: 'Madrid',
+    ciudad: 'Madrid',
+    activo: true
+  },
+  {
+    id: 'cli-003',
+    nombre: 'Farmacia Bilbao Moyua',
+    tipo: 'Farmacia',
+    contacto_nombre: 'Dra. Maite Alonso',
+    direccion: 'Plaza Moyúa 3, Bilbao',
+    latitud: 43.2630,
+    longitud: -2.9350,
+    ultima_visita_at: '2026-08-05',
+    codigo: 'FAR-003',
+    decil: 'D09',
+    total_2025: 62000,
+    total_2026: 69000,
+    telefono: '944 112 233',
+    provincia: 'Bizkaia',
+    ciudad: 'Bilbao',
+    activo: true
+  },
+  {
+    id: 'cli-004',
+    nombre: 'Farmacia Paseo de Gracia',
+    tipo: 'Farmacia VIP',
+    contacto_nombre: 'Dra. Carme Pujol',
+    direccion: 'Passeig de Gràcia 55, Barcelona',
+    latitud: 41.3917,
+    longitud: 2.1649,
+    ultima_visita_at: '2026-07-20',
+    codigo: 'FAR-004',
+    decil: 'D09',
+    total_2025: 59000,
+    total_2026: 64000,
+    telefono: '932 445 566',
+    provincia: 'Barcelona',
+    ciudad: 'Barcelona',
+    activo: true
+  },
+  {
+    id: 'cli-005',
+    nombre: 'Farmacia Atocha Estación',
+    tipo: 'Farmacia',
+    contacto_nombre: 'Dr. Roberto Blanco',
+    direccion: 'Plaza de Emperador Carlos V, Madrid',
+    latitud: 40.4068,
+    longitud: -3.6896,
+    ultima_visita_at: '2026-08-10',
+    codigo: 'FAR-005',
+    decil: 'D08',
+    total_2025: 41000,
+    total_2026: 46000,
+    telefono: '915 223 344',
+    provincia: 'Madrid',
+    ciudad: 'Madrid',
+    activo: true
+  },
+  {
+    id: 'cli-006',
+    nombre: 'Farmacia Valencia Centro',
+    tipo: 'Farmacia',
+    contacto_nombre: 'Dra. Isabel Soriano',
+    direccion: 'Calle Xàtiva 15, Valencia',
+    latitud: 39.4667,
+    longitud: -0.3770,
+    ultima_visita_at: '2026-07-15',
+    codigo: 'FAR-006',
+    decil: 'D07',
+    total_2025: 32000,
+    total_2026: 35000,
+    telefono: '963 998 877',
+    provincia: 'Valencia',
+    ciudad: 'Valencia',
+    activo: true
+  }
 ];
 
 class StorageService {
@@ -94,8 +196,10 @@ class StorageService {
   // --- PROFILES ---
   async getProfiles(): Promise<UserProfile[]> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('profiles').select('*');
-      if (!error && data && data.length > 0) return data;
+      try {
+        const { data, error } = await supabase.from('profiles').select('*');
+        if (!error && data && data.length > 0) return data;
+      } catch (e) {}
     }
     return this.getLocal('profiles', DEFAULT_PROFILES);
   }
@@ -108,30 +212,24 @@ class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('profiles').insert(newProfile);
+      try {
+        await supabase.from('profiles').insert(newProfile);
+      } catch (e) {}
     }
 
     const current = this.getLocal('profiles', DEFAULT_PROFILES);
     const updated = [...current, newProfile];
     this.setLocal('profiles', updated);
-
-    // Inicializar permisos por defecto para este nuevo usuario
-    const newPerms: AppPermission[] = [
-      { user_id: newProfile.id, app_id: 'fitness', can_access: true, can_edit: true },
-      { user_id: newProfile.id, app_id: 'gastos', can_access: true, can_edit: true },
-      { user_id: newProfile.id, app_id: 'libros-juegos', can_access: false, can_edit: false },
-      { user_id: newProfile.id, app_id: 'lore', can_access: false, can_edit: false }
-    ];
-    await this.updateUserPermissions(newProfile.id, newPerms);
-
     return newProfile;
   }
 
   // --- PERMISSIONS ---
   async getPermissions(): Promise<AppPermission[]> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('app_permissions').select('*');
-      if (!error && data && data.length > 0) return data;
+      try {
+        const { data, error } = await supabase.from('app_permissions').select('*');
+        if (!error && data && data.length > 0) return data;
+      } catch (e) {}
     }
     return this.getLocal('permissions', DEFAULT_PERMISSIONS);
   }
@@ -139,13 +237,15 @@ class StorageService {
   async updateUserPermissions(userId: string, permissions: AppPermission[]): Promise<void> {
     if (isSupabaseConfigured && supabase) {
       for (const p of permissions) {
-        await supabase.from('app_permissions').upsert({
-          user_id: userId,
-          app_id: p.app_id,
-          can_access: p.can_access,
-          can_edit: p.can_edit,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id,app_id' });
+        try {
+          await supabase.from('app_permissions').upsert({
+            user_id: userId,
+            app_id: p.app_id,
+            can_access: p.can_access,
+            can_edit: p.can_edit,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,app_id' });
+        } catch (e) {}
       }
     }
 
@@ -158,8 +258,10 @@ class StorageService {
   // --- AUDIT LOGS ---
   async getAuditLogs(): Promise<AuditLog[]> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
-      if (!error && data) return data;
+      try {
+        const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
+        if (!error && data) return data;
+      } catch (e) {}
     }
     return this.getLocal('audit_logs', []);
   }
@@ -174,18 +276,22 @@ class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('audit_logs').insert(log);
+      try {
+        await supabase.from('audit_logs').insert(log);
+      } catch (e) {}
     }
 
     const logs = this.getLocal('audit_logs', []);
     this.setLocal('audit_logs', [log, ...logs]);
   }
 
-  // --- FITNESS WORKOUTS ---
+  // --- FITNESS ---
   async getWorkouts(): Promise<FitnessWorkout[]> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
-      if (!error && data) return data;
+      try {
+        const { data, error } = await supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
+        if (!error && data) return data;
+      } catch (e) {}
     }
     return this.getLocal('workouts', DEFAULT_WORKOUTS);
   }
@@ -196,7 +302,9 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : `fit_${Date.now()}`
     };
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_workouts').insert(item);
+      try {
+        await supabase.from('fitness_workouts').insert(item);
+      } catch (e) {}
     }
     const current = this.getLocal('workouts', DEFAULT_WORKOUTS);
     const updated = [item, ...current];
@@ -207,8 +315,10 @@ class StorageService {
   // --- EXPENSES ---
   async getExpenses(): Promise<ExpenseItem[]> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
-      if (!error && data) return data;
+      try {
+        const { data, error } = await supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
+        if (!error && data) return data;
+      } catch (e) {}
     }
     return this.getLocal('expenses', DEFAULT_EXPENSES);
   }
@@ -219,7 +329,9 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : `exp_${Date.now()}`
     };
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('expenses').insert(item);
+      try {
+        await supabase.from('expenses').insert(item);
+      } catch (e) {}
     }
     const current = this.getLocal('expenses', DEFAULT_EXPENSES);
     const updated = [item, ...current];
@@ -227,11 +339,13 @@ class StorageService {
     return item;
   }
 
-  // --- LIBRARY (BOOKS & GAMES) ---
+  // --- LIBRARY ---
   async getLibrary(): Promise<LibraryItem[]> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('user_library').select('*');
-      if (!error && data) return data;
+      try {
+        const { data, error } = await supabase.from('user_library').select('*');
+        if (!error && data) return data;
+      } catch (e) {}
     }
     return this.getLocal('library', DEFAULT_LIBRARY);
   }
@@ -242,7 +356,9 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : `lib_${Date.now()}`
     };
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('user_library').insert(newItem);
+      try {
+        await supabase.from('user_library').insert(newItem);
+      } catch (e) {}
     }
     const current = this.getLocal('library', DEFAULT_LIBRARY);
     const updated = [newItem, ...current];
@@ -250,28 +366,34 @@ class StorageService {
     return newItem;
   }
 
-  // --- LORE ENTRIES ---
-  async getLoreEntries(): Promise<LoreEntry[]> {
+  // --- LORE CLIENTS & ROUTES ---
+  async getLoreClients(): Promise<LoreClient[]> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('lore_entries').select('*').order('updated_at', { ascending: false });
-      if (!error && data) return data;
+      try {
+        const { data, error } = await supabase.from('lore_clients').select('*');
+        if (!error && data && data.length > 0) return data;
+      } catch (e) {}
     }
-    return this.getLocal('lore', DEFAULT_LORE);
+    return this.getLocal('lore_clients', DEFAULT_CLIENTS);
   }
 
-  async addLoreEntry(entry: Omit<LoreEntry, 'id' | 'updated_at'>): Promise<LoreEntry> {
-    const newEntry: LoreEntry = {
-      ...entry,
-      id: crypto.randomUUID ? crypto.randomUUID() : `lore_${Date.now()}`,
-      updated_at: new Date().toISOString()
+  async getSavedRoutes(): Promise<LoreSavedRoute[]> {
+    return this.getLocal('lore_saved_routes', []);
+  }
+
+  async saveRoute(name: string, clientIds: string[], totalDistanceKm: number): Promise<LoreSavedRoute> {
+    const route: LoreSavedRoute = {
+      id: `route_${Date.now()}`,
+      name,
+      date: new Date().toISOString().split('T')[0],
+      clientIds,
+      totalDistanceKm,
+      createdAt: new Date().toISOString()
     };
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_entries').insert(newEntry);
-    }
-    const current = this.getLocal('lore', DEFAULT_LORE);
-    const updated = [newEntry, ...current];
-    this.setLocal('lore', updated);
-    return newEntry;
+    const current = this.getLocal('lore_saved_routes', []);
+    const updated = [route, ...current];
+    this.setLocal('lore_saved_routes', updated);
+    return route;
   }
 }
 

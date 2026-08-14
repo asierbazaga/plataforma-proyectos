@@ -1,277 +1,403 @@
-import React, { useState, useEffect } from 'react';
-import { BookMarked, Search, Plus, Tag, Folder, ShieldAlert, FileText, Calendar } from 'lucide-react';
-import { LoreEntry } from '../../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route } from 'lucide-react';
+import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+
+const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // km
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Number((R * c).toFixed(1));
+};
 
 export const LoreApp: React.FC = () => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('lore');
-  const [entries, setEntries] = useState<LoreEntry[]>([]);
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [showModal, setShowModal] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<LoreEntry | null>(null);
 
-  // Form
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Procedimientos');
-  const [content, setContent] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
+  const [clientes, setClientes] = useState<LoreClient[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedDecil, setSelectedDecil] = useState<string>('all');
+  const [selectedClient, setSelectedClient] = useState<LoreClient | null>(null);
+
+  // Ruta seleccionada actualmente (lista de IDs de clientes en orden)
+  const [routeClientIds, setRouteClientIds] = useState<string[]>([]);
+  const [savedRoutes, setSavedRoutes] = useState<LoreSavedRoute[]>([]);
+  const [routeNameInput, setRouteNameInput] = useState('');
+
+  // Coordenadas iniciales (Madrid Centro)
+  const [userCoords, setUserCoords] = useState({ lat: 40.4168, lng: -3.7038 });
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const LRef = useRef<any>(null);
+  const markersRef = useRef<{ [key: string]: any }>({});
+  const polylineRef = useRef<any>(null);
 
   const loadData = async () => {
-    const list = await storageService.getLoreEntries();
-    setEntries(list);
+    const list = await storageService.getLoreClients();
+    const routes = await storageService.getSavedRoutes();
+    setClientes(list);
+    setSavedRoutes(routes);
+
+    if (list.length > 0 && !selectedClient) {
+      setSelectedClient(list[0]);
+    }
   };
 
   useEffect(() => {
     loadData();
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}
+      );
+    }
   }, []);
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+  // Inicializar mapa de Leaflet dinámicamente
+  useEffect(() => {
+    if (typeof window === 'undefined' || !mapContainerRef.current) return;
 
-    const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+    const initMap = () => {
+      const L = (window as any).L;
+      if (!L) return;
+      LRef.current = L;
 
-    await storageService.addLoreEntry({
-      title,
-      category,
-      content,
-      tags
+      if (!mapRef.current) {
+        const map = L.map(mapContainerRef.current, {
+          zoomControl: true,
+          attributionControl: false
+        }).setView([userCoords.lat, userCoords.lng], 10);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+          maxZoom: 19
+        }).addTo(map);
+
+        mapRef.current = map;
+      }
+    };
+
+    if (!(window as any).L) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = initMap;
+      document.head.appendChild(script);
+    } else {
+      initMap();
+    }
+  }, []);
+
+  // Actualizar marcadores y polilínea de ruta en el mapa
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = LRef.current;
+    if (!map || !L) return;
+
+    // Limpiar marcadores viejos
+    Object.values(markersRef.current).forEach((m: any) => map.removeLayer(m));
+    markersRef.current = {};
+    if (polylineRef.current) {
+      map.removeLayer(polylineRef.current);
+      polylineRef.current = null;
+    }
+
+    // Dibujar marcadores de clientes
+    clientes.forEach(c => {
+      const isInRoute = routeClientIds.includes(c.id);
+      const isSelected = selectedClient?.id === c.id;
+
+      const decilColor = c.decil === 'D10' ? '#10B981' : c.decil === 'D09' ? '#6366F1' : c.decil === 'D08' ? '#A855F7' : '#F59E0B';
+
+      const customHtml = `
+        <div style="
+          background: ${isSelected ? '#EC4899' : isInRoute ? '#3B82F6' : decilColor};
+          width: ${isSelected ? '28px' : '22px'};
+          height: ${isSelected ? '28px' : '22px'};
+          border-radius: 50%;
+          border: 3px solid #0B0F19;
+          box-shadow: 0 0 12px ${decilColor};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: bold;
+          font-size: 10px;
+        ">
+          ${c.decil || 'D'}
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: customHtml,
+        className: 'custom-leaflet-marker',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const marker = L.marker([c.latitud, c.longitud], { icon: customIcon }).addTo(map);
+      marker.bindPopup(`<b>${c.nombre}</b><br/>${c.direccion}<br/>Decil: <b>${c.decil}</b>`);
+      marker.on('click', () => setSelectedClient(c));
+
+      markersRef.current[c.id] = marker;
     });
 
-    setTitle('');
-    setContent('');
-    setTagsInput('');
-    setShowModal(false);
+    // Dibujar línea de la ruta activa
+    if (routeClientIds.length > 1) {
+      const points = routeClientIds
+        .map(id => clientes.find(c => c.id === id))
+        .filter(Boolean)
+        .map(c => [c!.latitud, c!.longitud]);
+
+      polylineRef.current = L.polyline(points, {
+        color: '#6366F1',
+        weight: 4,
+        opacity: 0.8,
+        dashArray: '8, 8'
+      }).addTo(map);
+
+      map.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40] });
+    }
+  }, [clientes, routeClientIds, selectedClient]);
+
+  // Alternar inclusión de cliente en la ruta activa
+  const toggleClientInRoute = (clientId: string) => {
+    if (routeClientIds.includes(clientId)) {
+      setRouteClientIds(routeClientIds.filter(id => id !== clientId));
+    } else {
+      setRouteClientIds([...routeClientIds, clientId]);
+    }
+  };
+
+  // Generador de Ruta Inteligente Recomendada (Prioridad por Deciles D10 -> D09)
+  const generateRecommendedRoute = () => {
+    const sorted = [...clientes].sort((a, b) => {
+      const decilScore: { [key: string]: number } = { D10: 4, D09: 3, D08: 2, D07: 1 };
+      const scoreA = decilScore[a.decil || 'D07'] || 0;
+      const scoreB = decilScore[b.decil || 'D07'] || 0;
+      return scoreB - scoreA;
+    });
+
+    const recommendedIds = sorted.slice(0, 4).map(c => c.id);
+    setRouteClientIds(recommendedIds);
+  };
+
+  // Guardar Ruta
+  const handleSaveRoute = async () => {
+    if (routeClientIds.length === 0) return;
+    const name = routeNameInput.trim() || `Ruta ${new Date().toLocaleDateString()}`;
+    const totalKm = calculateRouteDistance();
+
+    await storageService.saveRoute(name, routeClientIds, totalKm);
+    setRouteNameInput('');
     await loadData();
   };
 
-  const categories = Array.from(new Set(entries.map(e => e.category)));
+  // Calcular distancia total de la ruta actual
+  const calculateRouteDistance = () => {
+    if (routeClientIds.length < 2) return 0;
+    let dist = 0;
+    for (let i = 0; i < routeClientIds.length - 1; i++) {
+      const c1 = clientes.find(c => c.id === routeClientIds[i]);
+      const c2 = clientes.find(c => c.id === routeClientIds[i + 1]);
+      if (c1 && c2) {
+        dist += getDistanceInKm(c1.latitud, c1.longitud, c2.latitud, c2.longitud);
+      }
+    }
+    return Number(dist.toFixed(1));
+  };
 
-  const filteredEntries = entries.filter(e => {
-    const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase()) || 
-                          e.content.toLowerCase().includes(search.toLowerCase()) ||
-                          e.tags.some(t => t.toLowerCase().includes(search.toLowerCase()));
-    const matchesCat = selectedCategory === 'all' || e.category === selectedCategory;
-    return matchesSearch && matchesCat;
+  const filteredClientes = clientes.filter(c => {
+    const matchesSearch = c.nombre.toLowerCase().includes(search.toLowerCase()) ||
+                          c.direccion.toLowerCase().includes(search.toLowerCase()) ||
+                          (c.ciudad && c.ciudad.toLowerCase().includes(search.toLowerCase()));
+    const matchesDecil = selectedDecil === 'all' || c.decil === selectedDecil;
+    return matchesSearch && matchesDecil;
   });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-500/10 via-cyan-500/5 to-transparent p-6 rounded-2xl border border-blue-500/20">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-600/10 via-cyan-600/10 to-transparent p-6 rounded-2xl border border-blue-500/20">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <BookMarked className="w-7 h-7 text-white" />
+            <Navigation className="w-7 h-7 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              APP LORE & CONOCIMIENTO
+              GESTOR DE RUTAS Y MAPA COMERCIAL
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Módulo Activo</span>
             </h1>
-            <p className="text-slate-400 text-sm">Directorio de documentación, guías técnicas y artículos de conocimiento.</p>
+            <p className="text-slate-400 text-sm">Optimización de itinerarios por Deciles (D07-D10), mapa GPS y recomendaciones de visita.</p>
           </div>
         </div>
 
-        {canEdit ? (
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all hover:scale-105"
+            onClick={generateRecommendedRoute}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
           >
-            <Plus className="w-5 h-5" />
-            Nueva Entrada Lore
+            <Award className="w-4 h-4 text-amber-400" />
+            Generar Ruta Recomendada
           </button>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20">
-            <ShieldAlert className="w-4 h-4" />
-            Modo Solo Lectura
-          </div>
-        )}
-      </div>
-
-      {/* Search & Category Filter */}
-      <div className="flex flex-col md:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Buscar por título, contenido o etiqueta (#tags)..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-11 pr-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'}`}
-          >
-            Todas las Categorías
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-blue-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'}`}
-            >
-              {cat}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Entries List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredEntries.map(entry => (
-          <div
-            key={entry.id}
-            onClick={() => setSelectedEntry(entry)}
-            className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-blue-500/40 transition-all cursor-pointer space-y-3 group"
-          >
-            <div className="flex justify-between items-start">
-              <span className="text-xs px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
-                {entry.category}
-              </span>
-              <span className="text-xs text-slate-500 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" /> {entry.updated_at.split('T')[0]}
-              </span>
+      {/* Main Grid Layout: Interactive Map + Route Planner */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Map Container (2 cols) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="glass-panel p-2 rounded-2xl border border-slate-800 relative overflow-hidden h-[480px]">
+            <div ref={mapContainerRef} className="w-full h-full rounded-xl z-10" />
+            <div className="absolute top-4 right-4 z-20 bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-slate-800 text-xs space-y-1.5 shadow-xl">
+              <p className="font-bold text-white mb-1">Leyenda de Deciles</p>
+              <div className="flex items-center gap-2 text-emerald-400 font-semibold"><span className="w-3 h-3 rounded-full bg-emerald-500" /> D10 (Ventas VIP)</div>
+              <div className="flex items-center gap-2 text-indigo-400 font-semibold"><span className="w-3 h-3 rounded-full bg-indigo-500" /> D09 (Ventas Altas)</div>
+              <div className="flex items-center gap-2 text-purple-400 font-semibold"><span className="w-3 h-3 rounded-full bg-purple-500" /> D08 (Ventas Medias)</div>
+              <div className="flex items-center gap-2 text-amber-400 font-semibold"><span className="w-3 h-3 rounded-full bg-amber-500" /> D07 (Ventas Estándar)</div>
             </div>
-
-            <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
-              {entry.title}
-            </h3>
-
-            <p className="text-sm text-slate-400 line-clamp-3 leading-relaxed">
-              {entry.content}
-            </p>
-
-            {entry.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800/60">
-                {entry.tags.map(tag => (
-                  <span key={tag} className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded flex items-center gap-1">
-                    <Tag className="w-3 h-3 text-cyan-400" /> #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
-        ))}
-      </div>
 
-      {/* Modal Detalle Entrada */}
-      {selectedEntry && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+          {/* Active Route Summary Bar */}
+          <div className="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border-l-4 border-l-indigo-500">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400">
+                <Route className="w-6 h-6" />
+              </div>
               <div>
-                <span className="text-xs px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold">
-                  {selectedEntry.category}
-                </span>
-                <h2 className="text-2xl font-bold text-white mt-2">{selectedEntry.title}</h2>
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Ruta Activa Seleccionada</p>
+                <p className="text-lg font-bold text-white mt-0.5">
+                  {routeClientIds.length} Paradas ({calculateRouteDistance()} km totales)
+                </p>
               </div>
-              <button
-                onClick={() => setSelectedEntry(null)}
-                className="text-slate-400 hover:text-white text-sm bg-slate-800 px-3 py-1.5 rounded-lg"
-              >
-                Cerrar
-              </button>
             </div>
 
-            <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap py-2">
-              {selectedEntry.content}
-            </div>
-
-            {selectedEntry.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-800">
-                {selectedEntry.tags.map(t => (
-                  <span key={t} className="text-xs text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
-                    #{t}
-                  </span>
-                ))}
+            {canEdit && (
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Nombre de la Ruta..."
+                  value={routeNameInput}
+                  onChange={e => setRouteNameInput(e.target.value)}
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={handleSaveRoute}
+                  disabled={routeClientIds.length === 0}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <Save className="w-4 h-4" /> Guardar Ruta
+                </button>
               </div>
             )}
           </div>
         </div>
-      )}
 
-      {/* Modal Nueva Entrada */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-blue-400" />
-              Nueva Entrada de Lore
-            </h3>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-400">Título del Artículo</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Procedimiento de Seguridad"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
+        {/* Directory & Client Selection Sidebar (1 col) */}
+        <div className="space-y-4">
+          <div className="glass-panel p-5 rounded-2xl space-y-4 h-[580px] flex flex-col justify-between">
+            <div className="space-y-3">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-400" />
+                Directorio de Farmacias & Clientes
+              </h2>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-400">Categoría</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Procedimientos, Arquitectura, Clientes"
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
+              {/* Search & Decil filter */}
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar cliente, ciudad..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-400">Contenido</label>
-                <textarea
-                  rows={5}
-                  required
-                  placeholder="Escribe la información o procedimiento detallado..."
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-                />
+                <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                  {['all', 'D10', 'D09', 'D08', 'D07'].map(decil => (
+                    <button
+                      key={decil}
+                      onClick={() => setSelectedDecil(decil)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+                        selectedDecil === decil 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {decil === 'all' ? 'Todos' : decil}
+                    </button>
+                  ))}
+                </div>
               </div>
+            </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-400">Etiquetas (separadas por coma)</label>
-                <input
-                  type="text"
-                  placeholder="ej. vercel, supabase, deploy"
-                  value={tagsInput}
-                  onChange={e => setTagsInput(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
+            {/* Clients List */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 my-2">
+              {filteredClientes.map(client => {
+                const isInRoute = routeClientIds.includes(client.id);
+                const isSelected = selectedClient?.id === client.id;
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-slate-400 hover:text-white"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600"
-                >
-                  Guardar
-                </button>
-              </div>
-            </form>
+                return (
+                  <div
+                    key={client.id}
+                    onClick={() => setSelectedClient(client)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                      isSelected
+                        ? 'bg-slate-800/90 border-blue-500'
+                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-white text-xs leading-tight">{client.nombre}</h4>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                        client.decil === 'D10' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                        client.decil === 'D09' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' :
+                        'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                      }`}>
+                        {client.decil}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-slate-500" /> {client.direccion}
+                    </p>
+
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-800/60">
+                      <span className="text-[10px] text-slate-500">Ventas 2026: {(client.total_2026 || 0).toLocaleString()} €</span>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleClientInRoute(client.id);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                          isInRoute 
+                            ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' 
+                            : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                        }`}
+                      >
+                        {isInRoute ? '- Quitar' : '+ Añadir a Ruta'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

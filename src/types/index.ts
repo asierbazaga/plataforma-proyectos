@@ -73,12 +73,32 @@ export interface LibraryItem {
   progress_percentage: number;
 }
 
-export interface LoreEntry {
+// Módulo Lore: Clientes y Rutas
+export interface LoreClient {
   id: string;
-  user_id?: string;
-  title: string;
-  category: string;
-  content: string;
-  tags: string[];
-  updated_at: string;
+  nombre: string;
+  tipo: string; // Farmacia, Hospital, Distribuidor
+  contacto_nombre: string;
+  direccion: string;
+  latitud: number;
+  longitud: number;
+  ultima_visita_at: string | null;
+  codigo?: string;
+  decil?: string; // D10, D09, D08, D07, etc.
+  total_2025?: number;
+  total_2026?: number;
+  telefono?: string;
+  email?: string;
+  provincia?: string;
+  ciudad?: string;
+  activo?: boolean;
+}
+
+export interface LoreSavedRoute {
+  id: string;
+  name: string;
+  date: string;
+  clientIds: string[];
+  totalDistanceKm: number;
+  createdAt: string;
 }
