@@ -175,6 +175,13 @@ const DEFAULT_CLIENTS: LoreClient[] = [
   }
 ];
 
+function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 1200): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promiseLike),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
+  ]);
+}
+
 class StorageService {
   private getLocal<T>(key: string, fallback: T): T {
     const raw = localStorage.getItem(`plataforma_${key}`);
@@ -193,12 +200,22 @@ class StorageService {
     localStorage.setItem(`plataforma_${key}`, JSON.stringify(data));
   }
 
-  // --- PROFILES ---
+  getProfilesSync(): UserProfile[] {
+    return this.getLocal('profiles', DEFAULT_PROFILES);
+  }
+
+  getPermissionsSync(): AppPermission[] {
+    return this.getLocal('permissions', DEFAULT_PERMISSIONS);
+  }
+
   async getProfiles(): Promise<UserProfile[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('profiles').select('*');
-        if (!error && data && data.length > 0) return data;
+        const res = await withTimeout(supabase.from('profiles').select('*'));
+        if (!res.error && res.data && res.data.length > 0) {
+          this.setLocal('profiles', res.data as UserProfile[]);
+          return res.data as UserProfile[];
+        }
       } catch (e) {}
     }
     return this.getLocal('profiles', DEFAULT_PROFILES);
@@ -212,9 +229,7 @@ class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('profiles').insert(newProfile);
-      } catch (e) {}
+      withTimeout(supabase.from('profiles').insert(newProfile)).catch(() => {});
     }
 
     const current = this.getLocal('profiles', DEFAULT_PROFILES);
@@ -223,12 +238,14 @@ class StorageService {
     return newProfile;
   }
 
-  // --- PERMISSIONS ---
   async getPermissions(): Promise<AppPermission[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('app_permissions').select('*');
-        if (!error && data && data.length > 0) return data;
+        const res = await withTimeout(supabase.from('app_permissions').select('*'));
+        if (!res.error && res.data && res.data.length > 0) {
+          this.setLocal('permissions', res.data as AppPermission[]);
+          return res.data as AppPermission[];
+        }
       } catch (e) {}
     }
     return this.getLocal('permissions', DEFAULT_PERMISSIONS);
@@ -237,15 +254,13 @@ class StorageService {
   async updateUserPermissions(userId: string, permissions: AppPermission[]): Promise<void> {
     if (isSupabaseConfigured && supabase) {
       for (const p of permissions) {
-        try {
-          await supabase.from('app_permissions').upsert({
-            user_id: userId,
-            app_id: p.app_id,
-            can_access: p.can_access,
-            can_edit: p.can_edit,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id,app_id' });
-        } catch (e) {}
+        withTimeout(supabase.from('app_permissions').upsert({
+          user_id: userId,
+          app_id: p.app_id,
+          can_access: p.can_access,
+          can_edit: p.can_edit,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,app_id' })).catch(() => {});
       }
     }
 
@@ -255,12 +270,11 @@ class StorageService {
     this.setLocal('permissions', updated);
   }
 
-  // --- AUDIT LOGS ---
   async getAuditLogs(): Promise<AuditLog[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
-        if (!error && data) return data;
+        const res = await withTimeout(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }));
+        if (!res.error && res.data) return res.data as AuditLog[];
       } catch (e) {}
     }
     return this.getLocal('audit_logs', []);
@@ -276,21 +290,18 @@ class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('audit_logs').insert(log);
-      } catch (e) {}
+      withTimeout(supabase.from('audit_logs').insert(log)).catch(() => {});
     }
 
     const logs = this.getLocal('audit_logs', []);
     this.setLocal('audit_logs', [log, ...logs]);
   }
 
-  // --- FITNESS ---
   async getWorkouts(): Promise<FitnessWorkout[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
-        if (!error && data) return data;
+        const res = await withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }));
+        if (!res.error && res.data) return res.data as FitnessWorkout[];
       } catch (e) {}
     }
     return this.getLocal('workouts', DEFAULT_WORKOUTS);
@@ -302,9 +313,7 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : `fit_${Date.now()}`
     };
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('fitness_workouts').insert(item);
-      } catch (e) {}
+      withTimeout(supabase.from('fitness_workouts').insert(item)).catch(() => {});
     }
     const current = this.getLocal('workouts', DEFAULT_WORKOUTS);
     const updated = [item, ...current];
@@ -312,12 +321,11 @@ class StorageService {
     return item;
   }
 
-  // --- EXPENSES ---
   async getExpenses(): Promise<ExpenseItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
-        if (!error && data) return data;
+        const res = await withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }));
+        if (!res.error && res.data) return res.data as ExpenseItem[];
       } catch (e) {}
     }
     return this.getLocal('expenses', DEFAULT_EXPENSES);
@@ -329,9 +337,7 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : `exp_${Date.now()}`
     };
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('expenses').insert(item);
-      } catch (e) {}
+      withTimeout(supabase.from('expenses').insert(item)).catch(() => {});
     }
     const current = this.getLocal('expenses', DEFAULT_EXPENSES);
     const updated = [item, ...current];
@@ -339,12 +345,11 @@ class StorageService {
     return item;
   }
 
-  // --- LIBRARY ---
   async getLibrary(): Promise<LibraryItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('user_library').select('*');
-        if (!error && data) return data;
+        const res = await withTimeout(supabase.from('user_library').select('*'));
+        if (!res.error && res.data) return res.data as LibraryItem[];
       } catch (e) {}
     }
     return this.getLocal('library', DEFAULT_LIBRARY);
@@ -356,9 +361,7 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : `lib_${Date.now()}`
     };
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('user_library').insert(newItem);
-      } catch (e) {}
+      withTimeout(supabase.from('user_library').insert(newItem)).catch(() => {});
     }
     const current = this.getLocal('library', DEFAULT_LIBRARY);
     const updated = [newItem, ...current];
@@ -366,12 +369,11 @@ class StorageService {
     return newItem;
   }
 
-  // --- LORE CLIENTS & ROUTES ---
   async getLoreClients(): Promise<LoreClient[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('lore_clients').select('*');
-        if (!error && data && data.length > 0) return data;
+        const res = await withTimeout(supabase.from('lore_clients').select('*'));
+        if (!res.error && res.data && res.data.length > 0) return res.data as LoreClient[];
       } catch (e) {}
     }
     return this.getLocal('lore_clients', DEFAULT_CLIENTS);

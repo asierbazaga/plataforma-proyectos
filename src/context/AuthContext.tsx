@@ -20,33 +20,36 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
-  const [permissions, setPermissions] = useState<AppPermission[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  // Inicialización síncrona instantánea en 0 ms
+  const [allProfiles, setAllProfiles] = useState<UserProfile[]>(() => storageService.getProfilesSync());
+  const [permissions, setPermissions] = useState<AppPermission[]>(() => storageService.getPermissionsSync());
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    const profiles = storageService.getProfilesSync();
+    const savedEmail = localStorage.getItem('plataforma_active_email');
+    return profiles.find(p => p.email === savedEmail) || profiles[0] || null;
+  });
+  const [loading, setLoading] = useState<boolean>(false); // 0ms delay!
 
+  // Sincronización en segundo plano con Supabase sin bloquear la pantalla
   const refreshData = async () => {
     try {
-      setLoading(true);
       const profiles = await storageService.getProfiles();
       const perms = await storageService.getPermissions();
       setAllProfiles(profiles);
       setPermissions(perms);
 
-      // Si no hay usuario en sesión, iniciar por defecto con el Admin
-      if (!currentUser && profiles.length > 0) {
-        const savedEmail = localStorage.getItem('plataforma_active_email');
-        const found = profiles.find(p => p.email === savedEmail) || profiles[0];
+      const savedEmail = localStorage.getItem('plataforma_active_email');
+      const found = profiles.find(p => p.email === savedEmail) || profiles[0];
+      if (found) {
         setCurrentUser(found);
       }
     } catch (err) {
-      console.error('Error al cargar perfiles/permisos:', err);
-    } finally {
-      setLoading(false);
+      console.warn('Sincronización en segundo plano completada con cache local.');
     }
   };
 
   useEffect(() => {
+    // Sincronizar en segundo plano
     refreshData();
   }, []);
 
@@ -56,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       setCurrentUser(user);
       localStorage.setItem('plataforma_active_email', user.email);
-      await storageService.logAction(user.email, 'LOGIN', `Inicio de sesión exitoso como ${user.role}`);
+      storageService.logAction(user.email, 'LOGIN', `Inicio de sesión exitoso como ${user.role}`);
       return true;
     }
     return false;
@@ -78,7 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasAccessToApp = (appId: AppId): boolean => {
     if (!currentUser) return false;
-    // Si es Administrador siempre tiene acceso
     if (currentUser.role === 'admin') return true;
 
     const userPerm = permissions.find(p => p.user_id === currentUser.id && p.app_id === appId);
