@@ -150,7 +150,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                {p.role === 'admin' ? '👑 Admin' : p.role === 'user' ? '👤 Usuario' : '👁️ Invitado'}
+                {p.role === 'admin' 
+                  ? `👑 ${p.full_name.split(' ')[0]}` 
+                  : p.role === 'user' 
+                  ? `👤 ${p.full_name.split(' ')[0]}` 
+                  : `👁️ ${p.full_name.split(' ')[0]}`}
               </button>
             ))}
           </div>

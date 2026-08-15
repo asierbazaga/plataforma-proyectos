@@ -4,14 +4,19 @@ import { useAuth } from '../context/AuthContext';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@plataforma.com');
+  const [email, setEmail] = useState('asier.bazaga@plataforma.com');
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const ok = await login(email);
+    // Permitir alias comunes
+    let searchEmail = email.trim();
+    if (searchEmail.toLowerCase() === 'admin@plataforma.com') {
+      searchEmail = 'asier.bazaga@plataforma.com';
+    }
+    const ok = await login(searchEmail);
     if (!ok) {
       setError('Correo electrónico no registrado. Pruebe uno de los accesos rápidos.');
     }
@@ -86,41 +91,59 @@ export const Login: React.FC = () => {
         {/* Quick Demo Access Buttons */}
         <div className="pt-4 border-t border-slate-800 space-y-3">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center flex items-center justify-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Accesos Rápidos de Prueba (Demo)
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Perfiles de Usuario Configurados
           </p>
 
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2.5">
+            {/* Asier Bazaga - Super Admin */}
             <button
-              onClick={() => handleQuickLogin('admin@plataforma.com')}
-              className="p-3 rounded-xl bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/30 text-left transition-all flex items-center justify-between group"
+              onClick={() => handleQuickLogin('asier.bazaga@plataforma.com')}
+              className="p-3 rounded-xl bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/40 text-left transition-all flex items-center justify-between group hover:shadow-lg hover:shadow-indigo-500/10"
             >
-              <div>
-                <p className="text-xs font-bold text-indigo-300">👑 Entrar como Administrador</p>
-                <p className="text-[10px] text-slate-400">admin@plataforma.com (Acceso total + Matriz RBAC)</p>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  👑
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-indigo-300">Asier Bazaga (Super Administrador)</p>
+                  <p className="text-[10px] text-slate-400">asier.bazaga@plataforma.com • Acceso Total + Matriz RBAC y Logs</p>
+                </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
             </button>
 
+            {/* Lore - Full Apps User */}
             <button
-              onClick={() => handleQuickLogin('usuario@plataforma.com')}
-              className="p-3 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-left transition-all flex items-center justify-between group"
+              onClick={() => handleQuickLogin('lore@plataforma.com')}
+              className="p-3 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 text-left transition-all flex items-center justify-between group hover:shadow-lg hover:shadow-emerald-500/10"
             >
-              <div>
-                <p className="text-xs font-bold text-emerald-300">👤 Entrar como Usuario Estándar</p>
-                <p className="text-[10px] text-slate-400">usuario@plataforma.com (Fitness & Gastos habilitados)</p>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  👤
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-emerald-300">Lore (Usuario - Acceso a Todo)</p>
+                  <p className="text-[10px] text-slate-400">lore@plataforma.com • Fitness, Gastos, Libros y Lore habilitados</p>
+                </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
             </button>
 
+            {/* Invitado Demo */}
             <button
               onClick={() => handleQuickLogin('invitado@plataforma.com')}
-              className="p-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 text-left transition-all flex items-center justify-between group"
+              className="p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/60 text-left transition-all flex items-center justify-between group"
             >
-              <div>
-                <p className="text-xs font-bold text-amber-300">👁️ Entrar como Invitado</p>
-                <p className="text-[10px] text-slate-400">invitado@plataforma.com (Solo lectura a Libros & Juegos)</p>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  👁️
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-300">Invitado Demo (Solo Lectura)</p>
+                  <p className="text-[10px] text-slate-400">invitado@plataforma.com • Acceso limitado de demostración</p>
+                </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
             </button>
           </div>
         </div>

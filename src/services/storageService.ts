@@ -1,47 +1,52 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { UserProfile, AppPermission, AuditLog, FitnessWorkout, ExpenseItem, LibraryItem, LoreClient, LoreSavedRoute } from '../types';
 
+const PROFILES_VERSION = 'v2_asier_lore';
+
 const DEFAULT_PROFILES: UserProfile[] = [
   {
     id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    email: 'admin@plataforma.com',
-    full_name: 'Asier Bazaga (Admin)',
+    email: 'asier.bazaga@plataforma.com',
+    full_name: 'Asier Bazaga',
     role: 'admin',
-    department: 'Dirección IT',
+    department: 'Dirección IT & Super Admin',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     created_at: new Date().toISOString()
   },
   {
     id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-    email: 'usuario@plataforma.com',
-    full_name: 'Carlos Gómez (Usuario)',
+    email: 'lore@plataforma.com',
+    full_name: 'Lore',
     role: 'user',
-    department: 'Operaciones',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    department: 'Operaciones & Gestión',
+    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
     created_at: new Date().toISOString()
   },
   {
     id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     email: 'invitado@plataforma.com',
-    full_name: 'Laura Martínez (Invitada)',
+    full_name: 'Invitado Demo',
     role: 'guest',
-    department: 'Consultoría',
-    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+    department: 'Consultoría Externa',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     created_at: new Date().toISOString()
   }
 ];
 
 const DEFAULT_PERMISSIONS: AppPermission[] = [
+  // Asier Bazaga: Admin Total (Fitness, Gastos, Libros-Juegos, Lore)
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'lore', can_access: true, can_edit: true },
 
+  // Lore: Usuario con acceso y edición total a las 4 aplicaciones (Sin rol admin)
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'gastos', can_access: true, can_edit: true },
-  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'libros-juegos', can_access: false, can_edit: false },
-  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'lore', can_access: false, can_edit: false },
+  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'libros-juegos', can_access: true, can_edit: true },
+  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'lore', can_access: true, can_edit: true },
 
+  // Invitado: Solo lectura a Libros & Juegos
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'fitness', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'gastos', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'libros-juegos', can_access: true, can_edit: false },
@@ -201,10 +206,22 @@ class StorageService {
   }
 
   getProfilesSync(): UserProfile[] {
+    const ver = localStorage.getItem('plataforma_data_version');
+    if (ver !== PROFILES_VERSION) {
+      localStorage.setItem('plataforma_profiles', JSON.stringify(DEFAULT_PROFILES));
+      localStorage.setItem('plataforma_permissions', JSON.stringify(DEFAULT_PERMISSIONS));
+      localStorage.setItem('plataforma_data_version', PROFILES_VERSION);
+      return DEFAULT_PROFILES;
+    }
     return this.getLocal('profiles', DEFAULT_PROFILES);
   }
 
   getPermissionsSync(): AppPermission[] {
+    const ver = localStorage.getItem('plataforma_data_version');
+    if (ver !== PROFILES_VERSION) {
+      localStorage.setItem('plataforma_permissions', JSON.stringify(DEFAULT_PERMISSIONS));
+      return DEFAULT_PERMISSIONS;
+    }
     return this.getLocal('permissions', DEFAULT_PERMISSIONS);
   }
 

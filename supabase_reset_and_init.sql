@@ -108,24 +108,24 @@ CREATE TABLE public.lore_entries (
 
 -- Insertar Usuarios Semilla
 INSERT INTO public.profiles (id, email, full_name, role, department, avatar_url) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'admin@plataforma.com', 'Asier Bazaga (Admin)', 'admin', 'Dirección IT', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'usuario@plataforma.com', 'Carlos Gómez (Usuario)', 'user', 'Operaciones', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'),
-('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'invitado@plataforma.com', 'Laura Martínez (Invitada)', 'guest', 'Consultoría', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150');
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'asier.bazaga@plataforma.com', 'Asier Bazaga', 'admin', 'Dirección IT & Super Admin', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'lore@plataforma.com', 'Lore', 'user', 'Operaciones & Gestión', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'invitado@plataforma.com', 'Invitado Demo', 'guest', 'Consultoría Externa', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150');
 
 -- Matriz de Permisos por Defecto
--- Admin: Acceso Total a las 4 Apps
+-- Asier Bazaga (Admin): Acceso y Edición Total a las 4 Apps + Matriz RBAC y Logs
 INSERT INTO public.app_permissions (user_id, app_id, can_access, can_edit) VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'fitness', TRUE, TRUE),
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'gastos', TRUE, TRUE),
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'libros-juegos', TRUE, TRUE),
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'lore', TRUE, TRUE);
 
--- Usuario Estándar: Permiso en Fitness y Gastos, Bloqueado en Lore y Libros-Juegos para prueba RBAC
+-- Lore (Usuario): Acceso Total a las 4 Apps (Sin rol admin para gestión RBAC ni Logs)
 INSERT INTO public.app_permissions (user_id, app_id, can_access, can_edit) VALUES
 ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'fitness', TRUE, TRUE),
 ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'gastos', TRUE, TRUE),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'libros-juegos', FALSE, FALSE),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'lore', FALSE, FALSE);
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'libros-juegos', TRUE, TRUE),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'lore', TRUE, TRUE);
 
 -- Invitado: Solo lectura a Libros-Juegos
 INSERT INTO public.app_permissions (user_id, app_id, can_access, can_edit) VALUES
