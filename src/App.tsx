@@ -87,32 +87,7 @@ const MainLayout: React.FC = () => {
       <Navbar currentTab={currentTab} onSelectTab={setCurrentTab} />
       <div className="flex flex-1">
         <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
-        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden space-y-4">
-          {/* Quick Breadcrumb Navigation Bar (when inside any module) */}
-          {currentTab !== 'dashboard' && (
-            <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800/80 px-4 py-2.5 rounded-2xl text-xs backdrop-blur-sm">
-              <div className="flex items-center gap-2 text-slate-400">
-                <button
-                  onClick={handleBackToDashboard}
-                  className="flex items-center gap-1.5 font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  <Home className="w-3.5 h-3.5" />
-                  <span>Plataforma</span>
-                </button>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-                <span className="font-semibold text-white">{getAppTitle()}</span>
-              </div>
-
-              <button
-                onClick={handleBackToDashboard}
-                className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-medium rounded-xl border border-slate-700 transition-all text-xs"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Volver a la Plataforma</span>
-              </button>
-            </div>
-          )}
-
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
           {renderContent()}
         </main>
       </div>

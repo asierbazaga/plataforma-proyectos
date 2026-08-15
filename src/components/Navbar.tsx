@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, Dumbbell, DollarSign, BookOpen, BookMarked, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -11,40 +11,111 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSelectTab }) => {
   const { currentUser, allProfiles, switchUser, logout } = useAuth();
 
+  const getHeaderInfo = () => {
+    switch (currentTab) {
+      case 'fitness':
+        return {
+          title: 'APP FITNESS & SALUD',
+          subtitle: 'Salud, Rendimiento & Rutinas',
+          icon: <Dumbbell className="w-5 h-5 text-white" />,
+          gradient: 'from-orange-600 to-amber-500 shadow-orange-500/25',
+          accent: 'hover:text-orange-300'
+        };
+      case 'gastos':
+        return {
+          title: 'APP GASTOS & FINANZAS',
+          subtitle: 'Control Presupuestario & Balances',
+          icon: <DollarSign className="w-5 h-5 text-white" />,
+          gradient: 'from-emerald-600 to-teal-500 shadow-emerald-500/25',
+          accent: 'hover:text-emerald-300'
+        };
+      case 'libros-juegos':
+        return {
+          title: 'APP LIBROS & JUEGOS',
+          subtitle: 'Biblioteca Digital & Gaming',
+          icon: <BookOpen className="w-5 h-5 text-white" />,
+          gradient: 'from-purple-600 to-pink-500 shadow-purple-500/25',
+          accent: 'hover:text-purple-300'
+        };
+      case 'lore':
+        return {
+          title: 'APP LORE & RUTAS',
+          subtitle: 'Mapa Comercial & Clientes',
+          icon: <BookMarked className="w-5 h-5 text-white" />,
+          gradient: 'from-blue-600 to-cyan-500 shadow-blue-500/25',
+          accent: 'hover:text-blue-300'
+        };
+      case 'permissions':
+        return {
+          title: 'MATRIZ DE PERMISOS',
+          subtitle: 'Administración de Roles RBAC',
+          icon: <ShieldCheck className="w-5 h-5 text-white" />,
+          gradient: 'from-indigo-600 to-purple-600 shadow-indigo-500/25',
+          accent: 'hover:text-indigo-300'
+        };
+      case 'logs':
+        return {
+          title: 'REGISTRO DE ACTIVIDAD',
+          subtitle: 'Auditoría de Eventos del Sistema',
+          icon: <FileText className="w-5 h-5 text-white" />,
+          gradient: 'from-slate-700 to-indigo-700 shadow-indigo-500/20',
+          accent: 'hover:text-slate-300'
+        };
+      default:
+        return {
+          title: 'PLATAFORMA PROYECTOS',
+          subtitle: 'Portal Único Unificado',
+          icon: null,
+          gradient: 'from-indigo-600 via-purple-600 to-pink-500 shadow-indigo-500/25',
+          accent: 'hover:text-indigo-300'
+        };
+    }
+  };
+
+  const headerInfo = getHeaderInfo();
+  const isInsideApp = currentTab !== 'dashboard';
+
   return (
     <header className="h-16 border-b border-slate-800 bg-[#0B0F19]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
-      {/* Brand & Return to Platform */}
+      {/* Dynamic Brand & Application Title */}
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Brand Link - Click to Return to Dashboard */}
+        {/* Back Button on Mobile / Desktop when inside app */}
+        {isInsideApp && (
+          <button
+            onClick={() => onSelectTab?.('dashboard')}
+            title="Volver al Catálogo de Plataforma"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-indigo-600 text-slate-300 hover:text-white border border-slate-700 hover:border-indigo-400 text-xs font-bold transition-all shadow-sm group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden sm:inline">Catálogo</span>
+          </button>
+        )}
+
+        {/* Dynamic App Brand */}
         <button
           onClick={() => onSelectTab?.('dashboard')}
-          title="Ir al Catálogo de Plataforma"
-          className="flex items-center gap-2.5 text-left group hover:opacity-90 transition-opacity focus:outline-none"
+          title={isInsideApp ? "Volver al Catálogo" : "Plataforma de Proyectos"}
+          className="flex items-center gap-2.5 text-left group focus:outline-none"
         >
-          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 flex-shrink-0 group-hover:scale-105 transition-transform">
-            <img src="/favicon.svg" alt="Plataforma Logo" className="w-full h-full object-cover" />
-          </div>
+          {headerInfo.icon ? (
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${headerInfo.gradient} flex items-center justify-center shadow-lg ring-1 ring-white/10 flex-shrink-0 group-hover:scale-105 transition-transform`}>
+              {headerInfo.icon}
+            </div>
+          ) : (
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 flex-shrink-0 group-hover:scale-105 transition-transform">
+              <img src="/favicon.svg" alt="Plataforma Logo" className="w-full h-full object-cover" />
+            </div>
+          )}
+
           <div>
-            <h1 className="font-bold text-white text-sm sm:text-base tracking-tight leading-tight group-hover:text-indigo-300 transition-colors">
-              PLATAFORMA PROYECTOS
+            <h1 className={`font-bold text-white text-sm sm:text-base tracking-tight leading-tight transition-colors ${headerInfo.accent}`}>
+              {headerInfo.title}
             </h1>
             <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
-              Portal Único Unificado
+              {headerInfo.subtitle}
             </p>
           </div>
         </button>
-
-        {/* Prominent Back to Platform Button when inside any app */}
-        {currentTab !== 'dashboard' && (
-          <button
-            onClick={() => onSelectTab?.('dashboard')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-bold transition-all shadow-sm shadow-indigo-500/10 group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="hidden sm:inline">Volver a la Plataforma</span>
-            <span className="sm:hidden">Catálogo</span>
-          </button>
-        )}
 
         {/* Database Status Indicator */}
         <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs">
