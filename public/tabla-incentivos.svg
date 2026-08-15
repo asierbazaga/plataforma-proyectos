@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 700" width="100%" height="100%" style="background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <style>
+      .th { fill: #0B2545; font-size: 15px; font-weight: 800; text-anchor: middle; }
+      .th-txt { fill: #FFFFFF; font-size: 14px; font-weight: 800; }
+      .td-ro { font-size: 13px; font-weight: 700; fill: #1E293B; text-anchor: middle; }
+      .td-inc { font-size: 13px; font-weight: 800; fill: #0F172A; text-anchor: middle; }
+      .highlight-80 { fill: #E0E7FF; }
+      .highlight-90 { fill: #DBEAFE; }
+      .highlight-95 { fill: #E0E7FF; }
+      .highlight-100 { fill: #DBEAFE; }
+      .highlight-105 { fill: #E0E7FF; }
+      .highlight-110 { fill: #DBEAFE; }
+      .highlight-120 { fill: #DBEAFE; }
+      .border-line { stroke: #0B2545; stroke-width: 1.5; }
+      .cell-border { stroke: #94A3B8; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <!-- Titulo Superior -->
+  <rect x="0" y="0" width="600" height="42" fill="#0B2545" />
+  <text x="300" y="27" fill="#FFFFFF" font-size="16" font-weight="800" text-anchor="middle" letter-spacing="1">ESCALA DE INCENTIVOS DRASANVI (R/O MES)</text>
+
+  <!-- COLUMNA 1 (80% - 100%) -->
+  <g transform="translate(15, 52)">
+    <!-- Header 1 -->
+    <rect x="0" y="0" width="135" height="30" fill="#0B2545" />
+    <rect x="135" y="0" width="135" height="30" fill="#0B2545" />
+    <text x="67" y="20" class="th-txt" text-anchor="middle">R/O MES</text>
+    <text x="202" y="20" class="th-txt" text-anchor="middle">INCENTIVO</text>
+
+    <!-- Rows Col 1 -->
+    <!-- 80% -->
+    <rect x="0" y="30" width="270" height="28" class="highlight-80" />
+    <text x="67" y="49" class="td-ro" font-weight="900">80%</text>
+    <text x="202" y="49" class="td-inc" font-weight="900">250 €</text>
+
+    <!-- 81-89% -->
+    <text x="67" y="77" class="td-ro">81%</text><text x="202" y="77" class="td-inc">270 €</text>
+    <text x="67" y="105" class="td-ro">82%</text><text x="202" y="105" class="td-inc">290 €</text>
+    <text x="67" y="133" class="td-ro">83%</text><text x="202" y="133" class="td-inc">310 €</text>
+    <text x="67" y="161" class="td-ro">84%</text><text x="202" y="161" class="td-inc">330 €</text>
+    <text x="67" y="189" class="td-ro">85%</text><text x="202" y="189" class="td-inc">350 €</text>
+    <text x="67" y="217" class="td-ro">86%</text><text x="202" y="217" class="td-inc">370 €</text>
+    <text x="67" y="245" class="td-ro">87%</text><text x="202" y="245" class="td-inc">390 €</text>
+    <text x="67" y="273" class="td-ro">88%</text><text x="202" y="273" class="td-inc">410 €</text>
+    <text x="67" y="301" class="td-ro">89%</text><text x="202" y="301" class="td-inc">430 €</text>
+
+    <!-- 90% Highlight -->
+    <rect x="0" y="310" width="270" height="28" class="highlight-90" />
+    <text x="67" y="329" class="td-ro" font-weight="900">90%</text><text x="202" y="329" class="td-inc" font-weight="900">500 €</text>
+
+    <text x="67" y="357" class="td-ro">91%</text><text x="202" y="357" class="td-inc">520 €</text>
+    <text x="67" y="385" class="td-ro">92%</text><text x="202" y="385" class="td-inc">540 €</text>
+    <text x="67" y="413" class="td-ro">93%</text><text x="202" y="413" class="td-inc">560 €</text>
+    <text x="67" y="441" class="td-ro">94%</text><text x="202" y="441" class="td-inc">580 €</text>
+
+    <!-- 95% Highlight -->
+    <rect x="0" y="450" width="270" height="28" class="highlight-95" />
+    <text x="67" y="469" class="td-ro" font-weight="900">95%</text><text x="202" y="469" class="td-inc" font-weight="900">620 €</text>
+
+    <text x="67" y="497" class="td-ro">96%</text><text x="202" y="497" class="td-inc">640 €</text>
+    <text x="67" y="525" class="td-ro">97%</text><text x="202" y="525" class="td-inc">660 €</text>
+    <text x="67" y="553" class="td-ro">98%</text><text x="202" y="553" class="td-inc">680 €</text>
+    <text x="67" y="581" class="td-ro">99%</text><text x="202" y="581" class="td-inc">700 €</text>
+
+    <!-- 100% Highlight -->
+    <rect x="0" y="590" width="270" height="28" class="highlight-100" />
+    <text x="67" y="609" class="td-ro" font-weight="900">100%</text><text x="202" y="609" class="td-inc" font-weight="900">800 €</text>
+
+    <!-- Grids Column 1 -->
+    <rect x="0" y="0" width="270" height="618" fill="none" class="border-line" />
+    <line x1="135" y1="0" x2="135" y2="618" class="border-line" />
+    <!-- Horizontal lines -->
+    <line x1="0" y1="30" x2="270" y2="30" class="border-line" />
+    <line x1="0" y1="58" x2="270" y2="58" class="cell-border" />
+    <line x1="0" y1="86" x2="270" y2="86" class="cell-border" />
+    <line x1="0" y1="114" x2="270" y2="114" class="cell-border" />
+    <line x1="0" y1="142" x2="270" y2="142" class="cell-border" />
+    <line x1="0" y1="170" x2="270" y2="170" class="cell-border" />
+    <line x1="0" y1="198" x2="270" y2="198" class="cell-border" />
+    <line x1="0" y1="226" x2="270" y2="226" class="cell-border" />
+    <line x1="0" y1="254" x2="270" y2="254" class="cell-border" />
+    <line x1="0" y1="282" x2="270" y2="282" class="cell-border" />
+    <line x1="0" y1="310" x2="270" y2="310" class="border-line" />
+    <line x1="0" y1="338" x2="270" y2="338" class="border-line" />
+    <line x1="0" y1="366" x2="270" y2="366" class="cell-border" />
+    <line x1="0" y1="394" x2="270" y2="394" class="cell-border" />
+    <line x1="0" y1="422" x2="270" y2="422" class="cell-border" />
+    <line x1="0" y1="450" x2="270" y2="450" class="border-line" />
+    <line x1="0" y1="478" x2="270" y2="478" class="border-line" />
+    <line x1="0" y1="506" x2="270" y2="506" class="cell-border" />
+    <line x1="0" y1="534" x2="270" y2="534" class="cell-border" />
+    <line x1="0" y1="562" x2="270" y2="562" class="cell-border" />
+    <line x1="0" y1="590" x2="270" y2="590" class="border-line" />
+  </g>
+
+  <!-- COLUMNA 2 (101% - 120%) -->
+  <g transform="translate(315, 52)">
+    <!-- Header 2 -->
+    <rect x="0" y="0" width="135" height="30" fill="#0B2545" />
+    <rect x="135" y="0" width="135" height="30" fill="#0B2545" />
+    <text x="67" y="20" class="th-txt" text-anchor="middle">R/O MES</text>
+    <text x="202" y="20" class="th-txt" text-anchor="middle">INCENTIVO</text>
+
+    <!-- Rows Col 2 -->
+    <text x="67" y="49" class="td-ro">101%</text><text x="202" y="49" class="td-inc">820 €</text>
+    <text x="67" y="77" class="td-ro">102%</text><text x="202" y="77" class="td-inc">840 €</text>
+    <text x="67" y="105" class="td-ro">103%</text><text x="202" y="105" class="td-inc">860 €</text>
+    <text x="67" y="133" class="td-ro">104%</text><text x="202" y="133" class="td-inc">880 €</text>
+
+    <!-- 105% Highlight -->
+    <rect x="0" y="142" width="270" height="28" class="highlight-105" />
+    <text x="67" y="161" class="td-ro" font-weight="900">105%</text><text x="202" y="161" class="td-inc" font-weight="900">1 000 €</text>
+
+    <text x="67" y="189" class="td-ro">106%</text><text x="202" y="189" class="td-inc">1 020 €</text>
+    <text x="67" y="217" class="td-ro">107%</text><text x="202" y="217" class="td-inc">1 040 €</text>
+    <text x="67" y="245" class="td-ro">108%</text><text x="202" y="245" class="td-inc">1 060 €</text>
+    <text x="67" y="273" class="td-ro">109%</text><text x="202" y="273" class="td-inc">1 080 €</text>
+
+    <!-- 110% Highlight -->
+    <rect x="0" y="282" width="270" height="28" class="highlight-110" />
+    <text x="67" y="301" class="td-ro" font-weight="900">110%</text><text x="202" y="301" class="td-inc" font-weight="900">1 200 €</text>
+
+    <text x="67" y="329" class="td-ro">111%</text><text x="202" y="329" class="td-inc">1 220 €</text>
+    <text x="67" y="357" class="td-ro">112%</text><text x="202" y="357" class="td-inc">1 240 €</text>
+    <text x="67" y="385" class="td-ro">113%</text><text x="202" y="385" class="td-inc">1 260 €</text>
+    <text x="67" y="413" class="td-ro">114%</text><text x="202" y="413" class="td-inc">1 280 €</text>
+    <text x="67" y="441" class="td-ro">115%</text><text x="202" y="441" class="td-inc">1 300 €</text>
+    <text x="67" y="469" class="td-ro">116%</text><text x="202" y="469" class="td-inc">1 320 €</text>
+    <text x="67" y="497" class="td-ro">117%</text><text x="202" y="497" class="td-inc">1 340 €</text>
+    <text x="67" y="525" class="td-ro">118%</text><text x="202" y="525" class="td-inc">1 360 €</text>
+    <text x="67" y="553" class="td-ro">119%</text><text x="202" y="553" class="td-inc">1 380 €</text>
+
+    <!-- 120% Highlight -->
+    <rect x="0" y="562" width="270" height="28" class="highlight-120" />
+    <text x="67" y="581" class="td-ro" font-weight="900">120%</text><text x="202" y="581" class="td-inc" font-weight="900">1 500 €</text>
+
+    <!-- Grids Column 2 -->
+    <rect x="0" y="0" width="270" height="590" fill="none" class="border-line" />
+    <line x1="135" y1="0" x2="135" y2="590" class="border-line" />
+    <!-- Horizontal lines -->
+    <line x1="0" y1="30" x2="270" y2="30" class="border-line" />
+    <line x1="0" y1="58" x2="270" y2="58" class="cell-border" />
+    <line x1="0" y1="86" x2="270" y2="86" class="cell-border" />
+    <line x1="0" y1="114" x2="270" y2="114" class="cell-border" />
+    <line x1="0" y1="142" x2="270" y2="142" class="border-line" />
+    <line x1="0" y1="170" x2="270" y2="170" class="border-line" />
+    <line x1="0" y1="198" x2="270" y2="198" class="cell-border" />
+    <line x1="0" y1="226" x2="270" y2="226" class="cell-border" />
+    <line x1="0" y1="254" x2="270" y2="254" class="cell-border" />
+    <line x1="0" y1="282" x2="270" y2="282" class="border-line" />
+    <line x1="0" y1="310" x2="270" y2="310" class="border-line" />
+    <line x1="0" y1="338" x2="270" y2="338" class="cell-border" />
+    <line x1="0" y1="366" x2="270" y2="366" class="cell-border" />
+    <line x1="0" y1="394" x2="270" y2="394" class="cell-border" />
+    <line x1="0" y1="422" x2="270" y2="422" class="cell-border" />
+    <line x1="0" y1="450" x2="270" y2="450" class="cell-border" />
+    <line x1="0" y1="478" x2="270" y2="478" class="cell-border" />
+    <line x1="0" y1="506" x2="270" y2="506" class="cell-border" />
+    <line x1="0" y1="534" x2="270" y2="534" class="cell-border" />
+    <line x1="0" y1="562" x2="270" y2="562" class="border-line" />
+  </g>
+</svg>
