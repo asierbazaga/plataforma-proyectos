@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft } from 'lucide-react';
+import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft, Target, Sparkles } from 'lucide-react';
 import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+import { LoreGoalsCalculator } from './LoreGoalsCalculator';
 
 interface LoreAppProps {
   onBack?: () => void;
@@ -24,6 +25,9 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
 export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('lore');
+
+  // Sub-pestañas: Objetivos Drasanvi vs Rutas Mapa
+  const [activeSubTab, setActiveSubTab] = useState<'goals' | 'routes'>('goals');
 
   const [clientes, setClientes] = useState<LoreClient[]>([]);
   const [search, setSearch] = useState('');
@@ -231,48 +235,82 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-600/10 via-cyan-600/10 to-transparent p-6 rounded-2xl border border-blue-500/20">
-        <div className="flex items-center gap-4">
+      {/* Sub-Navigation Tabs Bar (Cuadro de Mandos Drasanvi vs Mapa Rutas) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md">
+        <div className="flex items-center gap-2">
           {onBack && (
             <button
               onClick={onBack}
               title="Volver a la Plataforma"
-              className="p-3 rounded-xl bg-slate-800/80 hover:bg-blue-600 hover:text-white text-slate-300 border border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center group"
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all flex items-center justify-center group"
             >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             </button>
           )}
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25 flex-shrink-0">
-            <Navigation className="w-7 h-7 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white">GESTOR DE RUTAS Y MAPA COMERCIAL</h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Módulo Activo</span>
-            </div>
-            <p className="text-slate-400 text-sm">Optimización de itinerarios por Deciles (D07-D10), mapa GPS y recomendaciones de visita.</p>
+
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-slate-800/80 w-full sm:w-auto">
+            <button
+              onClick={() => setActiveSubTab('goals')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'goals'
+                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <span>🌸</span>
+              <span>Cuadro de Mandos (Drasanvi)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('routes')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'routes'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Mapa & Rutas Comerciales</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700"
-            >
-              <ArrowLeft className="w-4 h-4" /> Plataforma
-            </button>
-          )}
-          <button
-            onClick={generateRecommendedRoute}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
-          >
-            <Award className="w-4 h-4 text-amber-400" />
-            Generar Ruta Recomendada
-          </button>
+        <div className="flex items-center gap-2 text-xs text-slate-400 px-3 hidden lg:flex">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Módulo Lore Activo</span>
         </div>
       </div>
+
+      {/* Conditionally Render: Cuadro de Mandos (Goals) or Map & Routes */}
+      {activeSubTab === 'goals' ? (
+        <LoreGoalsCalculator />
+      ) : (
+        <div className="space-y-6">
+          {/* Header Banner for Routes */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-600/10 via-cyan-600/10 to-transparent p-6 rounded-2xl border border-blue-500/20">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25 flex-shrink-0">
+                <Navigation className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-white">GESTOR DE RUTAS Y MAPA COMERCIAL</h1>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Módulo Activo</span>
+                </div>
+                <p className="text-slate-400 text-sm">Optimización de itinerarios por Deciles (D07-D10), mapa GPS y recomendaciones de visita.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+              <button
+                onClick={generateRecommendedRoute}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+              >
+                <Award className="w-4 h-4 text-amber-400" />
+                Generar Ruta Recomendada
+              </button>
+            </div>
+          </div>
 
       {/* Main Grid Layout: Interactive Map + Route Planner */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -420,5 +458,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
         </div>
       </div>
     </div>
-  );
+  )}
+</div>
+);
 };

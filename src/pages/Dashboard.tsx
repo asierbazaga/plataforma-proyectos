@@ -16,7 +16,8 @@ import {
   Activity,
   Layers,
   Zap,
-  ChevronRight
+  ChevronRight,
+  Target
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppId } from '../types';
@@ -86,19 +87,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
     {
       id: 'lore' as AppId,
       number: '04',
-      category: 'Comercial & Rutas',
-      title: 'Lore & Rutas',
-      subtitle: 'Mapa interactivo GPS y clientes',
-      description: 'Gestor geolocalizado de clientes por deciles (D07-D10), optimización de rutas comerciales.',
+      category: 'Comercial & Drasanvi',
+      title: 'Lore & Objetivos',
+      subtitle: 'Cuadro de mandos y rutas comerciales',
+      description: 'Calculadora de objetivos mensuales, ritmo de bono 80%/100%, registro de ventas y mapa de clientes por deciles.',
       icon: Navigation,
-      glowColor: 'group-hover:shadow-blue-500/20 group-hover:border-blue-500/50',
-      iconGradient: 'from-blue-500 to-cyan-500 shadow-blue-500/30',
-      tagColor: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-      btnGradient: 'from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 shadow-blue-500/25',
+      glowColor: 'group-hover:shadow-pink-500/20 group-hover:border-pink-500/50',
+      iconGradient: 'from-pink-500 via-purple-500 to-cyan-500 shadow-pink-500/30',
+      tagColor: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
+      btnGradient: 'from-pink-500 via-purple-600 to-cyan-600 hover:from-pink-400 hover:to-cyan-500 shadow-pink-500/25',
       highlights: [
-        { label: 'Mapa GPS Leaflet', icon: MapPin },
-        { label: 'Deciles D10 a D07', icon: Layers },
-        { label: 'Generador de Rutas', icon: Navigation }
+        { label: '🌸 Objetivos Drasanvi', icon: Sparkles },
+        { label: '🎯 Bono 80% & 100%', icon: Target },
+        { label: '🗺️ Mapa & Deciles', icon: MapPin }
       ]
     }
   ];
