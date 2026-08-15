@@ -17,7 +17,8 @@ import {
   Layers,
   Zap,
   ChevronRight,
-  Target
+  Target,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppId } from '../types';
@@ -88,9 +89,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
       id: 'lore' as AppId,
       number: '04',
       category: 'Comercial & Drasanvi',
-      title: 'Lore & Objetivos',
-      subtitle: 'Cuadro de mandos y rutas comerciales',
-      description: 'Calculadora de objetivos mensuales, ritmo de bono 80%/100%, registro de ventas y mapa de clientes por deciles.',
+      title: 'Lore Comercial & CRM',
+      subtitle: 'Cuadro de mandos, farmacias y rutas',
+      description: 'Calculadora de objetivos y bonos Drasanvi, CRM general de seguimiento a farmacias por tendencias/competencia y rutas GPS.',
       icon: Navigation,
       glowColor: 'group-hover:shadow-pink-500/20 group-hover:border-pink-500/50',
       iconGradient: 'from-pink-500 via-purple-500 to-cyan-500 shadow-pink-500/30',
@@ -98,8 +99,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
       btnGradient: 'from-pink-500 via-purple-600 to-cyan-600 hover:from-pink-400 hover:to-cyan-500 shadow-pink-500/25',
       highlights: [
         { label: '🌸 Objetivos Drasanvi', icon: Sparkles },
-        { label: '🎯 Bono 80% & 100%', icon: Target },
-        { label: '🗺️ Mapa & Deciles', icon: MapPin }
+        { label: '🏥 CRM Farmacias', icon: Building2 },
+        { label: '🗺️ Rutas & Deciles', icon: MapPin }
       ]
     }
   ];

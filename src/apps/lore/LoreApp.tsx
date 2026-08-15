@@ -4,6 +4,7 @@ import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
 import { LoreGoalsCalculator } from './LoreGoalsCalculator';
+import { LorePharmaciesCRM } from './LorePharmaciesCRM';
 
 interface LoreAppProps {
   onBack?: () => void;
@@ -26,8 +27,8 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('lore');
 
-  // Sub-pestañas: Objetivos Drasanvi vs Rutas Mapa
-  const [activeSubTab, setActiveSubTab] = useState<'goals' | 'routes'>('goals');
+  // Sub-pestañas: Objetivos Drasanvi vs Seguimiento CRM vs Rutas Mapa
+  const [activeSubTab, setActiveSubTab] = useState<'goals' | 'crm' | 'routes'>('goals');
 
   const [clientes, setClientes] = useState<LoreClient[]>([]);
   const [search, setSearch] = useState('');
@@ -248,10 +249,10 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
             </button>
           )}
 
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-slate-800/80 w-full sm:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-slate-800/80 w-full sm:w-auto">
             <button
               onClick={() => setActiveSubTab('goals')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSubTab === 'goals'
                   ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -262,8 +263,20 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
             </button>
 
             <button
+              onClick={() => setActiveSubTab('crm')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === 'crm'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <span>🏥</span>
+              <span>Seguimiento Farmacias (CRM)</span>
+            </button>
+
+            <button
               onClick={() => setActiveSubTab('routes')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSubTab === 'routes'
                   ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -281,9 +294,11 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Conditionally Render: Cuadro de Mandos (Goals) or Map & Routes */}
+      {/* Conditionally Render: Cuadro de Mandos (Goals) vs CRM vs Map & Routes */}
       {activeSubTab === 'goals' ? (
         <LoreGoalsCalculator />
+      ) : activeSubTab === 'crm' ? (
+        <LorePharmaciesCRM />
       ) : (
         <div className="space-y-6">
           {/* Header Banner for Routes */}
