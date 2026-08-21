@@ -107,11 +107,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
             </div>
           )}
 
-          <div>
-            <h1 className={`font-bold text-white text-sm sm:text-base tracking-tight leading-tight transition-colors ${headerInfo.accent}`}>
+          <div className="min-w-0">
+            <h1 className={`font-bold text-white text-xs sm:text-base tracking-tight leading-tight transition-colors truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none ${headerInfo.accent}`}>
               {headerInfo.title}
             </h1>
-            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium uppercase tracking-widest truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none">
               {headerInfo.subtitle}
             </p>
           </div>
