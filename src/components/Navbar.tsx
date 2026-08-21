@@ -161,11 +161,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
 
           {/* Current Profile Badge */}
           <div className="flex items-center gap-3 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800">
-            <img
-              src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-              alt={currentUser.full_name}
-              className="w-8 h-8 rounded-lg object-cover ring-2 ring-indigo-500/40"
-            />
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shadow-md ${
+              currentUser.role === 'admin'
+                ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-indigo-500/20'
+                : currentUser.email.includes('lore')
+                ? 'bg-gradient-to-tr from-pink-500 to-purple-600 text-white shadow-pink-500/20'
+                : 'bg-gradient-to-tr from-amber-500 to-orange-600 text-white'
+            }`}>
+              <span>{currentUser.role === 'admin' ? '👑' : currentUser.email.includes('lore') ? '🌸' : '👁️'}</span>
+            </div>
             <div className="text-left hidden sm:block">
               <p className="text-xs font-bold text-white leading-tight">{currentUser.full_name}</p>
               <p className="text-[10px] text-slate-400 uppercase font-semibold">

@@ -136,33 +136,40 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
     ? [...apps.filter(a => a.id === 'lore'), ...apps.filter(a => a.id !== 'lore')]
     : apps;
 
+  // Monograma de iniciales para el avatar
+  const getInitials = (name: string) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
   return (
     <div className="space-y-6 pb-8">
-      {/* Saludo Limpio y Minimalista de Entrada */}
+      {/* Saludo Limpio y Estructurado */}
       <div className="flex items-center justify-between py-2 px-1">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl overflow-hidden ring-2 ring-indigo-500/40 shadow-lg flex-shrink-0">
-            <img 
-              src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'} 
-              alt={currentUser?.full_name} 
-              className="w-full h-full object-cover"
-            />
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold text-sm shadow-lg ring-1 ring-white/20 flex-shrink-0 ${
+            isAsier 
+              ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-indigo-500/20' 
+              : isLore 
+              ? 'bg-gradient-to-tr from-pink-500 to-purple-600 text-white shadow-pink-500/20' 
+              : 'bg-gradient-to-tr from-amber-500 to-orange-600 text-white'
+          }`}>
+            <span>{isAsier ? '👑' : isLore ? '🌸' : '👁️'}</span>
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>Bienvenido,</span>
+              <span>{isLore ? '¡Hola,' : 'Bienvenido,'}</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
                 {currentUser?.full_name}
               </span>
-              {isAsier && <span className="text-base">👑</span>}
-              {isLore && <span className="text-base">🌸</span>}
             </h1>
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
               {isAsier 
-                ? 'Super Administrador • Control Global IT' 
+                ? 'Super Administrador' 
                 : isLore 
-                ? 'Especialista Comercial Drasanvi & Salud' 
-                : 'Sesión activa'}
+                ? 'Comercial Drasanvi' 
+                : 'Modo Invitado'}
             </p>
           </div>
         </div>
@@ -173,22 +180,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
         </div>
       </div>
 
-      {/* 2. CATÁLOGO DE APLICACIONES */}
+      {/* 2. CATÁLOGO DE APLICACIONES (Limpio y directo) */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center px-1">
-          <div>
-            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>Catálogo de Aplicaciones</span>
-            </h2>
-            <p className="text-xs text-slate-400 font-medium">
-              {isLore 
-                ? 'Tus 4 herramientas integradas con tu cuenta activa' 
-                : '4 módulos sincronizados con respaldo centralizado'}
-            </p>
-          </div>
-          <span className="text-xs px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 font-semibold">
-            4 Módulos Disponibles
-          </span>
+        <div className="px-1">
+          <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+            Catálogo de Aplicaciones
+          </h2>
         </div>
 
         {/* Grid de Tarjetas */}
