@@ -35,19 +35,26 @@ export const Login: React.FC = () => {
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('admin123');
 
-  // Cargar estado biométrico del hardware
+  // Cargar estado biométrico del hardware y disparar automáticamente el sensor del teléfono
   useEffect(() => {
-    const checkBiometrics = async () => {
+    let timer: any;
+    const checkAndAutoTrigger = async () => {
       const available = await webAuthnService.isBiometricAvailable();
       setIsBiometricSupported(available);
       const creds = webAuthnService.getRegisteredCredentials();
       setRegisteredCredentials(creds);
       
-      if (creds.length === 0) {
+      if (creds.length > 0) {
+        // Disparo automático e inmediato de la huella del teléfono
+        timer = setTimeout(() => {
+          handleScanPhoneFingerprint();
+        }, 250);
+      } else {
         setIsRegisteringMode(true);
       }
     };
-    checkBiometrics();
+    checkAndAutoTrigger();
+    return () => clearTimeout(timer);
   }, []);
 
   // 1. DISPARAR EL SENSOR DE HUELLAS REAL DEL TELÉFONO (WebAuthn Platform Authenticator)

@@ -20,15 +20,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Inicialización síncrona instantánea en 0 ms
   const [allProfiles, setAllProfiles] = useState<UserProfile[]>(() => storageService.getProfilesSync());
   const [permissions, setPermissions] = useState<AppPermission[]>(() => storageService.getPermissionsSync());
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    const profiles = storageService.getProfilesSync();
-    const savedEmail = localStorage.getItem('plataforma_active_email');
-    return profiles.find(p => p.email === savedEmail) || profiles[0] || null;
-  });
-  const [loading, setLoading] = useState<boolean>(false); // 0ms delay!
+  
+  // Requiere verificación biométrica cada vez que se abre la app
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Sincronización en segundo plano con Supabase sin bloquear la pantalla
   const refreshData = async () => {
@@ -37,20 +34,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const perms = await storageService.getPermissions();
       setAllProfiles(profiles);
       setPermissions(perms);
-
-      const savedEmail = localStorage.getItem('plataforma_active_email');
-      const found = profiles.find(p => p.email === savedEmail) || profiles[0];
-      if (found) {
-        setCurrentUser(found);
-      }
     } catch (err) {
       console.warn('Sincronización en segundo plano completada con cache local.');
     }
   };
 
   useEffect(() => {
-    // Sincronizar en segundo plano
+    // Sincronizar perfiles
     refreshData();
+
+    // Cuando el usuario minimiza/cierra la app y vuelve a abrirla, bloquear para pedir huella
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // Al ocultar la app por más de 30 segundos, requerir huella nuevamente
+        sessionStorage.setItem('app_hidden_time', String(Date.now()));
+      } else if (document.visibilityState === 'visible') {
+        const hiddenTime = sessionStorage.getItem('app_hidden_time');
+        if (hiddenTime && Date.now() - Number(hiddenTime) > 20000) {
+          setCurrentUser(null);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const login = async (identifier: string): Promise<boolean> => {
