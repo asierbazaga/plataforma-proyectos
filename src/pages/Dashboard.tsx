@@ -137,125 +137,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
     : apps;
 
   return (
-    <div className="space-y-8 pb-8">
-      {/* 1. HERO BANNER PERSONALIZADO SEGÚN EL USUARIO */}
-      {isLore ? (
-        /* HERO PARA LORE (Drasanvi & Comercial) */
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-950/40 via-[#161224] to-[#0B0F19] border border-pink-500/40 p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="absolute top-0 right-1/4 w-80 h-80 bg-pink-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 right-0 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-pink-500/10 border border-pink-500/30 text-pink-300 text-xs font-bold tracking-wide">
-                <span>🌸</span>
-                <span>Panel Comercial Drasanvi & Salud</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-                ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300">Lore</span>! 🌸
-              </h1>
-
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Tu espacio de trabajo con seguimiento de objetivos de ventas mensuales, cartera de farmacias y accesos a tus aplicaciones de salud y finanzas.
-              </p>
-            </div>
-
-            {/* Quick Live Snapshot of Sales Goal */}
-            <div className="w-full lg:w-auto bg-slate-950/80 p-4 rounded-2xl border border-pink-500/30 backdrop-blur-md space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold text-pink-400 uppercase tracking-wider">Objetivo Mensual Drasanvi</p>
-                  <p className="text-lg font-black text-white">{loreGoal.objetivo.toLocaleString('es-ES')} €</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Progreso</p>
-                  <p className="text-lg font-black text-emerald-400">{lorePct.toFixed(1)}%</p>
-                </div>
-              </div>
-
-              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-500"
-                  style={{ width: `${Math.min(100, Math.max(0, lorePct))}%` }}
-                />
-              </div>
-
-              <div className="flex justify-between items-center text-[11px] pt-1">
-                <span className="text-slate-400">
-                  Ritmo 80%: <b className="text-white">{loreRitmo80 > 0 ? `${loreRitmo80.toFixed(2)} €/día` : '¡Conseguido!'}</b>
-                </span>
-                <button
-                  onClick={() => onSelectApp('lore')}
-                  className="text-pink-400 hover:text-pink-300 font-bold flex items-center gap-1 group"
-                >
-                  <span>Abrir Módulo</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </div>
-            </div>
+    <div className="space-y-6 pb-8">
+      {/* Saludo Limpio y Minimalista de Entrada */}
+      <div className="flex items-center justify-between py-2 px-1">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl overflow-hidden ring-2 ring-indigo-500/40 shadow-lg flex-shrink-0">
+            <img 
+              src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'} 
+              alt={currentUser?.full_name} 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>Bienvenido,</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
+                {currentUser?.full_name}
+              </span>
+              {isAsier && <span className="text-base">👑</span>}
+              {isLore && <span className="text-base">🌸</span>}
+            </h1>
+            <p className="text-xs text-slate-400 font-medium">
+              {isAsier 
+                ? 'Super Administrador • Control Global IT' 
+                : isLore 
+                ? 'Especialista Comercial Drasanvi & Salud' 
+                : 'Sesión activa'}
+            </p>
           </div>
         </div>
-      ) : (
-        /* HERO PARA ASIER (Super Admin IT & Global) O MODO GENERAL */
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[#111827] to-[#0B0F19] border border-indigo-500/30 p-6 sm:p-8 shadow-2xl">
-          <div className="absolute top-0 right-1/4 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-bold tracking-wide">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>{isAsier ? '👑 Consola Global IT & Super Admin' : 'Portal Unificado Centralizado'}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-                Bienvenido,{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
-                  {currentUser?.full_name}
-                </span>
-              </h1>
-
-              <p className="text-slate-300 text-sm leading-relaxed">
-                {isAsier
-                  ? 'Panel de control con acceso y administración total sobre las 4 aplicaciones, auditoría y matriz RBAC.'
-                  : 'Selecciona una de las 4 aplicaciones para acceder a tus módulos con tu sesión activa.'}
-              </p>
-            </div>
-
-            {/* Quick Status Card */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 backdrop-blur-md">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-800">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
-                  4
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-bold text-white leading-tight">Apps Activas</p>
-                  <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Sistema OK
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-800">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xs">
-                  {isAsier ? '👑' : '👤'}
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-bold text-white leading-tight">
-                    {isAsier ? 'Super Admin' : 'Usuario'}
-                  </p>
-                  <p className="text-[10px] text-indigo-300 font-medium">
-                    {isAsier ? 'Control Total' : 'Acceso Completo'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-slate-300 font-semibold">{currentUser?.role === 'admin' ? 'Super Admin' : 'Usuario'}</span>
         </div>
-      )}
+      </div>
 
       {/* 2. CATÁLOGO DE APLICACIONES */}
       <div className="space-y-4">
