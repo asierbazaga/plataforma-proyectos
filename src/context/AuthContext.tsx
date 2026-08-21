@@ -53,13 +53,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshData();
   }, []);
 
-  const login = async (email: string): Promise<boolean> => {
+  const login = async (identifier: string): Promise<boolean> => {
     const profiles = await storageService.getProfiles();
-    const user = profiles.find(p => p.email.toLowerCase() === email.toLowerCase());
+    const cleanId = identifier.trim().toLowerCase();
+    
+    // Búsqueda inteligente por email, nombre, nombre de usuario o apodo
+    const user = profiles.find(p => {
+      const email = p.email.toLowerCase();
+      const name = p.full_name.toLowerCase();
+      const firstName = name.split(' ')[0];
+      
+      // Coincidencias exactas o alias
+      if (email === cleanId) return true;
+      if (name === cleanId) return true;
+      if (firstName === cleanId) return true;
+      
+      // Alias Asier
+      if ((cleanId === 'asier' || cleanId === 'admin' || cleanId === 'asier.bazaga') && 
+          (email.includes('asier') || email.includes('admin') || name.includes('asier'))) {
+        return true;
+      }
+      // Alias Lore
+      if (cleanId === 'lore' && (email.includes('lore') || name.includes('lore'))) {
+        return true;
+      }
+      // Alias Invitado
+      if ((cleanId === 'invitado' || cleanId === 'guest' || cleanId === 'demo') && 
+          (email.includes('invitado') || email.includes('guest') || p.role === 'guest')) {
+        return true;
+      }
+      return false;
+    });
+
     if (user) {
       setCurrentUser(user);
       localStorage.setItem('plataforma_active_email', user.email);
-      storageService.logAction(user.email, 'LOGIN', `Inicio de sesión exitoso como ${user.role}`);
+      storageService.logAction(user.email, 'LOGIN', `Inicio de sesión exitoso como ${user.role} (${user.full_name})`);
       return true;
     }
     return false;
