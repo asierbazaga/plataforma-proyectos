@@ -134,31 +134,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
         </div>
       </div>
 
-      {/* User Session & Role Switcher */}
+      {/* User Session & Logout */}
       {currentUser && (
-        <div className="flex items-center gap-4">
-          {/* Quick Role Switcher */}
-          <div className="hidden lg:flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
-            <span className="text-slate-400 pl-2 font-medium">Cambiar Perfil:</span>
-            {allProfiles.map(p => (
-              <button
-                key={p.id}
-                onClick={() => switchUser(p)}
-                className={`px-3 py-1 rounded-lg transition-all font-semibold ${
-                  currentUser.id === p.id 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                {p.role === 'admin' 
-                  ? `👑 ${p.full_name.split(' ')[0]}` 
-                  : p.role === 'user' 
-                  ? `👤 ${p.full_name.split(' ')[0]}` 
-                  : `👁️ ${p.full_name.split(' ')[0]}`}
-              </button>
-            ))}
-          </div>
-
+        <div className="flex items-center gap-3 sm:gap-4">
           {/* Current Profile Badge */}
           <div className="flex items-center gap-3 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shadow-md ${

@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { UserProfile, AppPermission, AuditLog, FitnessWorkout, ExpenseItem, LibraryItem, LoreClient, LoreSavedRoute } from '../types';
+import { UserProfile, AppPermission, AuditLog, FitnessWorkout, ExpenseItem, SavingsGoal, LibraryItem, LoreClient, LoreSavedRoute } from '../types';
 
 const PROFILES_VERSION = 'v2_asier_lore';
 
@@ -59,9 +59,15 @@ const DEFAULT_WORKOUTS: FitnessWorkout[] = [
 ];
 
 const DEFAULT_EXPENSES: ExpenseItem[] = [
-  { id: '1', description: 'Servidores Cloud Vercel & Supabase', amount: 45.00, type: 'expense', category: 'Tecnología', transaction_date: '2026-08-14' },
-  { id: '2', description: 'Compra Supermercado', amount: 128.50, type: 'expense', category: 'Alimentación', transaction_date: '2026-08-12' },
-  { id: '3', description: 'Cobro Proyecto Freelance', amount: 1200.00, type: 'income', category: 'Ingresos', transaction_date: '2026-08-10' }
+  { id: '1', description: 'Servidores Cloud Vercel & Supabase', amount: 45.00, type: 'expense', category: 'Tecnología', transaction_date: '2026-08-14', account: 'abanca' },
+  { id: '2', description: 'Compra Semanal Mercadona (Conjunta)', amount: 128.50, type: 'expense', category: 'Alimentación', transaction_date: '2026-08-12', account: 'ing' },
+  { id: '3', description: 'Nómina / Ingreso Principal', amount: 2100.00, type: 'income', category: 'Ingresos', transaction_date: '2026-08-10', account: 'abanca' },
+  { id: '4', description: 'Aportación Mensual Cuenta Común ING', amount: 400.00, type: 'income', category: 'Ahorro/Común', transaction_date: '2026-08-05', account: 'ing' }
+];
+
+const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [
+  { id: 'goal_1', title: 'Viaje / Vacaciones', target_amount: 2500, current_amount: 1450, account: 'ing', target_date: '2026-11-01', notes: 'Ahorro conjunto para vacaciones' },
+  { id: 'goal_2', title: 'Fondo de Emergencia Personal', target_amount: 5000, current_amount: 3200, account: 'abanca', target_date: '2026-12-31', notes: 'Colchón de seguridad personal Abanca' }
 ];
 
 const DEFAULT_LIBRARY: LibraryItem[] = [
@@ -360,6 +366,58 @@ class StorageService {
     const updated = [item, ...current];
     this.setLocal('expenses', updated);
     return item;
+  }
+
+  async deleteExpense(id: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('expenses').delete().eq('id', id)).catch(() => {});
+    }
+    const current = this.getLocal('expenses', DEFAULT_EXPENSES);
+    const updated = current.filter(e => e.id !== id);
+    this.setLocal('expenses', updated);
+  }
+
+  async getSavingsGoals(): Promise<SavingsGoal[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const res = await withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }));
+        if (!res.error && res.data) return res.data as SavingsGoal[];
+      } catch (e) {}
+    }
+    return this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+  }
+
+  async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>): Promise<SavingsGoal> {
+    const item: SavingsGoal = {
+      ...goal,
+      id: crypto.randomUUID ? crypto.randomUUID() : `goal_${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('savings_goals').insert(item)).catch(() => {});
+    }
+    const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+    const updated = [item, ...current];
+    this.setLocal('savings_goals', updated);
+    return item;
+  }
+
+  async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id)).catch(() => {});
+    }
+    const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+    const updated = current.map(g => g.id === id ? { ...g, ...updates } : g);
+    this.setLocal('savings_goals', updated);
+  }
+
+  async deleteSavingsGoal(id: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('savings_goals').delete().eq('id', id)).catch(() => {});
+    }
+    const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+    const updated = current.filter(g => g.id !== id);
+    this.setLocal('savings_goals', updated);
   }
 
   async getLibrary(): Promise<LibraryItem[]> {

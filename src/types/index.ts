@@ -52,6 +52,8 @@ export interface FitnessWorkout {
   notes?: string;
 }
 
+export type WalletAccount = 'abanca' | 'ing';
+
 export interface ExpenseItem {
   id: string;
   user_id?: string;
@@ -60,6 +62,19 @@ export interface ExpenseItem {
   type: 'expense' | 'income';
   category: string;
   transaction_date: string;
+  account?: WalletAccount;
+}
+
+export interface SavingsGoal {
+  id: string;
+  user_id?: string;
+  title: string;
+  target_amount: number;
+  current_amount: number;
+  account: 'abanca' | 'ing' | 'global';
+  target_date?: string;
+  notes?: string;
+  created_at?: string;
 }
 
 export interface LibraryItem {
