@@ -70,6 +70,8 @@ export interface FitnessProfile {
   carb_cycling_enabled?: boolean;
   training_day_carbs?: number;
   rest_day_carbs?: number;
+  onboarding_completed?: boolean;
+  preferred_split?: string;
   updated_at?: string;
 }
 

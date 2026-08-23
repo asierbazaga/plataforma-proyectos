@@ -9,7 +9,8 @@ import {
   LayoutDashboard,
   ShieldAlert,
   ArrowLeft,
-  Calculator
+  Calculator,
+  Sparkles
 } from 'lucide-react';
 import {
   FitnessProfile,
@@ -30,13 +31,14 @@ import { BodyMetricsTracker } from './components/BodyMetricsTracker';
 import { PolarGritHub } from './components/PolarGritHub';
 import { FitnessTools } from './components/FitnessTools';
 import { FitnessProfileModal } from './components/FitnessProfileModal';
+import { FitnessAssessmentModal } from './components/FitnessAssessmentModal';
 
 interface FitnessAppProps {
   onBack?: () => void;
 }
 
 export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
-  const { canEditApp } = useAuth();
+  const { canEditApp, currentUser } = useAuth();
   const canEdit = canEditApp('fitness');
 
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -50,6 +52,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
 
   // Modal States
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAssessmentModal, setShowAssessmentModal] = useState(false);
   const [openNewWorkoutModal, setOpenNewWorkoutModal] = useState(false);
   const [openNewFoodModal, setOpenNewFoodModal] = useState(false);
   const [openWeightModal, setOpenWeightModal] = useState(false);
@@ -70,6 +73,11 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     setTodayNutrition(nut);
     setBodyProgress(bp);
     setPolarMetrics(pol);
+
+    // Si el usuario aún no ha completado el test inicial de evaluación, lanzarlo automáticamente
+    if (prof && !prof.onboarding_completed) {
+      setShowAssessmentModal(true);
+    }
   };
 
   useEffect(() => {
@@ -83,6 +91,28 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
   const handleSaveProfile = async (updated: Partial<FitnessProfile>) => {
     const saved = await storageService.updateFitnessProfile(updated);
     setProfile(saved);
+  };
+
+  const handleSaveAssessmentPlan = async (
+    updated: Partial<FitnessProfile>,
+    initialWeightEntry?: number
+  ) => {
+    const saved = await storageService.updateFitnessProfile({
+      ...updated,
+      onboarding_completed: true
+    });
+    setProfile(saved);
+
+    // Si introduce peso inicial, registrar pesaje en el historial
+    if (initialWeightEntry) {
+      await storageService.addBodyProgress({
+        date: todayStr,
+        weight: initialWeightEntry,
+        notes: 'Pesaje inicial registrado en el test de evaluación'
+      });
+    }
+
+    await loadAllFitnessData();
   };
 
   const handleApplyMacrosFromCalculator = async (macros: {
@@ -161,7 +191,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Barra Superior Integrada y Minimalista (Sin tarjeta gigante) */}
+      {/* Barra Superior Integrada y Minimalista */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-[#111622] p-2 rounded-2xl border border-white/5 shadow-lg">
         {/* Controles de Navegación Segmentada */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1">
@@ -195,8 +225,17 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
           })}
         </div>
 
-        {/* Acceso Rápido al Perfil */}
+        {/* Acceso Rápido al Perfil y Test de Evaluación */}
         <div className="flex items-center justify-end gap-2 px-2 pb-1 sm:pb-0">
+          <button
+            onClick={() => setShowAssessmentModal(true)}
+            title="Realizar test de objetivos y recomendaciones"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20 text-[#FF6B00] font-bold text-xs rounded-xl border border-[#FF6B00]/25 transition-all"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Test Inicial</span>
+          </button>
+
           <button
             onClick={() => setShowProfileModal(true)}
             className="flex items-center gap-2 px-3.5 py-1.5 bg-[#090C15] hover:bg-white/10 text-white font-bold text-xs rounded-xl border border-white/5 transition-all"
@@ -290,6 +329,14 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
 
         {currentTab === 'tools' && <FitnessTools />}
       </main>
+
+      {/* Modal Test de Evaluación Inicial / Reajuste */}
+      <FitnessAssessmentModal
+        isOpen={showAssessmentModal}
+        onClose={() => setShowAssessmentModal(false)}
+        profile={profile}
+        onSavePlan={handleSaveAssessmentPlan}
+      />
 
       {/* Modal Profile */}
       <FitnessProfileModal
