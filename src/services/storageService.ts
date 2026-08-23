@@ -58,16 +58,11 @@ const DEFAULT_WORKOUTS: FitnessWorkout[] = [
   { id: '2', title: 'Carrera Continua 7K', category: 'Cardio', duration_minutes: 35, calories_burned: 380, workout_date: '2026-08-13', notes: 'Ritmo suave 5:00 min/km' }
 ];
 
-const DEFAULT_EXPENSES: ExpenseItem[] = [
-  { id: '1', description: 'Servidores Cloud Vercel & Supabase', amount: 45.00, type: 'expense', category: 'Tecnología', transaction_date: '2026-08-14', account: 'abanca' },
-  { id: '2', description: 'Compra Semanal Mercadona (Conjunta)', amount: 128.50, type: 'expense', category: 'Alimentación', transaction_date: '2026-08-12', account: 'ing' },
-  { id: '3', description: 'Nómina / Ingreso Principal', amount: 2100.00, type: 'income', category: 'Ingresos', transaction_date: '2026-08-10', account: 'abanca' },
-  { id: '4', description: 'Aportación Mensual Cuenta Común ING', amount: 400.00, type: 'income', category: 'Ahorro/Común', transaction_date: '2026-08-05', account: 'ing' }
-];
+const DEFAULT_EXPENSES: ExpenseItem[] = [];
 
 const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [
-  { id: 'goal_1', title: 'Viaje / Vacaciones', target_amount: 2500, current_amount: 1450, account: 'ing', target_date: '2026-11-01', notes: 'Ahorro conjunto para vacaciones' },
-  { id: 'goal_2', title: 'Fondo de Emergencia Personal', target_amount: 5000, current_amount: 3200, account: 'abanca', target_date: '2026-12-31', notes: 'Colchón de seguridad personal Abanca' }
+  { id: 'goal_1', title: 'Viaje / Vacaciones', target_amount: 2500, current_amount: 0, account: 'ing', target_date: '2026-11-01', notes: 'Ahorro conjunto para vacaciones' },
+  { id: 'goal_2', title: 'Fondo de Emergencia Personal', target_amount: 5000, current_amount: 0, account: 'abanca', target_date: '2026-12-31', notes: 'Colchón de seguridad personal Abanca' }
 ];
 
 const DEFAULT_LIBRARY: LibraryItem[] = [
@@ -375,6 +370,13 @@ class StorageService {
     const current = this.getLocal('expenses', DEFAULT_EXPENSES);
     const updated = current.filter(e => e.id !== id);
     this.setLocal('expenses', updated);
+  }
+
+  async clearAllExpenses(): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('expenses').delete().neq('id', '0')).catch(() => {});
+    }
+    this.setLocal('expenses', []);
   }
 
   async getSavingsGoals(): Promise<SavingsGoal[]> {

@@ -23,7 +23,8 @@ import {
   ArrowRight,
   Filter,
   CreditCard,
-  Layers
+  Layers,
+  RotateCcw
 } from 'lucide-react';
 import { ExpenseItem, SavingsGoal, WalletAccount } from '../../types';
 import { storageService } from '../../services/storageService';
@@ -50,6 +51,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Modales
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+
   const [contributeGoalId, setContributeGoalId] = useState<string | null>(null);
   const [contributionAmount, setContributionAmount] = useState<number | string>('');
 
@@ -69,6 +72,12 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [goalNotes, setGoalNotes] = useState('');
 
   const loadData = async () => {
+    // Reset inicial si es la primera vez que se accede para empezar limpia la wallet
+    if (!localStorage.getItem('plataforma_wallet_reset_clean_v1')) {
+      await storageService.clearAllExpenses();
+      localStorage.setItem('plataforma_wallet_reset_clean_v1', 'true');
+    }
+
     const list = await storageService.getExpenses();
     const goalsList = await storageService.getSavingsGoals();
     setExpenses(list);
@@ -99,7 +108,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     await loadData();
   };
 
-  // Eliminar transacción
+  // Eliminar transacción individual
   const handleDeleteTransaction = async (id: string) => {
     if (confirm('¿Eliminar este movimiento?')) {
       await storageService.deleteExpense(id);
@@ -107,36 +116,77 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     }
   };
 
-  // Guardar nuevo objetivo de ahorro
-  const handleAddGoal = async (e: React.FormEvent) => {
+  // Limpiar todos los datos de la wallet
+  const handleClearAllExpenses = async () => {
+    if (confirm('¿Estás seguro de que quieres borrar todos los movimientos de la cartera para empezar desde cero?')) {
+      await storageService.clearAllExpenses();
+      await loadData();
+    }
+  };
+
+  // Abrir modal para crear nuevo objetivo
+  const handleOpenCreateGoal = () => {
+    setEditingGoal(null);
+    setGoalTitle('');
+    setGoalTargetAmount('');
+    setGoalCurrentAmount('0');
+    setGoalAccount('ing');
+    setGoalDate('');
+    setGoalNotes('');
+    setShowGoalModal(true);
+  };
+
+  // Abrir modal para editar objetivo existente
+  const handleOpenEditGoal = (goal: SavingsGoal) => {
+    setEditingGoal(goal);
+    setGoalTitle(goal.title);
+    setGoalTargetAmount(goal.target_amount);
+    setGoalCurrentAmount(goal.current_amount);
+    setGoalAccount(goal.account);
+    setGoalDate(goal.target_date || '');
+    setGoalNotes(goal.notes || '');
+    setShowGoalModal(true);
+  };
+
+  // Guardar objetivo (Creación o Edición)
+  const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!goalTitle.trim() || !goalTargetAmount) return;
 
-    await storageService.addSavingsGoal({
-      title: goalTitle.trim(),
-      target_amount: Number(goalTargetAmount),
-      current_amount: Number(goalCurrentAmount) || 0,
-      account: goalAccount,
-      target_date: goalDate || undefined,
-      notes: goalNotes.trim() || undefined
-    });
+    if (editingGoal) {
+      // Modificar objetivo existente
+      await storageService.updateSavingsGoal(editingGoal.id, {
+        title: goalTitle.trim(),
+        target_amount: Number(goalTargetAmount),
+        current_amount: Number(goalCurrentAmount) || 0,
+        account: goalAccount,
+        target_date: goalDate || undefined,
+        notes: goalNotes.trim() || undefined
+      });
+    } else {
+      // Crear nuevo objetivo
+      await storageService.addSavingsGoal({
+        title: goalTitle.trim(),
+        target_amount: Number(goalTargetAmount),
+        current_amount: Number(goalCurrentAmount) || 0,
+        account: goalAccount,
+        target_date: goalDate || undefined,
+        notes: goalNotes.trim() || undefined
+      });
+    }
 
-    setGoalTitle('');
-    setGoalTargetAmount('');
-    setGoalCurrentAmount('');
-    setGoalNotes('');
-    setGoalDate('');
     setShowGoalModal(false);
+    setEditingGoal(null);
     await loadData();
   };
 
   // Aportar dinero a un objetivo existente
   const handleContribute = async (goalId: string) => {
-    if (!contributionAmount || Number(contributionAmount) <= 0) return;
+    if (!contributionAmount || Number(contributionAmount) === 0) return;
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
 
-    const newAmount = goal.current_amount + Number(contributionAmount);
+    const newAmount = Math.max(0, goal.current_amount + Number(contributionAmount));
     await storageService.updateSavingsGoal(goalId, { current_amount: newAmount });
     
     setContributeGoalId(null);
@@ -201,7 +251,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               <div className="flex items-center gap-1.5">
                 <h1 className="text-base sm:text-xl font-black text-white tracking-tight">GASTOS & FINANZAS</h1>
                 <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Multi-Cartera
+                  Wallet Limpia
                 </span>
               </div>
               <p className="text-slate-400 text-[11px] sm:text-xs">
@@ -209,17 +259,28 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               </p>
             </div>
           </div>
+
+          {canEdit && expenses.length > 0 && (
+            <button
+              onClick={handleClearAllExpenses}
+              title="Borrar todos los movimientos para empezar de cero"
+              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Vaciar Cartera</span>
+            </button>
+          )}
         </div>
 
-        {/* Acciones Móviles en 2 Columnas o Fila */}
+        {/* Acciones Rápidas */}
         {canEdit && (
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
-              onClick={() => setShowGoalModal(true)}
+              onClick={handleOpenCreateGoal}
               className="py-2.5 px-3 bg-slate-800 hover:bg-purple-600 text-white font-bold text-xs rounded-xl border border-slate-700 hover:border-purple-400 transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
             >
               <Target className="w-3.5 h-3.5 text-purple-400" />
-              <span>+ Objetivo</span>
+              <span>+ Nuevo Objetivo</span>
             </button>
 
             <button
@@ -424,8 +485,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
 
             {filteredExpenses.length === 0 ? (
-              <div className="p-8 text-center bg-slate-900/60 border border-slate-800 rounded-2xl text-slate-500 text-xs">
-                No hay movimientos registrados en esta cuenta.
+              <div className="p-8 text-center bg-slate-900/60 border border-slate-800 rounded-2xl text-slate-400 space-y-2">
+                <p className="text-sm font-bold text-white">✨ Cartera limpia y lista para usar</p>
+                <p className="text-xs text-slate-500">No hay movimientos registrados. Pulsa "+ Movimiento" para registrar tu primer ingreso o gasto.</p>
               </div>
             ) : (
               filteredExpenses.map(item => {
@@ -506,8 +568,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <tbody className="divide-y divide-slate-800/60 font-medium">
                   {filteredExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-500 text-xs">
-                        No hay movimientos registrados en esta cuenta.
+                      <td colSpan={6} className="py-10 text-center text-slate-400 space-y-2">
+                        <p className="text-sm font-bold text-white">✨ Cartera limpia y lista para usar</p>
+                        <p className="text-xs text-slate-500">No hay movimientos registrados. Pulsa "+ Nueva Transacción" para registrar tu primer ingreso o gasto.</p>
                       </td>
                     </tr>
                   ) : (
@@ -655,13 +718,23 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     </div>
 
                     {canEdit && (
-                      <button
-                        onClick={() => handleDeleteGoal(goal.id)}
-                        className="text-slate-600 hover:text-rose-400 p-1 rounded-lg transition-colors"
-                        title="Eliminar meta"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenEditGoal(goal)}
+                          className="text-slate-400 hover:text-purple-300 p-1.5 rounded-lg hover:bg-purple-500/10 transition-colors"
+                          title="Modificar este objetivo"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteGoal(goal.id)}
+                          className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
+                          title="Eliminar meta"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -733,13 +806,21 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           <span className="text-[10px] text-slate-500 font-medium">
                             {goal.target_date ? `Meta: ${goal.target_date}` : 'Sin fecha'}
                           </span>
-                          <button
-                            onClick={() => { setContributeGoalId(goal.id); setContributionAmount(50); }}
-                            className="px-3.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold transition-all flex items-center gap-1 shadow-sm active:scale-95"
-                          >
-                            <Coins className="w-3.5 h-3.5" />
-                            <span>+ Aportar</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenEditGoal(goal)}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all"
+                            >
+                              Modificar
+                            </button>
+                            <button
+                              onClick={() => { setContributeGoalId(goal.id); setContributionAmount(50); }}
+                              className="px-3.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold transition-all flex items-center gap-1 shadow-sm active:scale-95"
+                            >
+                              <Coins className="w-3.5 h-3.5" />
+                              <span>+ Aportar</span>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -887,30 +968,37 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* MODAL: NUEVO OBJETIVO DE AHORRO (Bottom Sheet en móvil) */}
+      {/* MODAL: CREAR / MODIFICAR OBJETIVO DE AHORRO (Bottom Sheet en móvil) */}
       {showGoalModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-400" />
-              <span>Marcar Nuevo Objetivo de Ahorro</span>
-            </h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                <Target className="w-5 h-5 text-purple-400" />
+                <span>{editingGoal ? 'Modificar Objetivo de Ahorro' : 'Nuevo Objetivo de Ahorro'}</span>
+              </h3>
+              {editingGoal && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  Editando
+                </span>
+              )}
+            </div>
 
-            <form onSubmit={handleAddGoal} className="space-y-3 sm:space-y-4">
+            <form onSubmit={handleSaveGoal} className="space-y-3 sm:space-y-4">
               {/* Título del Objetivo */}
               <div>
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nombre del Objetivo</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Vacaciones, Coche, Fondo Emergencia..."
+                  placeholder="Ej. Fondo Emergencia, Viaje Vacaciones, Inversión..."
                   value={goalTitle}
                   onChange={e => setGoalTitle(e.target.value)}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm font-semibold"
                 />
               </div>
 
-              {/* Precio / Meta Total (€) y Aportación Inicial */}
+              {/* Precio / Meta Total (€) y Aportación Actual */}
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Precio / Meta (€)</label>
@@ -926,7 +1014,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Aportado Hoy (€)</label>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ahorrado hasta hoy (€)</label>
                   <input
                     type="number"
                     step="10"
@@ -978,6 +1066,18 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 />
               </div>
 
+              {/* Notas */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Notas / Descripción (Opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Ahorro personal mensual..."
+                  value={goalNotes}
+                  onChange={e => setGoalNotes(e.target.value)}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm"
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                 <button
                   type="button"
@@ -990,7 +1090,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   type="submit"
                   className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/25"
                 >
-                  Crear Meta
+                  {editingGoal ? 'Guardar Cambios' : 'Crear Meta'}
                 </button>
               </div>
             </form>
