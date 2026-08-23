@@ -32,8 +32,15 @@ const MainLayout: React.FC = () => {
     return <Login />;
   }
 
+  const handleSelectTab = (tab: string) => {
+    setCurrentTab(tab);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.body.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  };
+
   const handleBackToDashboard = () => {
-    setCurrentTab('dashboard');
+    handleSelectTab('dashboard');
   };
 
   const getAppTitle = () => {
@@ -51,7 +58,7 @@ const MainLayout: React.FC = () => {
   const renderContent = () => {
     switch (currentTab) {
       case 'dashboard':
-        return <Dashboard onSelectApp={(appId) => setCurrentTab(appId)} />;
+        return <Dashboard onSelectApp={(appId) => handleSelectTab(appId)} />;
 
       case 'fitness':
         if (!hasAccessToApp('fitness')) return <AccessDeniedView onBack={handleBackToDashboard} appName="APP FITNESS" />;
@@ -78,15 +85,15 @@ const MainLayout: React.FC = () => {
         return <ActivityLogs onBack={handleBackToDashboard} />;
 
       default:
-        return <Dashboard onSelectApp={(appId) => setCurrentTab(appId)} />;
+        return <Dashboard onSelectApp={(appId) => handleSelectTab(appId)} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col pb-16 md:pb-0">
-      <Navbar currentTab={currentTab} onSelectTab={setCurrentTab} />
+      <Navbar currentTab={currentTab} onSelectTab={handleSelectTab} />
       <div className="flex flex-1">
-        <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
+        <Sidebar currentTab={currentTab} onSelectTab={handleSelectTab} />
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
           {renderContent()}
         </main>
@@ -95,7 +102,7 @@ const MainLayout: React.FC = () => {
       {/* Mobile Bottom Navigation Bar (Visible only on Mobile screens) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0B0F19]/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around">
         <button
-          onClick={() => setCurrentTab('dashboard')}
+          onClick={() => handleSelectTab('dashboard')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
             currentTab === 'dashboard'
               ? 'text-indigo-400 font-bold'

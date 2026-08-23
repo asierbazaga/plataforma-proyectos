@@ -106,6 +106,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   };
 
   useEffect(() => {
+    // Asegurar que la pantalla siempre empiece arriba del todo al entrar
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.body.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+
     // 1. Carga instantánea (0ms) desde memoria
     loadData();
 
