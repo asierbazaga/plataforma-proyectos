@@ -161,76 +161,61 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Minimalist Top App Bar */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#111622] p-5 sm:p-6 rounded-3xl border border-white/5 shadow-xl">
-        <div className="flex items-center gap-4">
+      {/* Barra Superior Integrada y Minimalista (Sin tarjeta gigante) */}
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-[#111622] p-2 rounded-2xl border border-white/5 shadow-lg">
+        {/* Controles de Navegación Segmentada */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1">
           {onBack && (
             <button
               onClick={onBack}
-              title="Volver"
-              className="p-3 rounded-2xl bg-[#090C15] hover:bg-white/10 text-slate-300 border border-white/5 transition-all"
+              title="Volver a la plataforma"
+              className="p-2.5 rounded-xl bg-[#090C15] hover:bg-white/10 text-slate-300 border border-white/5 transition-all flex-shrink-0 mr-1"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-          <div className="w-12 h-12 rounded-2xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center flex-shrink-0">
-            <Dumbbell className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Fitness & Polar</h1>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#FF6B00]/15 text-[#FF6B00] font-bold">
-                Polar Grit X Pro
-              </span>
-            </div>
-            <p className="text-slate-400 text-xs mt-0.5">
-              Fuerza, calorías, recuperación de frecuencia cardíaca y peso.
-            </p>
-          </div>
+
+          {navItems.map(item => {
+            const Icon = item.icon;
+            const isActive = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setCurrentTab(item.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-200 ${
+                  isActive
+                    ? 'bg-[#FF6B00] text-white shadow-md shadow-[#FF6B00]/20'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+        {/* Acceso Rápido al Perfil */}
+        <div className="flex items-center justify-end gap-2 px-2 pb-1 sm:pb-0">
           <button
             onClick={() => setShowProfileModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#090C15] hover:bg-white/10 text-white font-bold text-xs rounded-2xl border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-[#090C15] hover:bg-white/10 text-white font-bold text-xs rounded-xl border border-white/5 transition-all"
           >
             <User className="w-3.5 h-3.5 text-[#FF6B00]" />
-            <span>Perfil ({profile.current_weight} kg)</span>
+            <span>{profile.current_weight} kg</span>
           </button>
 
           {!canEdit && (
-            <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-2xl border border-amber-400/20">
-              <ShieldAlert className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-[11px] text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-xl border border-amber-400/20">
+              <ShieldAlert className="w-3 h-3" />
               Lectura
             </div>
           )}
         </div>
-      </header>
+      </div>
 
-      {/* Modern Segmented Navigation Bar */}
-      <nav className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar p-1.5 bg-[#111622] rounded-2xl border border-white/5">
-        {navItems.map(item => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setCurrentTab(item.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-                isActive
-                  ? 'bg-[#FF6B00] text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Main Views */}
-      <main className="pt-1">
+      {/* Contenido de la Sección Activa */}
+      <main>
         {currentTab === 'dashboard' && (
           <FitnessDashboard
             profile={profile}
