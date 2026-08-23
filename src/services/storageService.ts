@@ -60,10 +60,7 @@ const DEFAULT_WORKOUTS: FitnessWorkout[] = [
 
 const DEFAULT_EXPENSES: ExpenseItem[] = [];
 
-const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [
-  { id: 'goal_1', title: 'PlayStation / Play', target_amount: 2500, current_amount: 0, account: 'ing', target_date: '2026-11-01', notes: 'Objetivo propio personal' },
-  { id: 'goal_2', title: 'Fondo de Emergencia Personal', target_amount: 5000, current_amount: 0, account: 'abanca', target_date: '2026-12-31', notes: 'Colchón de seguridad personal Abanca' }
-];
+const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [];
 
 const DEFAULT_CATEGORY_BUDGETS: CategoryBudget[] = [
   { category: 'Alimentación', monthly_limit: 400, icon: '🛒', color: '#10B981' },
@@ -207,6 +204,12 @@ class StorageService {
   private realtimeChannel: any = null;
 
   constructor() {
+    // 0. Limpieza única de objetivos de prueba para empezar de cero limpio
+    if (typeof window !== 'undefined' && !localStorage.getItem('plataforma_goals_reset_clean_v2')) {
+      localStorage.setItem('plataforma_savings_goals', JSON.stringify([]));
+      localStorage.setItem('plataforma_goals_reset_clean_v2', 'true');
+    }
+
     // 1. BroadcastChannel entre pestañas locales del mismo navegador
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {

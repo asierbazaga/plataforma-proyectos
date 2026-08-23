@@ -1012,10 +1012,32 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
           </div>
 
-          {/* Grid de Tarjetas de Objetivos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-            {goals.map(goal => {
-              const pct = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
+          {/* Grid de Tarjetas de Objetivos o Estado Vacío */}
+          {goals.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center bg-slate-900/60 border border-slate-800 rounded-3xl text-slate-400 space-y-3 shadow-xl">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                <PiggyBank className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-white">No tienes metas de ahorro activas</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  La cartera de objetivos está 100% limpia. Pulsa el botón de abajo para definir tu propio objetivo (ej. Play, Viaje, Coche, Fondo).
+                </p>
+              </div>
+              {canEdit && (
+                <button
+                  onClick={handleOpenCreateGoal}
+                  className="mt-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/25 transition-all inline-flex items-center gap-2 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Crear Mi Primer Objetivo</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
+              {goals.map(goal => {
+                const pct = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
               const remaining = Math.max(0, goal.target_amount - goal.current_amount);
               const isCompleted = goal.current_amount >= goal.target_amount;
 
@@ -1168,8 +1190,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* ========================================================================= */}
       {/* MODAL: NUEVA TRANSACCIÓN (Bottom Sheet en móvil) */}
