@@ -93,7 +93,6 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [goalAccount, setGoalAccount] = useState<'abanca' | 'ing' | 'global'>('ing');
   const [goalDate, setGoalDate] = useState('');
   const [goalNotes, setGoalNotes] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const loadData = async () => {
     const list = await storageService.getExpenses();
@@ -104,25 +103,26 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     setBudgets(budgetsList);
   };
 
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    await storageService.syncFromCloud();
-    await loadData();
-    setTimeout(() => setIsSyncing(false), 600);
-  };
-
   useEffect(() => {
+    // 1. Carga inmediata de datos
     loadData();
-    // 1. Sincronizar desde la nube al cargar
+
+    // 2. Sincronización automática silenciosa con Supabase al abrir
     storageService.syncFromCloud().then(() => loadData());
 
-    // 2. Suscribirse a cambios en tiempo real desde otros dispositivos
+    // 3. Suscripción a cambios en tiempo real vía WebSockets (PostgreSQL Realtime)
     const unsubscribe = storageService.onSync(() => {
       loadData();
     });
 
+    // 4. Heartbeat silencioso en segundo plano cada 5 segundos para que siempre esté al día
+    const interval = setInterval(() => {
+      storageService.syncFromCloud().then(() => loadData());
+    }, 5000);
+
     return () => {
       unsubscribe();
+      clearInterval(interval);
     };
   }, []);
 
@@ -333,28 +333,16 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Botón Sincronizar en Tiempo Real */}
+          {canEdit && expenses.length > 0 && (
             <button
-              onClick={handleManualSync}
-              title="Sincronizar datos en tiempo real entre móvil y web"
-              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800/90 hover:bg-teal-600 text-teal-300 hover:text-white border border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+              onClick={handleClearAllExpenses}
+              title="Borrar todos los movimientos para empezar de cero"
+              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-teal-300' : ''}`} />
-              <span className="hidden md:inline">{isSyncing ? 'Sincronizando...' : 'Sincronizado'}</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Vaciar Cartera</span>
             </button>
-
-            {canEdit && expenses.length > 0 && (
-              <button
-                onClick={handleClearAllExpenses}
-                title="Borrar todos los movimientos para empezar de cero"
-                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Vaciar Cartera</span>
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Acciones Rápidas */}

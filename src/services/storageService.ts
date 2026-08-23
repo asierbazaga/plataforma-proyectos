@@ -61,7 +61,7 @@ const DEFAULT_WORKOUTS: FitnessWorkout[] = [
 const DEFAULT_EXPENSES: ExpenseItem[] = [];
 
 const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [
-  { id: 'goal_1', title: 'Viaje / Vacaciones', target_amount: 2500, current_amount: 0, account: 'ing', target_date: '2026-11-01', notes: 'Ahorro conjunto para vacaciones' },
+  { id: 'goal_1', title: 'PlayStation / Play', target_amount: 2500, current_amount: 0, account: 'ing', target_date: '2026-11-01', notes: 'Objetivo propio personal' },
   { id: 'goal_2', title: 'Fondo de Emergencia Personal', target_amount: 5000, current_amount: 0, account: 'abanca', target_date: '2026-12-31', notes: 'Colchón de seguridad personal Abanca' }
 ];
 
