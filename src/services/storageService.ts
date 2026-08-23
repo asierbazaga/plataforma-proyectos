@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { UserProfile, AppPermission, AuditLog, FitnessWorkout, ExpenseItem, SavingsGoal, LibraryItem, LoreClient, LoreSavedRoute } from '../types';
+import { UserProfile, AppPermission, AuditLog, FitnessWorkout, ExpenseItem, SavingsGoal, CategoryBudget, LibraryItem, LoreClient, LoreSavedRoute } from '../types';
 
 const PROFILES_VERSION = 'v2_asier_lore';
 
@@ -63,6 +63,17 @@ const DEFAULT_EXPENSES: ExpenseItem[] = [];
 const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [
   { id: 'goal_1', title: 'Viaje / Vacaciones', target_amount: 2500, current_amount: 0, account: 'ing', target_date: '2026-11-01', notes: 'Ahorro conjunto para vacaciones' },
   { id: 'goal_2', title: 'Fondo de Emergencia Personal', target_amount: 5000, current_amount: 0, account: 'abanca', target_date: '2026-12-31', notes: 'Colchón de seguridad personal Abanca' }
+];
+
+const DEFAULT_CATEGORY_BUDGETS: CategoryBudget[] = [
+  { category: 'Alimentación', monthly_limit: 400, icon: '🛒', color: '#10B981' },
+  { category: 'Hogar / Alquiler', monthly_limit: 750, icon: '🏠', color: '#6366F1' },
+  { category: 'Transporte / Gasolina', monthly_limit: 150, icon: '🚗', color: '#F59E0B' },
+  { category: 'Ocio & Restaurantes', monthly_limit: 200, icon: '🍿', color: '#EC4899' },
+  { category: 'Servicios / Suministros', monthly_limit: 120, icon: '⚡', color: '#06B6D4' },
+  { category: 'Tecnología', monthly_limit: 100, icon: '💻', color: '#8B5CF6' },
+  { category: 'Salud & Bienestar', monthly_limit: 80, icon: '💊', color: '#14B8A6' },
+  { category: 'Otros', monthly_limit: 100, icon: '📦', color: '#64748B' }
 ];
 
 const DEFAULT_LIBRARY: LibraryItem[] = [
@@ -420,6 +431,28 @@ class StorageService {
     const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
     const updated = current.filter(g => g.id !== id);
     this.setLocal('savings_goals', updated);
+  }
+
+  async getCategoryBudgets(): Promise<CategoryBudget[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const res = await withTimeout(supabase.from('category_budgets').select('*'));
+        if (!res.error && res.data) return res.data as CategoryBudget[];
+      } catch (e) {}
+    }
+    return this.getLocal('category_budgets', DEFAULT_CATEGORY_BUDGETS);
+  }
+
+  async updateCategoryBudget(category: string, monthlyLimit: number): Promise<void> {
+    const current = await this.getCategoryBudgets();
+    const existing = current.find(c => c.category === category);
+    let updated: CategoryBudget[];
+    if (existing) {
+      updated = current.map(c => c.category === category ? { ...c, monthly_limit: monthlyLimit } : c);
+    } else {
+      updated = [...current, { category, monthly_limit: monthlyLimit }];
+    }
+    this.setLocal('category_budgets', updated);
   }
 
   async getLibrary(): Promise<LibraryItem[]> {

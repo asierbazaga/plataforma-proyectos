@@ -77,6 +77,13 @@ export interface SavingsGoal {
   created_at?: string;
 }
 
+export interface CategoryBudget {
+  category: string;
+  monthly_limit: number;
+  icon?: string;
+  color?: string;
+}
+
 export interface LibraryItem {
   id: string;
   user_id?: string;

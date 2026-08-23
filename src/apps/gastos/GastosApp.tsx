@@ -24,9 +24,14 @@ import {
   Filter,
   CreditCard,
   Layers,
-  RotateCcw
+  RotateCcw,
+  PieChart,
+  Sliders,
+  AlertTriangle,
+  Flame,
+  Check
 } from 'lucide-react';
-import { ExpenseItem, SavingsGoal, WalletAccount } from '../../types';
+import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -34,12 +39,25 @@ interface GastosAppProps {
   onBack?: () => void;
 }
 
+// Iconos y colores estándar por categoría
+const CATEGORY_META: Record<string, { icon: string; color: string }> = {
+  'Alimentación': { icon: '🛒', color: '#10B981' },
+  'Hogar / Alquiler': { icon: '🏠', color: '#6366F1' },
+  'Transporte / Gasolina': { icon: '🚗', color: '#F59E0B' },
+  'Ocio & Restaurantes': { icon: '🍿', color: '#EC4899' },
+  'Servicios / Suministros': { icon: '⚡', color: '#06B6D4' },
+  'Tecnología': { icon: '💻', color: '#8B5CF6' },
+  'Salud & Bienestar': { icon: '💊', color: '#14B8A6' },
+  'Ahorro/Común': { icon: '💰', color: '#3B82F6' },
+  'Otros': { icon: '📦', color: '#64748B' }
+};
+
 export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const { canEditApp, currentUser } = useAuth();
   const canEdit = canEditApp('gastos');
 
-  // Sub-pestañas: Movimientos & Cuentas vs Objetivos de Ahorro
-  const [activeTab, setActiveTab] = useState<'movements' | 'goals'>('movements');
+  // Sub-pestañas: 1. Movimientos & Cuentas | 2. Distribución & Presupuestos | 3. Metas Ahorro
+  const [activeTab, setActiveTab] = useState<'movements' | 'analytics' | 'goals'>('movements');
 
   // Filtro de Cartera Activa: 'all' | 'abanca' | 'ing'
   const [selectedWallet, setSelectedWallet] = useState<'all' | WalletAccount>('all');
@@ -47,11 +65,16 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Datos
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
 
   // Modales
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+
+  // Modal para editar límite de presupuesto de una categoría
+  const [editingBudgetCategory, setEditingBudgetCategory] = useState<string | null>(null);
+  const [budgetLimitInput, setBudgetLimitInput] = useState<number | string>('');
 
   const [contributeGoalId, setContributeGoalId] = useState<string | null>(null);
   const [contributionAmount, setContributionAmount] = useState<number | string>('');
@@ -72,7 +95,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [goalNotes, setGoalNotes] = useState('');
 
   const loadData = async () => {
-    // Reset inicial si es la primera vez que se accede para empezar limpia la wallet
+    // Reset inicial si es la primera vez para empezar con cartera limpia
     if (!localStorage.getItem('plataforma_wallet_reset_clean_v1')) {
       await storageService.clearAllExpenses();
       localStorage.setItem('plataforma_wallet_reset_clean_v1', 'true');
@@ -80,8 +103,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
     const list = await storageService.getExpenses();
     const goalsList = await storageService.getSavingsGoals();
+    const budgetsList = await storageService.getCategoryBudgets();
     setExpenses(list);
     setGoals(goalsList);
+    setBudgets(budgetsList);
   };
 
   useEffect(() => {
@@ -116,12 +141,21 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     }
   };
 
-  // Limpiar todos los datos de la wallet
+  // Limpiar todos los movimientos
   const handleClearAllExpenses = async () => {
     if (confirm('¿Estás seguro de que quieres borrar todos los movimientos de la cartera para empezar desde cero?')) {
       await storageService.clearAllExpenses();
       await loadData();
     }
+  };
+
+  // Guardar límite de presupuesto
+  const handleSaveBudgetLimit = async () => {
+    if (!editingBudgetCategory || !budgetLimitInput || Number(budgetLimitInput) < 0) return;
+    await storageService.updateCategoryBudget(editingBudgetCategory, Number(budgetLimitInput));
+    setEditingBudgetCategory(null);
+    setBudgetLimitInput('');
+    await loadData();
   };
 
   // Abrir modal para crear nuevo objetivo
@@ -154,7 +188,6 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     if (!goalTitle.trim() || !goalTargetAmount) return;
 
     if (editingGoal) {
-      // Modificar objetivo existente
       await storageService.updateSavingsGoal(editingGoal.id, {
         title: goalTitle.trim(),
         target_amount: Number(goalTargetAmount),
@@ -164,7 +197,6 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         notes: goalNotes.trim() || undefined
       });
     } else {
-      // Crear nuevo objetivo
       await storageService.addSavingsGoal({
         title: goalTitle.trim(),
         target_amount: Number(goalTargetAmount),
@@ -229,9 +261,37 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const totalSavedGoals = goals.reduce((acc, g) => acc + g.current_amount, 0);
   const totalGoalsPct = totalTargetGoals > 0 ? (totalSavedGoals / totalTargetGoals) * 100 : 0;
 
+  // CÁLCULO DE DISTRIBUCIÓN POR CATEGORÍA PARA EL GRÁFICO
+  const onlyExpenses = filteredExpenses.filter(e => e.type === 'expense');
+  const totalExpenseSum = onlyExpenses.reduce((acc, c) => acc + c.amount, 0);
+
+  const categoryBreakdown = Object.keys(CATEGORY_META).map(catName => {
+    const catTotal = onlyExpenses.filter(e => e.category === catName).reduce((acc, c) => acc + c.amount, 0);
+    const catPct = totalExpenseSum > 0 ? (catTotal / totalExpenseSum) * 100 : 0;
+    const meta = CATEGORY_META[catName] || { icon: '📦', color: '#64748B' };
+    const budgetObj = budgets.find(b => b.category === catName);
+    const monthlyLimit = budgetObj ? budgetObj.monthly_limit : 200;
+    const budgetConsumedPct = monthlyLimit > 0 ? (catTotal / monthlyLimit) * 100 : 0;
+
+    return {
+      category: catName,
+      total: catTotal,
+      percentage: catPct,
+      icon: meta.icon,
+      color: meta.color,
+      monthlyLimit,
+      budgetConsumedPct
+    };
+  }).filter(item => item.total > 0 || item.monthlyLimit > 0)
+    .sort((a, b) => b.total - a.total);
+
+  // Total Presupuesto Mensual
+  const totalMonthlyBudget = budgets.reduce((acc, b) => acc + b.monthly_limit, 0);
+  const totalBudgetConsumedPct = totalMonthlyBudget > 0 ? (totalExpenseSum / totalMonthlyBudget) * 100 : 0;
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 font-sans">
-      {/* Header Principal Adaptable a Móvil */}
+      {/* Header Principal */}
       <div className="bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900/90 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-emerald-500/20 shadow-xl space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -251,11 +311,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               <div className="flex items-center gap-1.5">
                 <h1 className="text-base sm:text-xl font-black text-white tracking-tight">GASTOS & FINANZAS</h1>
                 <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Wallet Limpia
+                  Multi-Cartera & Presupuestos
                 </span>
               </div>
               <p className="text-slate-400 text-[11px] sm:text-xs">
-                Abanca Personal • ING Conjunta • Metas de Ahorro
+                Abanca Personal • ING Conjunta • Gráficos & Alertas
               </p>
             </div>
           </div>
@@ -280,7 +340,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               className="py-2.5 px-3 bg-slate-800 hover:bg-purple-600 text-white font-bold text-xs rounded-xl border border-slate-700 hover:border-purple-400 transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
             >
               <Target className="w-3.5 h-3.5 text-purple-400" />
-              <span>+ Nuevo Objetivo</span>
+              <span>+ Objetivo</span>
             </button>
 
             <button
@@ -294,78 +354,94 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         )}
       </div>
 
-      {/* Subnavegación Principal: Pestañas de Vista */}
-      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs font-bold">
+      {/* Subnavegación Principal: 3 Pestañas */}
+      <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs font-bold">
         <button
           onClick={() => setActiveTab('movements')}
-          className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`py-2 px-2 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'movements'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <Wallet className="w-3.5 h-3.5" />
-          <span>Movimientos ({expenses.length})</span>
+          <span className="hidden xs:inline">Movimientos</span>
+          <span className="xs:hidden">Cuentas</span>
+          <span className="text-[10px] opacity-80">({expenses.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`py-2 px-2 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'analytics'
+              ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-md shadow-teal-600/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <PieChart className="w-3.5 h-3.5" />
+          <span className="hidden xs:inline">Distribución</span>
+          <span className="xs:hidden">Gráficos</span>
         </button>
 
         <button
           onClick={() => setActiveTab('goals')}
-          className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`py-2 px-2 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'goals'
               ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-600/20'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <PiggyBank className="w-3.5 h-3.5" />
-          <span>Metas Ahorro ({goals.length})</span>
+          <span>Metas</span>
+          <span className="text-[10px] opacity-80">({goals.length})</span>
         </button>
       </div>
 
-      {/* Selector de Cartera Activa (Píldoras con scroll horizontal en móvil) */}
-      {activeTab === 'movements' && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
-          <button
-            onClick={() => setSelectedWallet('all')}
-            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-              selectedWallet === 'all'
-                ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5 text-slate-400" />
-            <span>Todas las Cuentas</span>
-          </button>
+      {/* Selector de Cartera Activa (Píldoras con scroll horizontal) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
+        <button
+          onClick={() => setSelectedWallet('all')}
+          className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+            selectedWallet === 'all'
+              ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
+              : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5 text-slate-400" />
+          <span>Todas las Cuentas</span>
+        </button>
 
-          <button
-            onClick={() => setSelectedWallet('abanca')}
-            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-              selectedWallet === 'abanca'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 border border-indigo-500'
-                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-          >
-            <span>🏦</span>
-            <span>Abanca Personal</span>
-          </button>
+        <button
+          onClick={() => setSelectedWallet('abanca')}
+          className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+            selectedWallet === 'abanca'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 border border-indigo-500'
+              : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+          }`}
+        >
+          <span>🏦</span>
+          <span>Abanca Personal</span>
+        </button>
 
-          <button
-            onClick={() => setSelectedWallet('ing')}
-            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-              selectedWallet === 'ing'
-                ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20 border border-orange-500'
-                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-          >
-            <span>🤝</span>
-            <span>ING Conjunta (Lore)</span>
-          </button>
-        </div>
-      )}
+        <button
+          onClick={() => setSelectedWallet('ing')}
+          className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+            selectedWallet === 'ing'
+              ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20 border border-orange-500'
+              : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+          }`}
+        >
+          <span>🤝</span>
+          <span>ING Conjunta (Lore)</span>
+        </button>
+      </div>
 
+      {/* ========================================================================= */}
       {/* VISTA 1: MOVIMIENTOS & CUENTAS */}
+      {/* ========================================================================= */}
       {activeTab === 'movements' && (
         <div className="space-y-4 sm:space-y-6">
-          {/* Tarjetas de Saldos de Carteras (Grid adaptable) */}
+          {/* Tarjetas de Saldos de Carteras */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* 1. Abanca Personal */}
             <div 
@@ -476,7 +552,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
           </div>
 
-          {/* LISTA DE MOVIMIENTOS: FEED MÓVIL ESTILO APP BANCARIA (sm:hidden) */}
+          {/* LISTA DE MOVIMIENTOS EN MÓVIL (sm:hidden) */}
           <div className="sm:hidden space-y-2.5">
             <div className="flex justify-between items-center px-1">
               <span className="text-xs font-bold text-slate-300">
@@ -541,7 +617,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             )}
           </div>
 
-          {/* TABLA DE MOVIMIENTOS EN ESCRITORIO / TABLET (hidden sm:block) */}
+          {/* TABLA DE MOVIMIENTOS EN ESCRITORIO (hidden sm:block) */}
           <div className="hidden sm:block glass-panel bg-slate-900/80 border border-slate-800/90 rounded-3xl p-6 space-y-4 shadow-xl">
             <div className="flex justify-between items-center">
               <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
@@ -642,7 +718,261 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* VISTA 2: PANEL DE METAS Y OBJETIVOS DE AHORRO ("HUCHA DE METAS") */}
+      {/* ========================================================================= */}
+      {/* VISTA 2: DISTRIBUCIÓN (GRÁFICOS) & PRESUPUESTOS CON ALERTAS */}
+      {/* ========================================================================= */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          {/* Header de Resumen Presupuestario */}
+          <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-950/40 via-slate-900 to-slate-900 border border-teal-500/30 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase tracking-wider">
+                  Control Presupuestario Mensual
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">¿En qué se va el dinero?</h2>
+                <p className="text-xs text-slate-400">
+                  Distribución del gasto y límites configurados por categoría.
+                </p>
+              </div>
+
+              <div className="text-left sm:text-right bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Gasto Total vs Presupuesto</p>
+                <p className="text-lg sm:text-xl font-black text-white">
+                  {totalExpenseSum.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €{' '}
+                  <span className="text-xs font-normal text-slate-400">/ {totalMonthlyBudget} €</span>
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5 justify-start sm:justify-end">
+                  <span className={`text-xs font-bold ${
+                    totalBudgetConsumedPct > 90 ? 'text-rose-400' : totalBudgetConsumedPct > 70 ? 'text-amber-400' : 'text-emerald-400'
+                  }`}>
+                    {totalBudgetConsumedPct.toFixed(1)}% del límite
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Barra General de Presupuesto */}
+            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+              <div 
+                className={`h-full transition-all duration-500 ${
+                  totalBudgetConsumedPct > 90 
+                    ? 'bg-gradient-to-r from-amber-500 to-rose-500' 
+                    : totalBudgetConsumedPct > 70 
+                    ? 'bg-gradient-to-r from-teal-400 to-amber-400' 
+                    : 'bg-gradient-to-r from-teal-500 to-emerald-400'
+                }`}
+                style={{ width: `${Math.min(100, Math.max(0, totalBudgetConsumedPct))}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Gráfico y Desglose en 2 Columnas */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Columna 1: Gráfico Visual de Donut (5 Cols) */}
+            <div className="lg:col-span-5 glass-panel bg-slate-900/90 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center space-y-4 shadow-xl">
+              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider text-center flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-teal-400" />
+                <span>Distribución Porcentual</span>
+              </h3>
+
+              {totalExpenseSum === 0 ? (
+                <div className="py-12 text-center text-slate-500 text-xs space-y-2">
+                  <PieChart className="w-12 h-12 mx-auto text-slate-700 animate-pulse" />
+                  <p>Aún no hay gastos registrados este mes.</p>
+                  <p className="text-[10px] text-slate-600">Añade movimientos para ver el gráfico circular.</p>
+                </div>
+              ) : (
+                <div className="space-y-4 w-full flex flex-col items-center">
+                  {/* SVG Donut Chart interactivo */}
+                  <div className="relative w-48 h-48 flex items-center justify-center">
+                    <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                      {(() => {
+                        let accumulatedPercent = 0;
+                        return categoryBreakdown.filter(c => c.total > 0).map((cat, i) => {
+                          const strokeDasharray = `${cat.percentage} ${100 - cat.percentage}`;
+                          const strokeDashoffset = -accumulatedPercent;
+                          accumulatedPercent += cat.percentage;
+
+                          return (
+                            <circle
+                              key={i}
+                              cx="50"
+                              cy="50"
+                              r="38"
+                              fill="transparent"
+                              stroke={cat.color}
+                              strokeWidth="16"
+                              strokeDasharray={strokeDasharray}
+                              strokeDashoffset={strokeDashoffset}
+                              pathLength="100"
+                              className="transition-all duration-700 hover:opacity-80"
+                            />
+                          );
+                        });
+                      })()}
+                    </svg>
+
+                    {/* Centro del Donut */}
+                    <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Total Gastos</span>
+                      <span className="text-base font-black text-white">{totalExpenseSum.toFixed(0)} €</span>
+                    </div>
+                  </div>
+
+                  {/* Leyenda rápida */}
+                  <div className="flex flex-wrap gap-2 justify-center pt-2">
+                    {categoryBreakdown.filter(c => c.total > 0).map((cat, i) => (
+                      <span 
+                        key={i}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                        <span className="text-slate-300">{cat.icon} {cat.category}:</span>
+                        <b className="text-white">{cat.percentage.toFixed(1)}%</b>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Columna 2: Límites por Categoría con Barras de Alerta (7 Cols) */}
+            <div className="lg:col-span-7 glass-panel bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-purple-400" />
+                  <span>Presupuestos & Alertas por Categoría</span>
+                </h3>
+                <span className="text-[11px] text-slate-500 font-semibold">Toca ✏️ para cambiar límite</span>
+              </div>
+
+              <div className="space-y-3">
+                {categoryBreakdown.map((cat, idx) => {
+                  const isOverLimit = cat.total > cat.monthlyLimit;
+                  const isWarning = cat.budgetConsumedPct >= 75 && !isOverLimit;
+                  const remaining = Math.max(0, cat.monthlyLimit - cat.total);
+
+                  return (
+                    <div 
+                      key={idx}
+                      className={`p-3.5 rounded-2xl border transition-all space-y-2.5 ${
+                        isOverLimit 
+                          ? 'bg-rose-950/30 border-rose-500/50 shadow-md shadow-rose-500/10' 
+                          : isWarning 
+                          ? 'bg-amber-950/20 border-amber-500/40' 
+                          : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                      }`}
+                    >
+                      {/* Cabecera de Categoría y Cifras */}
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{cat.icon}</span>
+                          <span className="text-xs sm:text-sm font-bold text-white">{cat.category}</span>
+
+                          {/* Insignia de Alerta */}
+                          {isOverLimit ? (
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> ¡Límite Superado (+{(cat.total - cat.monthlyLimit).toFixed(0)}€)!
+                            </span>
+                          ) : isWarning ? (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              ⚠️ Alerta {cat.budgetConsumedPct.toFixed(0)}%
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              ✓ OK
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Importes y botón de ajuste de límite */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <span className="text-xs sm:text-sm font-black text-white">
+                              {cat.total.toFixed(0)} €
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium"> / {cat.monthlyLimit} €</span>
+                          </div>
+
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                setEditingBudgetCategory(cat.category);
+                                setBudgetLimitInput(cat.monthlyLimit);
+                              }}
+                              className="p-1 text-slate-500 hover:text-white rounded-lg transition-colors"
+                              title="Ajustar límite mensual"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Input rápido si está editando límite */}
+                      {editingBudgetCategory === cat.category ? (
+                        <div className="flex items-center gap-2 pt-1 animate-fadeIn">
+                          <span className="text-[11px] text-slate-400 font-bold">Nuevo tope mensual (€):</span>
+                          <input
+                            type="number"
+                            step="10"
+                            value={budgetLimitInput}
+                            onChange={e => setBudgetLimitInput(e.target.value)}
+                            className="w-24 bg-slate-800 border border-purple-500 rounded-lg px-2 py-1 text-white text-xs font-bold"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveBudgetLimit}
+                            className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-lg flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" /> Guardar
+                          </button>
+                          <button
+                            onClick={() => setEditingBudgetCategory(null)}
+                            className="px-2 py-1 text-slate-400 hover:text-white text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        /* Barra de Consumo */
+                        <div className="space-y-1">
+                          <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                            <div 
+                              className={`h-full transition-all duration-500 ${
+                                isOverLimit 
+                                  ? 'bg-rose-500' 
+                                  : isWarning 
+                                  ? 'bg-amber-400' 
+                                  : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${Math.min(100, Math.max(0, cat.budgetConsumedPct))}%` }}
+                            />
+                          </div>
+
+                          <div className="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>Consumido: <b className="text-slate-200">{cat.budgetConsumedPct.toFixed(1)}%</b></span>
+                            <span>
+                              {isOverLimit 
+                                ? <b className="text-rose-400">Excedido en {(cat.total - cat.monthlyLimit).toFixed(2)} €</b> 
+                                : <span>Disponible: <b className="text-emerald-400">{remaining.toFixed(2)} €</b></span>}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VISTA 3: PANEL DE METAS Y OBJETIVOS DE AHORRO ("HUCHA DE METAS") */}
+      {/* ========================================================================= */}
       {activeTab === 'goals' && (
         <div className="space-y-4 sm:space-y-6">
           {/* Banner Resumen de Metas */}
@@ -832,7 +1162,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         </div>
       )}
 
+      {/* ========================================================================= */}
       {/* MODAL: NUEVA TRANSACCIÓN (Bottom Sheet en móvil) */}
+      {/* ========================================================================= */}
       {showTransactionModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
@@ -937,13 +1269,13 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   >
                     <option value="Alimentación">Alimentación</option>
                     <option value="Hogar / Alquiler">Hogar / Alquiler</option>
-                    <option value="Tecnología">Tecnología</option>
-                    <option value="Servicios / Suministros">Servicios</option>
                     <option value="Transporte / Gasolina">Transporte</option>
                     <option value="Ocio & Restaurantes">Ocio</option>
+                    <option value="Servicios / Suministros">Servicios</option>
+                    <option value="Tecnología">Tecnología</option>
                     <option value="Salud & Bienestar">Salud</option>
                     <option value="Ahorro/Común">Ahorro</option>
-                    <option value="Nómina / Ingresos">Nómina</option>
+                    <option value="Otros">Otros</option>
                   </select>
                 </div>
               </div>
@@ -968,7 +1300,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         </div>
       )}
 
+      {/* ========================================================================= */}
       {/* MODAL: CREAR / MODIFICAR OBJETIVO DE AHORRO (Bottom Sheet en móvil) */}
+      {/* ========================================================================= */}
       {showGoalModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
