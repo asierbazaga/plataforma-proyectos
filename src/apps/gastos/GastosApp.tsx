@@ -93,14 +93,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [goalAccount, setGoalAccount] = useState<'abanca' | 'ing' | 'global'>('ing');
   const [goalDate, setGoalDate] = useState('');
   const [goalNotes, setGoalNotes] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const loadData = async () => {
-    // Reset inicial si es la primera vez para empezar con cartera limpia
-    if (!localStorage.getItem('plataforma_wallet_reset_clean_v1')) {
-      await storageService.clearAllExpenses();
-      localStorage.setItem('plataforma_wallet_reset_clean_v1', 'true');
-    }
-
     const list = await storageService.getExpenses();
     const goalsList = await storageService.getSavingsGoals();
     const budgetsList = await storageService.getCategoryBudgets();
@@ -109,8 +104,26 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     setBudgets(budgetsList);
   };
 
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    await storageService.syncFromCloud();
+    await loadData();
+    setTimeout(() => setIsSyncing(false), 600);
+  };
+
   useEffect(() => {
     loadData();
+    // 1. Sincronizar desde la nube al cargar
+    storageService.syncFromCloud().then(() => loadData());
+
+    // 2. Suscribirse a cambios en tiempo real desde otros dispositivos
+    const unsubscribe = storageService.onSync(() => {
+      loadData();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Guardar nueva transacción
@@ -320,16 +333,28 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
           </div>
 
-          {canEdit && expenses.length > 0 && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Botón Sincronizar en Tiempo Real */}
             <button
-              onClick={handleClearAllExpenses}
-              title="Borrar todos los movimientos para empezar de cero"
-              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+              onClick={handleManualSync}
+              title="Sincronizar datos en tiempo real entre móvil y web"
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800/90 hover:bg-teal-600 text-teal-300 hover:text-white border border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Vaciar Cartera</span>
+              <RotateCcw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-teal-300' : ''}`} />
+              <span className="hidden md:inline">{isSyncing ? 'Sincronizando...' : 'Sincronizado'}</span>
             </button>
-          )}
+
+            {canEdit && expenses.length > 0 && (
+              <button
+                onClick={handleClearAllExpenses}
+                title="Borrar todos los movimientos para empezar de cero"
+                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Vaciar Cartera</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Acciones Rápidas */}

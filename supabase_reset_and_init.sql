@@ -1,25 +1,31 @@
 -- ============================================================================
--- SCRIPT DE RESET Y LIMPIEZA COMPLETA PARA SUPABASE
--- PLATAFORMA UNIFICADA DE PROYECTOS (FITNESS, GASTOS, LIBROS-JUEGOS, LORE)
+-- SCRIPT DE RESET Y SINCRONIZACIÓN TOTAL PARA SUPABASE
+-- PLATAFORMA UNIFICADA (WEB + MÓVIL EN TIEMPO REAL)
 -- ============================================================================
 
--- 1. ELIMINAR CUALQUIER TABLA / ESQUEMA ANTERIOR (LIMPIEZA TOTAL)
+-- 1. ELIMINAR CUALQUIER TABLA / ESQUEMA ANTERIOR
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA public;
 
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO public;
+-- Permisos públicos para que la app web y móvil sincronicen sin error 401
+GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
--- 2. TABLAS DEL SISTEMA RBAC (GESTIÓN DE USUARIOS Y PERMISOS)
+-- 2. TABLAS DEL SISTEMA RBAC (USUARIOS Y PERMISOS)
 -- ============================================================================
 
 -- Tabla de Perfiles de Usuario
 CREATE TABLE public.profiles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'user', 'guest')),
@@ -30,8 +36,8 @@ CREATE TABLE public.profiles (
 
 -- Tabla de Matriz de Permisos por Aplicación
 CREATE TABLE public.app_permissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
     app_id TEXT NOT NULL CHECK (app_id IN ('fitness', 'gastos', 'libros-juegos', 'lore')),
     can_access BOOLEAN DEFAULT TRUE,
     can_edit BOOLEAN DEFAULT TRUE,
@@ -41,7 +47,7 @@ CREATE TABLE public.app_permissions (
 
 -- Tabla de Registros de Actividad (Audit Trail)
 CREATE TABLE public.audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_email TEXT NOT NULL,
     action TEXT NOT NULL,
     details TEXT,
@@ -49,15 +55,51 @@ CREATE TABLE public.audit_logs (
 );
 
 -- ============================================================================
--- 3. TABLAS DE MÓDULOS UNIFICADOS
+-- 3. TABLAS DE MÓDULOS UNIFICADOS (GASTOS, METAS, FITNESS, LIBROS, LORE)
 -- ============================================================================
+
+-- 💰 Módulo Gastos & Transacciones (Con Cartera Abanca e ING)
+CREATE TABLE public.expenses (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
+    description TEXT NOT NULL,
+    amount NUMERIC(10, 2) NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('expense', 'income')),
+    category TEXT NOT NULL,
+    account TEXT DEFAULT 'abanca', -- 'abanca' o 'ing'
+    transaction_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 🎯 Módulo Metas & Objetivos de Ahorro
+CREATE TABLE public.savings_goals (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
+    title TEXT NOT NULL,
+    target_amount NUMERIC(10, 2) NOT NULL,
+    current_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    account TEXT DEFAULT 'ing', -- 'abanca', 'ing', o 'global'
+    target_date DATE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 📊 Presupuestos y Límites por Categoría
+CREATE TABLE public.category_budgets (
+    category TEXT PRIMARY KEY,
+    monthly_limit NUMERIC(10, 2) NOT NULL,
+    icon TEXT,
+    color TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- 🏋️‍♂️ Módulo Fitness
 CREATE TABLE public.fitness_workouts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
     title TEXT NOT NULL,
-    category TEXT NOT NULL, -- Cardio, Fuerza, Flexibilidad, etc.
+    category TEXT NOT NULL,
     duration_minutes INT NOT NULL DEFAULT 30,
     calories_burned INT NOT NULL DEFAULT 150,
     workout_date DATE DEFAULT CURRENT_DATE,
@@ -65,22 +107,10 @@ CREATE TABLE public.fitness_workouts (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 💰 Módulo Gastos
-CREATE TABLE public.expenses (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    description TEXT NOT NULL,
-    amount NUMERIC(10, 2) NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('expense', 'income')),
-    category TEXT NOT NULL, -- Alimentación, Transporte, Ocio, Servicios, etc.
-    transaction_date DATE DEFAULT CURRENT_DATE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- 📚 Módulo Libros y Juegos
 CREATE TABLE public.user_library (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
     title TEXT NOT NULL,
     media_type TEXT NOT NULL CHECK (media_type IN ('book', 'game')),
     genre TEXT NOT NULL,
@@ -90,66 +120,92 @@ CREATE TABLE public.user_library (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 🗺️ Módulo Lore (Gestión de Conocimiento y Notas)
-CREATE TABLE public.lore_entries (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    category TEXT NOT NULL, -- Clientes, Guías, Procedimientos, Arquitectura
-    content TEXT NOT NULL,
-    tags TEXT[],
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- 🗺️ Módulo Lore CRM y Farmacias
+CREATE TABLE public.lore_clients (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    nombre TEXT NOT NULL,
+    tipo TEXT DEFAULT 'Farmacia',
+    contacto_nombre TEXT,
+    direccion TEXT,
+    latitud NUMERIC(10, 6),
+    longitud NUMERIC(10, 6),
+    ultima_visita_at DATE,
+    codigo TEXT,
+    decil TEXT,
+    total_2025 NUMERIC(10, 2) DEFAULT 0,
+    total_2026 NUMERIC(10, 2) DEFAULT 0,
+    telefono TEXT,
+    email TEXT,
+    provincia TEXT,
+    ciudad TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ============================================================================
--- 4. INSERTAR DATOS INICIALES DE PRUEBA (SEMILLA REQUERIDA)
+-- 4. POLÍTICAS RLS ABIERTAS (SINCRONIZACIÓN EN TIEMPO REAL SIN BLOQUEOS)
 -- ============================================================================
 
--- Insertar Usuarios Semilla
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.savings_goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.category_budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_workouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_library ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lore_clients ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public all profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all permissions" ON public.app_permissions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all audit_logs" ON public.audit_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all expenses" ON public.expenses FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all savings_goals" ON public.savings_goals FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all category_budgets" ON public.category_budgets FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all fitness_workouts" ON public.fitness_workouts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all user_library" ON public.user_library FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all lore_clients" ON public.lore_clients FOR ALL USING (true) WITH CHECK (true);
+
+-- Permisos finales
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- ============================================================================
+-- 5. DATOS SEMILLA
+-- ============================================================================
+
+-- Perfiles
 INSERT INTO public.profiles (id, email, full_name, role, department, avatar_url) VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'asier.bazaga@plataforma.com', 'Asier Bazaga', 'admin', 'Dirección IT & Super Admin', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
 ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'lore@plataforma.com', 'Lore', 'user', 'Operaciones & Gestión', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'),
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'invitado@plataforma.com', 'Invitado Demo', 'guest', 'Consultoría Externa', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150');
 
--- Matriz de Permisos por Defecto
--- Asier Bazaga (Admin): Acceso y Edición Total a las 4 Apps + Matriz RBAC y Logs
+-- Permisos
 INSERT INTO public.app_permissions (user_id, app_id, can_access, can_edit) VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'fitness', TRUE, TRUE),
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'gastos', TRUE, TRUE),
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'libros-juegos', TRUE, TRUE),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'lore', TRUE, TRUE);
-
--- Lore (Usuario): Acceso Total a las 4 Apps (Sin rol admin para gestión RBAC ni Logs)
-INSERT INTO public.app_permissions (user_id, app_id, can_access, can_edit) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'lore', TRUE, TRUE),
 ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'fitness', TRUE, TRUE),
 ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'gastos', TRUE, TRUE),
 ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'libros-juegos', TRUE, TRUE),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'lore', TRUE, TRUE);
-
--- Invitado: Solo lectura a Libros-Juegos
-INSERT INTO public.app_permissions (user_id, app_id, can_access, can_edit) VALUES
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'lore', TRUE, TRUE),
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'fitness', FALSE, FALSE),
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'gastos', FALSE, FALSE),
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'libros-juegos', TRUE, FALSE),
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'lore', FALSE, FALSE);
 
--- Insertar Datos Ejemplo en los 4 Módulos
-INSERT INTO public.fitness_workouts (user_id, title, category, duration_minutes, calories_burned, notes) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Entrenamiento Hipertrofia Pecho y Tríceps', 'Fuerza', 50, 420, '4 series de Press Banca y fondos'),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Carrera Continua 7K', 'Cardio', 35, 380, 'Ritmo promedio 5:00 min/km');
+-- Presupuestos por Categoría
+INSERT INTO public.category_budgets (category, monthly_limit, icon, color) VALUES
+('Alimentación', 400, '🛒', '#10B981'),
+('Hogar / Alquiler', 750, '🏠', '#6366F1'),
+('Transporte / Gasolina', 150, '🚗', '#F59E0B'),
+('Ocio & Restaurantes', 200, '🍿', '#EC4899'),
+('Servicios / Suministros', 120, '⚡', '#06B6D4'),
+('Tecnología', 100, '💻', '#8B5CF6'),
+('Salud & Bienestar', 80, '💊', '#14B8A6'),
+('Otros', 100, '📦', '#64748B');
 
-INSERT INTO public.expenses (user_id, description, amount, type, category) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Suscripción Servidores Cloud Vercel/Supabase', 45.00, 'expense', 'Tecnología'),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Compra Supermercado Semanal', 128.50, 'expense', 'Alimentación'),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Cobro Proyecto Freelance', 1200.00, 'income', 'Ingresos');
-
-INSERT INTO public.user_library (user_id, title, media_type, genre, status, rating, progress_percentage) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Clean Code (Robert C. Martin)', 'book', 'Software Architecture', 'in_progress', 5, 65),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Witcher 3: Wild Hunt', 'game', 'RPG / Fantasía', 'completed', 5, 100);
-
-INSERT INTO public.lore_entries (user_id, title, category, content, tags) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Procedimiento de Despliegue Vercel & Supabase', 'Procedimientos', 'Pasos para enlazar el repositorio unificado con las variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.', ARRAY['vercel', 'supabase', 'deploy']),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Arquitectura del Sistema de Permisos RBAC', 'Arquitectura', 'La matriz de permisos permite activar o desactivar accesos en tiempo real mediante Supabase app_permissions.', ARRAY['rbac', 'security', 'db']);
-
--- Fin del script
+-- Metas de Ahorro Iniciales
+INSERT INTO public.savings_goals (id, title, target_amount, current_amount, account, target_date, notes) VALUES
+('goal_1', 'Viaje / Vacaciones', 2500, 0, 'ing', '2026-11-01', 'Ahorro conjunto para vacaciones'),
+('goal_2', 'Fondo de Emergencia Personal', 5000, 0, 'abanca', '2026-12-31', 'Colchón de seguridad personal Abanca');
