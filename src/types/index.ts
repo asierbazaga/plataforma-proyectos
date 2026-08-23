@@ -40,16 +40,184 @@ export interface ApplicationInfo {
   tags: string[];
 }
 
-// Sub-App Data Interfaces
+// ============================================================================
+// FITNESS & CAMBIO FÍSICO INTEGRAL (CON SOPORTE POLAR GRIT X PRO)
+// ============================================================================
+
+export type FitnessGoal = 'fat_loss' | 'muscle_gain' | 'recomp' | 'maintenance';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very_active' | 'extra_active';
+export type Gender = 'male' | 'female';
+export type SetType = 'normal' | 'warmup' | 'failure' | 'drop_set';
+
+export interface FitnessProfile {
+  id?: string;
+  user_id?: string;
+  age: number;
+  gender: Gender;
+  height_cm: number;
+  current_weight: number;
+  target_weight: number;
+  activity_level: ActivityLevel;
+  goal: FitnessGoal;
+  deficit_surplus_pct: number; // e.g. -20 for 20% deficit, +10 for 10% surplus
+  target_calories: number;
+  target_protein: number;
+  target_carbs: number;
+  target_fat: number;
+  target_water_ml: number;
+  target_daily_steps: number;
+  // Opciones avanzadas de ciclado
+  carb_cycling_enabled?: boolean;
+  training_day_carbs?: number;
+  rest_day_carbs?: number;
+  updated_at?: string;
+}
+
+export interface WorkoutSet {
+  id: string;
+  set_number: number;
+  type: SetType;
+  reps: number;
+  weight_kg: number;
+  rpe?: number; // Rate of Perceived Exertion (6-10)
+  rir?: number; // Reps in Reserve (0-4)
+  completed: boolean;
+  rest_seconds?: number;
+}
+
+export interface WorkoutExerciseItem {
+  id: string;
+  exercise_id: string;
+  name: string;
+  muscle_group: string;
+  equipment?: string;
+  sets: WorkoutSet[];
+  notes?: string;
+}
+
 export interface FitnessWorkout {
   id: string;
   user_id?: string;
   title: string;
-  category: string;
+  category: 'Fuerza' | 'Cardio' | 'HIIT' | 'Funcional' | 'Movilidad';
   duration_minutes: number;
   calories_burned: number;
   workout_date: string;
   notes?: string;
+  exercises?: WorkoutExerciseItem[];
+  // Polar Specific session metrics
+  heart_rate_avg?: number;
+  heart_rate_max?: number;
+  cardio_zone?: string;
+  polar_training_load?: 'Baja' | 'Media' | 'Alta' | 'Muy Alta';
+  polar_energy_carbs_pct?: number;
+  polar_energy_fat_pct?: number;
+  polar_energy_protein_pct?: number;
+  perceived_exertion?: number; // 1-10 RPE
+}
+
+export interface WorkoutRoutineTemplate {
+  id: string;
+  name: string;
+  category: 'Fuerza' | 'Hipertrofia' | 'Pérdida Grasa' | 'Polar Híbrido';
+  split_type: 'PPL' | 'Torso_Pierna' | 'FullBody' | 'Arnold' | 'Cardio_Fuerza';
+  description: string;
+  frequency_days: number;
+  level: 'Principiante' | 'Intermedio' | 'Avanzado';
+  exercises: {
+    name: string;
+    muscle_group: string;
+    default_sets: number;
+    default_reps: string;
+    notes?: string;
+  }[];
+}
+
+export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner' | 'post_workout';
+
+export interface FoodEntry {
+  id: string;
+  meal_type: MealType;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  portion_size?: string;
+}
+
+export interface DailyNutritionLog {
+  id: string;
+  user_id?: string;
+  date: string; // YYYY-MM-DD
+  water_ml: number;
+  meals: FoodEntry[];
+  notes?: string;
+}
+
+export interface FitnessRecipe {
+  id: string;
+  title: string;
+  category: MealType;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  prep_time_minutes: number;
+  ingredients: string[];
+  instructions: string[];
+  tags: string[];
+  image_url?: string;
+}
+
+export interface BodyProgressEntry {
+  id: string;
+  user_id?: string;
+  date: string; // YYYY-MM-DD
+  weight: number;
+  body_fat_percentage?: number;
+  waist_cm?: number;
+  neck_cm?: number;
+  chest_cm?: number;
+  arm_cm?: number;
+  thigh_cm?: number;
+  hips_cm?: number;
+  notes?: string;
+  photo_url?: string;
+}
+
+export interface PolarGritMetrics {
+  id: string;
+  user_id?: string;
+  date: string; // YYYY-MM-DD
+  nightly_recharge_status: 'Muy Bueno' | 'Bueno' | 'Comprometido' | 'Pobre';
+  ans_charge: number; // -10.0 to +10.0
+  sleep_score: number; // 0 to 100
+  resting_hr: number; // ppm
+  max_hr: number; // ppm
+  vo2_max_running_index?: number;
+  cardio_load_status: 'Sobrecarga' | 'Productivo' | 'Mantenimiento' | 'Desentrenamiento';
+  cardio_load_ratio: number; // Carga / Tolerancia
+  cardio_z1_z2_min: number; // Minutos en Zona 1 y 2 (Grasas / Base)
+  cardio_z3_min: number;    // Minutos en Zona 3 (Aeróbico)
+  cardio_z4_z5_min: number; // Minutos en Zona 4 y 5 (Anaeróbico)
+  daily_steps: number;
+  polar_calories: number;
+  fitspark_recommendation?: string;
+}
+
+export interface MacroCalculationResult {
+  bmr: number;
+  tdee: number;
+  target_calories: number;
+  target_protein: number;
+  target_carbs: number;
+  target_fat: number;
+  training_day_carbs?: number;
+  rest_day_carbs?: number;
+  protein_ratio_g_per_kg: number;
+  fat_ratio_g_per_kg: number;
 }
 
 export type WalletAccount = 'abanca' | 'ing';

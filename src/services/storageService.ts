@@ -1,5 +1,20 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { UserProfile, AppPermission, AuditLog, FitnessWorkout, ExpenseItem, SavingsGoal, CategoryBudget, LibraryItem, LoreClient, LoreSavedRoute } from '../types';
+import {
+  UserProfile,
+  AppPermission,
+  AuditLog,
+  FitnessWorkout,
+  FitnessProfile,
+  DailyNutritionLog,
+  BodyProgressEntry,
+  PolarGritMetrics,
+  ExpenseItem,
+  SavingsGoal,
+  CategoryBudget,
+  LibraryItem,
+  LoreClient,
+  LoreSavedRoute
+} from '../types';
 
 const PROFILES_VERSION = 'v2_asier_lore';
 
@@ -53,9 +68,210 @@ const DEFAULT_PERMISSIONS: AppPermission[] = [
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'lore', can_access: false, can_edit: false }
 ];
 
+const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
+  age: 28,
+  gender: 'male',
+  height_cm: 178,
+  current_weight: 78.5,
+  target_weight: 74.0,
+  activity_level: 'moderate',
+  goal: 'fat_loss',
+  deficit_surplus_pct: -20,
+  target_calories: 2150,
+  target_protein: 165,
+  target_carbs: 210,
+  target_fat: 65,
+  target_water_ml: 3000,
+  target_daily_steps: 10000,
+  carb_cycling_enabled: false,
+  training_day_carbs: 240,
+  rest_day_carbs: 160,
+  updated_at: new Date().toISOString()
+};
+
 const DEFAULT_WORKOUTS: FitnessWorkout[] = [
-  { id: '1', title: 'Entrenamiento Fuerza Pecho y Tríceps', category: 'Fuerza', duration_minutes: 50, calories_burned: 420, workout_date: '2026-08-14', notes: 'Press banca 4x10, Fondos 3x12' },
-  { id: '2', title: 'Carrera Continua 7K', category: 'Cardio', duration_minutes: 35, calories_burned: 380, workout_date: '2026-08-13', notes: 'Ritmo suave 5:00 min/km' }
+  {
+    id: 'wk-1',
+    title: 'Push - Pecho, Hombro y Tríceps',
+    category: 'Fuerza',
+    duration_minutes: 55,
+    calories_burned: 440,
+    workout_date: '2026-08-22',
+    notes: 'Excelente congestión. Subí peso en banca a 80kg.',
+    heart_rate_avg: 138,
+    heart_rate_max: 164,
+    cardio_zone: 'Z3 Aeróbico / Z4 Umbral',
+    polar_training_load: 'Alta',
+    polar_energy_carbs_pct: 68,
+    polar_energy_fat_pct: 27,
+    polar_energy_protein_pct: 5,
+    perceived_exertion: 8,
+    exercises: [
+      {
+        id: 'e1',
+        exercise_id: 'ex-bench-press',
+        name: 'Press de Banca con Barra',
+        muscle_group: 'Pecho',
+        equipment: 'Barra',
+        sets: [
+          { id: 's1', set_number: 1, type: 'warmup', reps: 12, weight_kg: 50, completed: true, rest_seconds: 90 },
+          { id: 's2', set_number: 2, type: 'normal', reps: 8, weight_kg: 75, rpe: 8, rir: 2, completed: true, rest_seconds: 120 },
+          { id: 's3', set_number: 3, type: 'normal', reps: 7, weight_kg: 80, rpe: 9, rir: 1, completed: true, rest_seconds: 150 },
+          { id: 's4', set_number: 4, type: 'failure', reps: 6, weight_kg: 80, rpe: 10, rir: 0, completed: true, rest_seconds: 120 }
+        ]
+      },
+      {
+        id: 'e2',
+        exercise_id: 'ex-db-incline-press',
+        name: 'Press Inclinado con Mancuernas',
+        muscle_group: 'Pecho',
+        equipment: 'Mancuernas',
+        sets: [
+          { id: 's5', set_number: 1, type: 'normal', reps: 10, weight_kg: 28, rpe: 8, rir: 2, completed: true, rest_seconds: 90 },
+          { id: 's6', set_number: 2, type: 'normal', reps: 9, weight_kg: 28, rpe: 9, rir: 1, completed: true, rest_seconds: 90 },
+          { id: 's7', set_number: 3, type: 'normal', reps: 8, weight_kg: 28, rpe: 9.5, rir: 0.5, completed: true, rest_seconds: 90 }
+        ]
+      },
+      {
+        id: 'e3',
+        exercise_id: 'ex-db-lateral-raises',
+        name: 'Elevaciones Laterales con Mancuernas',
+        muscle_group: 'Hombros',
+        equipment: 'Mancuernas',
+        sets: [
+          { id: 's8', set_number: 1, type: 'normal', reps: 15, weight_kg: 12, rpe: 8, rir: 2, completed: true, rest_seconds: 60 },
+          { id: 's9', set_number: 2, type: 'normal', reps: 14, weight_kg: 12, rpe: 9, rir: 1, completed: true, rest_seconds: 60 },
+          { id: 's10', set_number: 3, type: 'drop_set', reps: 12, weight_kg: 12, rpe: 10, rir: 0, completed: true, rest_seconds: 60 }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'wk-2',
+    title: 'Cardio Polar Zona 2 + Core',
+    category: 'Cardio',
+    duration_minutes: 40,
+    calories_burned: 360,
+    workout_date: '2026-08-20',
+    notes: 'Ritmo constante en zona de quema de grasa (130 ppm media).',
+    heart_rate_avg: 131,
+    heart_rate_max: 146,
+    cardio_zone: 'Z2 Quema Grasa',
+    polar_training_load: 'Media',
+    polar_energy_carbs_pct: 42,
+    polar_energy_fat_pct: 54,
+    polar_energy_protein_pct: 4,
+    perceived_exertion: 6
+  }
+];
+
+const DEFAULT_NUTRITION_LOGS: DailyNutritionLog[] = [
+  {
+    id: 'nut-today',
+    date: '2026-08-23',
+    water_ml: 2250,
+    meals: [
+      {
+        id: 'm1',
+        meal_type: 'breakfast',
+        name: 'Bowl de Avena con Proteína y Arándanos',
+        calories: 420,
+        protein: 36,
+        carbs: 48,
+        fat: 10,
+        portion_size: '1 ración'
+      },
+      {
+        id: 'm2',
+        meal_type: 'lunch',
+        name: 'Pechuga de Pollo con Arroz Jazmín y Brócoli',
+        calories: 520,
+        protein: 48,
+        carbs: 60,
+        fat: 9,
+        portion_size: '1 plato grande'
+      },
+      {
+        id: 'm3',
+        meal_type: 'snack',
+        name: 'Yogur Griego 0% con Nueces y Plátano',
+        calories: 280,
+        protein: 22,
+        carbs: 32,
+        fat: 8,
+        portion_size: '200g yogur + 15g nueces'
+      }
+    ],
+    notes: 'Día de entrenamiento. Muy buena energía.'
+  }
+];
+
+const DEFAULT_BODY_PROGRESS: BodyProgressEntry[] = [
+  {
+    id: 'bp-1',
+    date: '2026-08-01',
+    weight: 80.2,
+    body_fat_percentage: 18.5,
+    waist_cm: 86,
+    chest_cm: 104,
+    arm_cm: 37.0,
+    thigh_cm: 58.5,
+    notes: 'Inicio de la fase de definición y recomposición.'
+  },
+  {
+    id: 'bp-2',
+    date: '2026-08-08',
+    weight: 79.6,
+    body_fat_percentage: 18.0,
+    waist_cm: 85.5,
+    chest_cm: 104,
+    arm_cm: 37.0,
+    thigh_cm: 58.0,
+    notes: 'Buena pérdida de retención inicial.'
+  },
+  {
+    id: 'bp-3',
+    date: '2026-08-15',
+    weight: 79.1,
+    body_fat_percentage: 17.5,
+    waist_cm: 84.8,
+    chest_cm: 104.5,
+    arm_cm: 37.2,
+    thigh_cm: 57.8,
+    notes: 'Fuerza mantenida en presses.'
+  },
+  {
+    id: 'bp-4',
+    date: '2026-08-22',
+    weight: 78.5,
+    body_fat_percentage: 16.9,
+    waist_cm: 84.0,
+    chest_cm: 104.5,
+    arm_cm: 37.3,
+    thigh_cm: 57.5,
+    notes: 'Cintura bajando consistentemente.'
+  }
+];
+
+const DEFAULT_POLAR_METRICS: PolarGritMetrics[] = [
+  {
+    id: 'pol-1',
+    date: '2026-08-23',
+    nightly_recharge_status: 'Muy Bueno',
+    ans_charge: 5.8,
+    sleep_score: 88,
+    resting_hr: 48,
+    max_hr: 186,
+    vo2_max_running_index: 54,
+    cardio_load_status: 'Productivo',
+    cardio_load_ratio: 1.15,
+    cardio_z1_z2_min: 35,
+    cardio_z3_min: 20,
+    cardio_z4_z5_min: 15,
+    daily_steps: 11420,
+    polar_calories: 2680,
+    fitspark_recommendation: 'Excelente recuperación nocturna. Tu sistema nervioso está listo para un entrenamiento de Fuerza / Hipertrofia de alta intensidad o series pesadas.'
+  }
 ];
 
 const DEFAULT_EXPENSES: ExpenseItem[] = [];
@@ -286,13 +502,17 @@ class StorageService {
     if (!isSupabaseConfigured || !supabase) return;
 
     try {
-      const [goalsRes, expRes, budRes, clientsRes, wkRes, libRes] = await Promise.allSettled([
+      const [goalsRes, expRes, budRes, clientsRes, wkRes, libRes, profRes, nutRes, bpRes, polRes] = await Promise.allSettled([
         withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 1500),
         withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 1500),
         withTimeout(supabase.from('category_budgets').select('*'), 1500),
         withTimeout(supabase.from('lore_clients').select('*'), 1500),
         withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 1500),
-        withTimeout(supabase.from('user_library').select('*'), 1500)
+        withTimeout(supabase.from('user_library').select('*'), 1500),
+        withTimeout(supabase.from('fitness_profiles').select('*').limit(1), 1500),
+        withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 1500),
+        withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 1500),
+        withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 1500)
       ]);
 
       if (goalsRes.status === 'fulfilled' && !goalsRes.value.error && goalsRes.value.data) {
@@ -312,6 +532,18 @@ class StorageService {
       }
       if (libRes.status === 'fulfilled' && !libRes.value.error && libRes.value.data) {
         this.setLocal('library', libRes.value.data);
+      }
+      if (profRes.status === 'fulfilled' && !profRes.value.error && profRes.value.data && profRes.value.data.length > 0) {
+        this.setLocal('fitness_profile', profRes.value.data[0]);
+      }
+      if (nutRes.status === 'fulfilled' && !nutRes.value.error && nutRes.value.data) {
+        this.setLocal('nutrition_logs', nutRes.value.data);
+      }
+      if (bpRes.status === 'fulfilled' && !bpRes.value.error && bpRes.value.data) {
+        this.setLocal('body_progress', bpRes.value.data);
+      }
+      if (polRes.status === 'fulfilled' && !polRes.value.error && polRes.value.data) {
+        this.setLocal('polar_metrics', polRes.value.data);
       }
 
       this.notifySubscribers();
@@ -407,11 +639,42 @@ class StorageService {
     this.broadcastChange();
   }
 
+  // ==========================================
+  // FITNESS & SALUD INTEGRAL (CAMBIO FÍSICO + POLAR)
+  // ==========================================
+  async getFitnessProfile(): Promise<FitnessProfile> {
+    const local = this.getLocal('fitness_profile', DEFAULT_FITNESS_PROFILE);
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_profiles').select('*').limit(1), 1500).then(res => {
+        if (!res.error && res.data && res.data.length > 0) {
+          this.setLocal('fitness_profile', res.data[0] as FitnessProfile);
+        }
+      }).catch(() => {});
+    }
+    return local;
+  }
+
+  async updateFitnessProfile(updates: Partial<FitnessProfile>): Promise<FitnessProfile> {
+    const current = await this.getFitnessProfile();
+    const updated: FitnessProfile = {
+      ...current,
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+    this.setLocal('fitness_profile', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_profiles').upsert(updated)).catch(() => {});
+    }
+    return updated;
+  }
+
   async getWorkouts(): Promise<FitnessWorkout[]> {
     const local = this.getLocal('workouts', DEFAULT_WORKOUTS);
     if (isSupabaseConfigured && supabase) {
       withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 1500).then(res => {
-        if (!res.error && res.data) {
+        if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('workouts', res.data as FitnessWorkout[]);
         }
       }).catch(() => {});
@@ -431,6 +694,170 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       withTimeout(supabase.from('fitness_workouts').insert(item)).catch(() => {});
+    }
+    return item;
+  }
+
+  async deleteWorkout(id: string): Promise<void> {
+    const current = this.getLocal('workouts', DEFAULT_WORKOUTS);
+    const updated = current.filter(w => w.id !== id);
+    this.setLocal('workouts', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_workouts').delete().eq('id', id)).catch(() => {});
+    }
+  }
+
+  // --- NUTRICIÓN & MACROS ---
+  async getDailyNutritionLogs(): Promise<DailyNutritionLog[]> {
+    const local = this.getLocal('nutrition_logs', DEFAULT_NUTRITION_LOGS);
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 1500).then(res => {
+        if (!res.error && res.data && res.data.length > 0) {
+          this.setLocal('nutrition_logs', res.data as DailyNutritionLog[]);
+        }
+      }).catch(() => {});
+    }
+    return local;
+  }
+
+  async getDailyNutrition(date: string): Promise<DailyNutritionLog> {
+    const logs = await this.getDailyNutritionLogs();
+    const found = logs.find(l => l.date === date);
+    if (found) return found;
+
+    // Crear entrada vacía para el día
+    const newLog: DailyNutritionLog = {
+      id: `nut_${date}`,
+      date,
+      water_ml: 0,
+      meals: []
+    };
+    return newLog;
+  }
+
+  async saveDailyNutrition(log: DailyNutritionLog): Promise<void> {
+    const logs = this.getLocal('nutrition_logs', DEFAULT_NUTRITION_LOGS);
+    const existingIndex = logs.findIndex(l => l.date === log.date);
+    let updated: DailyNutritionLog[];
+    if (existingIndex >= 0) {
+      updated = logs.map((l, i) => i === existingIndex ? log : l);
+    } else {
+      updated = [log, ...logs];
+    }
+    this.setLocal('nutrition_logs', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_nutrition_logs').upsert(log)).catch(() => {});
+    }
+  }
+
+  async addFoodToDate(date: string, food: Omit<import('../types').FoodEntry, 'id'>): Promise<void> {
+    const log = await this.getDailyNutrition(date);
+    const newFood: import('../types').FoodEntry = {
+      ...food,
+      id: crypto.randomUUID ? crypto.randomUUID() : `food_${Date.now()}`
+    };
+    const updatedLog: DailyNutritionLog = {
+      ...log,
+      meals: [...log.meals, newFood]
+    };
+    await this.saveDailyNutrition(updatedLog);
+  }
+
+  async removeFoodFromDate(date: string, foodId: string): Promise<void> {
+    const log = await this.getDailyNutrition(date);
+    const updatedLog: DailyNutritionLog = {
+      ...log,
+      meals: log.meals.filter(m => m.id !== foodId)
+    };
+    await this.saveDailyNutrition(updatedLog);
+  }
+
+  async updateWater(date: string, amountMl: number): Promise<void> {
+    const log = await this.getDailyNutrition(date);
+    const updatedLog: DailyNutritionLog = {
+      ...log,
+      water_ml: Math.max(0, amountMl)
+    };
+    await this.saveDailyNutrition(updatedLog);
+  }
+
+  // --- CONTROL DE PESO & MEDIDAS ---
+  async getBodyProgress(): Promise<BodyProgressEntry[]> {
+    const local = this.getLocal('body_progress', DEFAULT_BODY_PROGRESS);
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 1500).then(res => {
+        if (!res.error && res.data && res.data.length > 0) {
+          this.setLocal('body_progress', res.data as BodyProgressEntry[]);
+        }
+      }).catch(() => {});
+    }
+    return local;
+  }
+
+  async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>): Promise<BodyProgressEntry> {
+    const item: BodyProgressEntry = {
+      ...entry,
+      id: crypto.randomUUID ? crypto.randomUUID() : `bp_${Date.now()}`
+    };
+    const current = this.getLocal('body_progress', DEFAULT_BODY_PROGRESS);
+    // Si ya existe registro de ese día, se actualiza
+    const filtered = current.filter(e => e.date !== item.date);
+    const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
+    this.setLocal('body_progress', updated);
+
+    // Actualizar también el peso actual en el perfil
+    const profile = await this.getFitnessProfile();
+    await this.updateFitnessProfile({ current_weight: item.weight });
+
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_body_progress').upsert(item)).catch(() => {});
+    }
+    return item;
+  }
+
+  async deleteBodyProgress(id: string): Promise<void> {
+    const current = this.getLocal('body_progress', DEFAULT_BODY_PROGRESS);
+    const updated = current.filter(e => e.id !== id);
+    this.setLocal('body_progress', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id)).catch(() => {});
+    }
+  }
+
+  // --- POLAR GRIT X PRO METRICS ---
+  async getPolarMetrics(): Promise<PolarGritMetrics[]> {
+    const local = this.getLocal('polar_metrics', DEFAULT_POLAR_METRICS);
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 1500).then(res => {
+        if (!res.error && res.data && res.data.length > 0) {
+          this.setLocal('polar_metrics', res.data as PolarGritMetrics[]);
+        }
+      }).catch(() => {});
+    }
+    return local;
+  }
+
+  async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>): Promise<PolarGritMetrics> {
+    const item: PolarGritMetrics = {
+      ...metric,
+      id: crypto.randomUUID ? crypto.randomUUID() : `pol_${Date.now()}`
+    };
+    const current = this.getLocal('polar_metrics', DEFAULT_POLAR_METRICS);
+    const filtered = current.filter(m => m.date !== item.date);
+    const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
+    this.setLocal('polar_metrics', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_polar_metrics').upsert(item)).catch(() => {});
     }
     return item;
   }

@@ -1,8 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, Plus, Flame, Clock, Calendar, CheckCircle2, ShieldAlert, ArrowLeft } from 'lucide-react';
-import { FitnessWorkout } from '../../types';
+import {
+  Dumbbell,
+  Flame,
+  Scale,
+  Heart,
+  Calculator,
+  Wrench,
+  User,
+  LayoutDashboard,
+  ShieldAlert,
+  ArrowLeft,
+  Sparkles,
+  Zap,
+  Droplet
+} from 'lucide-react';
+import {
+  FitnessProfile,
+  FitnessWorkout,
+  DailyNutritionLog,
+  BodyProgressEntry,
+  PolarGritMetrics,
+  FoodEntry
+} from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+
+import { FitnessDashboard } from './components/FitnessDashboard';
+import { WorkoutPlanner } from './components/WorkoutPlanner';
+import { NutritionTracker } from './components/NutritionTracker';
+import { MacroCalculator } from './components/MacroCalculator';
+import { BodyMetricsTracker } from './components/BodyMetricsTracker';
+import { PolarGritHub } from './components/PolarGritHub';
+import { FitnessTools } from './components/FitnessTools';
+import { FitnessProfileModal } from './components/FitnessProfileModal';
 
 interface FitnessAppProps {
   onBack?: () => void;
@@ -11,248 +41,282 @@ interface FitnessAppProps {
 export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('fitness');
+
+  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+
+  // App Data State
+  const [profile, setProfile] = useState<FitnessProfile | null>(null);
   const [workouts, setWorkouts] = useState<FitnessWorkout[]>([]);
-  const [showModal, setShowModal] = useState(false);
+  const [todayNutrition, setTodayNutrition] = useState<DailyNutritionLog | null>(null);
+  const [bodyProgress, setBodyProgress] = useState<BodyProgressEntry[]>([]);
+  const [polarMetrics, setPolarMetrics] = useState<PolarGritMetrics[]>([]);
 
-  // Form state
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Fuerza');
-  const [duration, setDuration] = useState(45);
-  const [calories, setCalories] = useState(350);
-  const [notes, setNotes] = useState('');
+  // Modal States
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [openNewWorkoutModal, setOpenNewWorkoutModal] = useState(false);
+  const [openNewFoodModal, setOpenNewFoodModal] = useState(false);
+  const [openWeightModal, setOpenWeightModal] = useState(false);
 
-  const loadData = async () => {
-    const list = await storageService.getWorkouts();
-    setWorkouts(list);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const loadAllFitnessData = async () => {
+    const [prof, wks, nut, bp, pol] = await Promise.all([
+      storageService.getFitnessProfile(),
+      storageService.getWorkouts(),
+      storageService.getDailyNutrition(todayStr),
+      storageService.getBodyProgress(),
+      storageService.getPolarMetrics()
+    ]);
+
+    setProfile(prof);
+    setWorkouts(wks);
+    setTodayNutrition(nut);
+    setBodyProgress(bp);
+    setPolarMetrics(pol);
   };
 
   useEffect(() => {
-    loadData();
+    loadAllFitnessData();
+    const unsubscribe = storageService.onSync(() => {
+      loadAllFitnessData();
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleAddWorkout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    await storageService.addWorkout({
-      title,
-      category,
-      duration_minutes: Number(duration),
-      calories_burned: Number(calories),
-      workout_date: new Date().toISOString().split('T')[0],
-      notes
-    });
-
-    setTitle('');
-    setNotes('');
-    setShowModal(false);
-    await loadData();
+  // Handlers de persistencia
+  const handleSaveProfile = async (updated: Partial<FitnessProfile>) => {
+    const saved = await storageService.updateFitnessProfile(updated);
+    setProfile(saved);
   };
 
-  const totalCalories = workouts.reduce((acc, curr) => acc + curr.calories_burned, 0);
-  const totalMinutes = workouts.reduce((acc, curr) => acc + curr.duration_minutes, 0);
+  const handleApplyMacrosFromCalculator = async (macros: {
+    target_calories: number;
+    target_protein: number;
+    target_carbs: number;
+    target_fat: number;
+    carb_cycling_enabled?: boolean;
+    training_day_carbs?: number;
+    rest_day_carbs?: number;
+  }) => {
+    const saved = await storageService.updateFitnessProfile(macros);
+    setProfile(saved);
+  };
+
+  const handleSaveWorkout = async (workout: Omit<FitnessWorkout, 'id'>) => {
+    await storageService.addWorkout(workout);
+    await loadAllFitnessData();
+  };
+
+  const handleDeleteWorkout = async (id: string) => {
+    await storageService.deleteWorkout(id);
+    await loadAllFitnessData();
+  };
+
+  const handleAddFood = async (date: string, food: Omit<FoodEntry, 'id'>) => {
+    await storageService.addFoodToDate(date, food);
+    await loadAllFitnessData();
+  };
+
+  const handleRemoveFood = async (date: string, foodId: string) => {
+    await storageService.removeFoodFromDate(date, foodId);
+    await loadAllFitnessData();
+  };
+
+  const handleUpdateWater = async (date: string, amountMl: number) => {
+    await storageService.updateWater(date, amountMl);
+    await loadAllFitnessData();
+  };
+
+  const handleAddBodyProgress = async (entry: Omit<BodyProgressEntry, 'id'>) => {
+    await storageService.addBodyProgress(entry);
+    await loadAllFitnessData();
+  };
+
+  const handleDeleteBodyProgress = async (id: string) => {
+    await storageService.deleteBodyProgress(id);
+    await loadAllFitnessData();
+  };
+
+  const handleSavePolarMetric = async (metric: Omit<PolarGritMetrics, 'id'>) => {
+    await storageService.savePolarMetric(metric);
+    await loadAllFitnessData();
+  };
+
+  if (!profile || !todayNutrition) {
+    return (
+      <div className="flex items-center justify-center p-12 min-h-[300px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-slate-400 font-medium">Cargando Centro de Fitness & Salud...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const tabs = [
+    { id: 'dashboard', label: 'Centro de Mando', icon: LayoutDashboard },
+    { id: 'workouts', label: 'Entrenamientos', icon: Dumbbell },
+    { id: 'nutrition', label: 'Nutrición & Diario', icon: Flame },
+    { id: 'macros', label: 'Calculadora Macros', icon: Calculator },
+    { id: 'weight', label: 'Peso & Medidas', icon: Scale },
+    { id: 'polar', label: 'Polar Grit X Pro', icon: Heart },
+    { id: 'tools', label: 'Herramientas', icon: Wrench }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent p-6 rounded-2xl border border-orange-500/20">
+      {/* Header Principal de la App */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-slate-900 p-6 rounded-3xl border border-orange-500/25">
         <div className="flex items-center gap-4">
           {onBack && (
             <button
               onClick={onBack}
               title="Volver a la Plataforma"
-              className="p-3 rounded-xl bg-slate-800/80 hover:bg-orange-500 hover:text-white text-slate-300 border border-slate-700 hover:border-orange-400 transition-all flex items-center justify-center group"
+              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-orange-500 hover:text-white text-slate-300 border border-slate-700 hover:border-orange-400 transition-all flex items-center justify-center group"
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </button>
           )}
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0">
-            <Dumbbell className="w-7 h-7 text-white" />
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0 text-white">
+            <Dumbbell className="w-7 h-7" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white">APP FITNESS & SALUD</h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">Módulo Activo</span>
+              <h1 className="text-2xl font-extrabold text-white tracking-tight">APP FITNESS & CAMBIO FÍSICO</h1>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-semibold">
+                Polar Pro Edition
+              </span>
             </div>
-            <p className="text-slate-400 text-sm">Registro de entrenamientos, gasto calórico y objetivos físicos.</p>
+            <p className="text-slate-400 text-xs mt-0.5">
+              Fuerza, Hipertrofia, Nutrición Inteligente, Peso Tendencia & Rendimiento Polar Grit X Pro.
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700"
-            >
-              <ArrowLeft className="w-4 h-4" /> Plataforma
-            </button>
-          )}
-          {canEdit ? (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all hover:scale-105"
-            >
-              <Plus className="w-5 h-5" />
-              Nuevo Entrenamiento
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20">
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all hover:border-orange-500/50"
+          >
+            <User className="w-4 h-4 text-orange-400" />
+            Mi Perfil ({profile.current_weight} kg)
+          </button>
+
+          {!canEdit && (
+            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20">
               <ShieldAlert className="w-4 h-4" />
-              Modo Solo Lectura
+              Solo Lectura
             </div>
           )}
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-orange-500">
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Entrenamientos</p>
-            <p className="text-2xl font-bold text-white mt-1">{workouts.length}</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400">
-            <Dumbbell className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-amber-500">
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Calorías Quemadas</p>
-            <p className="text-2xl font-bold text-amber-400 mt-1">{totalCalories} kcal</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-            <Flame className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-yellow-500">
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Tiempo Invertido</p>
-            <p className="text-2xl font-bold text-yellow-400 mt-1">{totalMinutes} min</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-400">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
+      {/* Navegación por Pestañas (Desktop & Mobile Scrollable) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 text-xs no-scrollbar">
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = currentTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setCurrentTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all ${
+                isActive
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/20 scale-[1.02]'
+                  : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Workouts List */}
-      <div className="glass-panel p-6 rounded-2xl space-y-4">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-orange-400" />
-          Historial de Sesiones
-        </h2>
+      {/* CONTENIDO SEGÚN LA PESTAÑA SELECCIONADA */}
+      <div className="pt-2">
+        {currentTab === 'dashboard' && (
+          <FitnessDashboard
+            profile={profile}
+            todayNutrition={todayNutrition}
+            workouts={workouts}
+            bodyProgress={bodyProgress}
+            latestPolar={polarMetrics[0]}
+            onNavigateTab={tabId => setCurrentTab(tabId)}
+            onOpenNewWorkoutModal={() => {
+              setCurrentTab('workouts');
+              setOpenNewWorkoutModal(true);
+            }}
+            onOpenNewFoodModal={() => {
+              setCurrentTab('nutrition');
+              setOpenNewFoodModal(true);
+            }}
+            onOpenWeightModal={() => {
+              setCurrentTab('weight');
+              setOpenWeightModal(true);
+            }}
+            onOpenProfileModal={() => setShowProfileModal(true)}
+          />
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {workouts.map(w => (
-            <div key={w.id} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-orange-500/40 transition-all space-y-2">
-              <div className="flex justify-between items-start">
-                <h3 className="font-semibold text-white text-base">{w.title}</h3>
-                <span className="text-xs px-2.5 py-1 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                  {w.category}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-xs text-slate-400">
-                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-amber-400" /> {w.duration_minutes} min</span>
-                <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5 text-orange-400" /> {w.calories_burned} kcal</span>
-                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {w.workout_date}</span>
-              </div>
-              {w.notes && <p className="text-xs text-slate-300 italic pt-1 bg-slate-800/40 p-2 rounded-lg">{w.notes}</p>}
-            </div>
-          ))}
-        </div>
+        {currentTab === 'workouts' && (
+          <WorkoutPlanner
+            workouts={workouts}
+            canEdit={canEdit}
+            onSaveWorkout={handleSaveWorkout}
+            onDeleteWorkout={handleDeleteWorkout}
+            initialOpenModal={openNewWorkoutModal}
+          />
+        )}
+
+        {currentTab === 'nutrition' && (
+          <NutritionTracker
+            profile={profile}
+            canEdit={canEdit}
+            currentLog={todayNutrition}
+            onAddFood={handleAddFood}
+            onRemoveFood={handleRemoveFood}
+            onUpdateWater={handleUpdateWater}
+            initialOpenModal={openNewFoodModal}
+          />
+        )}
+
+        {currentTab === 'macros' && (
+          <MacroCalculator
+            profile={profile}
+            onApplyMacros={handleApplyMacrosFromCalculator}
+          />
+        )}
+
+        {currentTab === 'weight' && (
+          <BodyMetricsTracker
+            profile={profile}
+            canEdit={canEdit}
+            progressList={bodyProgress}
+            onAddEntry={handleAddBodyProgress}
+            onDeleteEntry={handleDeleteBodyProgress}
+            initialOpenModal={openWeightModal}
+          />
+        )}
+
+        {currentTab === 'polar' && (
+          <PolarGritHub
+            metricsList={polarMetrics}
+            canEdit={canEdit}
+            onSaveMetric={handleSavePolarMetric}
+          />
+        )}
+
+        {currentTab === 'tools' && <FitnessTools />}
       </div>
 
-      {/* Modal Añadir */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-orange-400" />
-              Nuevo Entrenamiento
-            </h3>
-            <form onSubmit={handleAddWorkout} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-400">Título / Ejercicio</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Rutina de Pecho y Espalda"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-400">Categoría</label>
-                  <select
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-orange-500"
-                  >
-                    <option value="Fuerza">Fuerza</option>
-                    <option value="Cardio">Cardio</option>
-                    <option value="Flexibilidad">Flexibilidad</option>
-                    <option value="HIIT">HIIT</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-400">Duración (min)</label>
-                  <input
-                    type="number"
-                    required
-                    value={duration}
-                    onChange={e => setDuration(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-400">Calorías Quemadas</label>
-                <input
-                  type="number"
-                  required
-                  value={calories}
-                  onChange={e => setCalories(Number(e.target.value))}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-400">Notas Adicionales</label>
-                <textarea
-                  rows={2}
-                  placeholder="Detalles de series, pesos..."
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-slate-400 hover:text-white"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600"
-                >
-                  Guardar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* MODAL CONFIGURACIÓN PERFIL */}
+      <FitnessProfileModal
+        profile={profile}
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onSave={handleSaveProfile}
+      />
     </div>
   );
 };

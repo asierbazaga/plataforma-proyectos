@@ -94,17 +94,100 @@ CREATE TABLE public.category_budgets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 🏋️‍♂️ Módulo Fitness
+-- 🏋️‍♂️ Módulo Fitness & Cambio Físico Integral (Con Polar Grit X Pro)
+CREATE TABLE public.fitness_profiles (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
+    age INT DEFAULT 28,
+    gender TEXT DEFAULT 'male',
+    height_cm NUMERIC(5, 1) DEFAULT 178,
+    current_weight NUMERIC(5, 2) DEFAULT 78.5,
+    target_weight NUMERIC(5, 2) DEFAULT 74.0,
+    activity_level TEXT DEFAULT 'moderate',
+    goal TEXT DEFAULT 'fat_loss',
+    deficit_surplus_pct INT DEFAULT -20,
+    target_calories INT DEFAULT 2150,
+    target_protein INT DEFAULT 165,
+    target_carbs INT DEFAULT 210,
+    target_fat INT DEFAULT 65,
+    target_water_ml INT DEFAULT 3000,
+    target_daily_steps INT DEFAULT 10000,
+    carb_cycling_enabled BOOLEAN DEFAULT FALSE,
+    training_day_carbs INT,
+    rest_day_carbs INT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE TABLE public.fitness_workouts (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
     title TEXT NOT NULL,
     category TEXT NOT NULL,
-    duration_minutes INT NOT NULL DEFAULT 30,
-    calories_burned INT NOT NULL DEFAULT 150,
+    duration_minutes INT NOT NULL DEFAULT 45,
+    calories_burned INT NOT NULL DEFAULT 350,
     workout_date DATE DEFAULT CURRENT_DATE,
     notes TEXT,
+    exercises JSONB,
+    heart_rate_avg INT,
+    heart_rate_max INT,
+    cardio_zone TEXT,
+    polar_training_load TEXT,
+    polar_energy_carbs_pct INT,
+    polar_energy_fat_pct INT,
+    polar_energy_protein_pct INT,
+    perceived_exertion INT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE public.fitness_nutrition_logs (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
+    date DATE NOT NULL,
+    water_ml INT DEFAULT 0,
+    meals JSONB,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, date)
+);
+
+CREATE TABLE public.fitness_body_progress (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
+    date DATE NOT NULL,
+    weight NUMERIC(5, 2) NOT NULL,
+    body_fat_percentage NUMERIC(4, 1),
+    waist_cm NUMERIC(5, 1),
+    neck_cm NUMERIC(5, 1),
+    chest_cm NUMERIC(5, 1),
+    arm_cm NUMERIC(4, 1),
+    thigh_cm NUMERIC(4, 1),
+    hips_cm NUMERIC(5, 1),
+    notes TEXT,
+    photo_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, date)
+);
+
+CREATE TABLE public.fitness_polar_metrics (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    user_id TEXT,
+    date DATE NOT NULL,
+    nightly_recharge_status TEXT,
+    ans_charge NUMERIC(4, 1),
+    sleep_score INT,
+    resting_hr INT,
+    max_hr INT,
+    vo2_max_running_index INT,
+    cardio_load_status TEXT,
+    cardio_load_ratio NUMERIC(4, 2),
+    cardio_z1_z2_min INT,
+    cardio_z3_min INT,
+    cardio_z4_z5_min INT,
+    daily_steps INT,
+    polar_calories INT,
+    fitspark_recommendation TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, date)
 );
 
 -- 📚 Módulo Libros y Juegos
@@ -152,7 +235,11 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.savings_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fitness_workouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_nutrition_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_body_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_polar_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lore_clients ENABLE ROW LEVEL SECURITY;
 
@@ -162,7 +249,11 @@ CREATE POLICY "Allow public all audit_logs" ON public.audit_logs FOR ALL USING (
 CREATE POLICY "Allow public all expenses" ON public.expenses FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all savings_goals" ON public.savings_goals FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all category_budgets" ON public.category_budgets FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all fitness_profiles" ON public.fitness_profiles FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all fitness_workouts" ON public.fitness_workouts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all fitness_nutrition_logs" ON public.fitness_nutrition_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all fitness_body_progress" ON public.fitness_body_progress FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all fitness_polar_metrics" ON public.fitness_polar_metrics FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all user_library" ON public.user_library FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all lore_clients" ON public.lore_clients FOR ALL USING (true) WITH CHECK (true);
 
