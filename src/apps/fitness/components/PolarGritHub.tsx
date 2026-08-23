@@ -8,11 +8,8 @@ import {
   Plus,
   Watch,
   CheckCircle2,
-  TrendingUp,
-  ShieldAlert,
-  Sparkles,
-  Info,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 import { PolarGritMetrics } from '../../../types';
 
@@ -72,21 +69,21 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner Polar Grit X Pro */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-rose-600/15 via-pink-600/10 to-transparent p-6 rounded-2xl border border-rose-500/25">
+    <div className="space-y-7">
+      {/* Header Banner Polar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 bg-gradient-to-r from-rose-600/15 via-pink-600/10 to-slate-900 p-6 sm:p-7 rounded-3xl border border-rose-500/25 shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/25 flex-shrink-0">
             <Watch className="w-7 h-7" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-white">Polar Grit X Pro Hub</h2>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                Sincronización Multideporte
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white">Polar Grit X Pro Hub</h2>
+              <span className="text-xs px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                Multideporte
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 mt-0.5">
               Métricas de recuperación Nightly Recharge™, Carga cardiovascular Training Load Pro™ y Zonas FC.
             </p>
           </div>
@@ -95,98 +92,92 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
         {canEdit && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-500/25 hover:scale-105 transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold text-xs rounded-2xl shadow-lg shadow-rose-500/25 hover:scale-105 transition-all"
           >
-            <Plus className="w-4 h-4" /> Registrar Datos Polar Hoy
+            <Plus className="w-4 h-4" /> Registrar Datos Polar
           </button>
         )}
       </div>
 
-      {/* 1. Grid de Métricas Clave Polar */}
+      {/* 1. Grid de Métricas Clave */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Nightly Recharge */}
-        <div className="glass-panel p-5 rounded-2xl space-y-2 border-l-4 border-l-emerald-500 bg-slate-900/60">
+        <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-2.5 border-l-4 border-l-emerald-500 shadow-md">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Nightly Recharge™</span>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Nightly Recharge™</span>
             <Moon className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-xl font-bold text-emerald-400">
+          <div className="text-2xl font-black text-emerald-400">
             {latestMetric?.nightly_recharge_status || 'Muy Bueno'}
           </div>
           <div className="flex justify-between text-xs text-slate-400 pt-1">
-            <span>Carga SNA: <strong className="text-white">+{latestMetric?.ans_charge || 5.8}</strong></span>
-            <span>Sueño: <strong className="text-sky-400">{latestMetric?.sleep_score || 88} pts</strong></span>
+            <span>Carga SNA: <strong className="text-white font-bold">+{latestMetric?.ans_charge || 5.8}</strong></span>
+            <span>Sueño: <strong className="text-sky-400 font-bold">{latestMetric?.sleep_score || 88} pts</strong></span>
           </div>
         </div>
 
-        {/* Training Load Pro */}
-        <div className="glass-panel p-5 rounded-2xl space-y-2 border-l-4 border-l-amber-500 bg-slate-900/60">
+        <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-2.5 border-l-4 border-l-amber-500 shadow-md">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Training Load Pro™</span>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Training Load Pro™</span>
             <Activity className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-xl font-bold text-amber-400">
+          <div className="text-2xl font-black text-amber-400">
             {latestMetric?.cardio_load_status || 'Productivo'}
           </div>
           <div className="flex justify-between text-xs text-slate-400 pt-1">
-            <span>Ratio Carga: <strong className="text-white">{latestMetric?.cardio_load_ratio || 1.15}</strong></span>
-            <span className="text-emerald-400 font-semibold">Adaptación Óptima</span>
+            <span>Ratio Carga: <strong className="text-white font-bold">{latestMetric?.cardio_load_ratio || 1.15}</strong></span>
+            <span className="text-emerald-400 font-bold">Adaptación Óptima</span>
           </div>
         </div>
 
-        {/* Frecuencia Cardíaca & Running Index */}
-        <div className="glass-panel p-5 rounded-2xl space-y-2 border-l-4 border-l-rose-500 bg-slate-900/60">
+        <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-2.5 border-l-4 border-l-rose-500 shadow-md">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Frecuencia Cardíaca</span>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Frecuencia Cardíaca</span>
             <Heart className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="text-xl font-bold text-white flex items-baseline gap-1">
+          <div className="text-2xl font-black text-white flex items-baseline gap-1">
             {latestMetric?.resting_hr || 48} <span className="text-xs text-rose-400 font-normal">ppm reposo</span>
           </div>
           <div className="flex justify-between text-xs text-slate-400 pt-1">
-            <span>FC Máxima: <strong className="text-white">{latestMetric?.max_hr || 186} ppm</strong></span>
-            <span>VO2max: <strong className="text-amber-400">{latestMetric?.vo2_max_running_index || 54}</strong></span>
+            <span>FC Máxima: <strong className="text-white font-bold">{latestMetric?.max_hr || 186} ppm</strong></span>
+            <span>VO2max: <strong className="text-amber-400 font-bold">{latestMetric?.vo2_max_running_index || 54}</strong></span>
           </div>
         </div>
 
-        {/* Pasos y Gasto Calórico Polar */}
-        <div className="glass-panel p-5 rounded-2xl space-y-2 border-l-4 border-l-sky-500 bg-slate-900/60">
+        <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-2.5 border-l-4 border-l-sky-500 shadow-md">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Actividad Diaria</span>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Actividad Diaria</span>
             <Flame className="w-4 h-4 text-sky-400" />
           </div>
-          <div className="text-xl font-bold text-white flex items-baseline gap-1">
+          <div className="text-2xl font-black text-white flex items-baseline gap-1">
             {latestMetric?.daily_steps?.toLocaleString() || '11.420'} <span className="text-xs text-sky-400 font-normal">pasos</span>
           </div>
           <div className="flex justify-between text-xs text-slate-400 pt-1">
-            <span>Gasto Polar: <strong className="text-amber-400">{latestMetric?.polar_calories || 2680} kcal</strong></span>
-            <span className="text-emerald-400 font-semibold">100% Meta</span>
+            <span>Gasto Polar: <strong className="text-amber-400 font-bold">{latestMetric?.polar_calories || 2680} kcal</strong></span>
+            <span className="text-emerald-400 font-bold">100% Meta</span>
           </div>
         </div>
       </div>
 
-      {/* 2. FitSpark™ Recommendation & Polar Heart Rate Zones */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Recomendación FitSpark (5 cols) */}
-        <div className="lg:col-span-5 glass-panel p-6 rounded-2xl space-y-4 bg-slate-900/70 flex flex-col justify-between">
-          <div className="space-y-3">
+      {/* 2. FitSpark & Zonas Cardíacas */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
+        <div className="lg:col-span-5 p-7 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-5 shadow-xl flex flex-col justify-between">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
               <Zap className="w-4 h-4" />
               FitSpark™ Daily Training Guidance
             </div>
-            <h3 className="text-lg font-bold text-white leading-snug">
+            <h3 className="text-xl font-extrabold text-white leading-snug">
               Sugerencia de Esfuerzo Basada en tu Recuperación
             </h3>
-            <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-2">
+            <div className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
               <p className="text-xs text-slate-300 leading-relaxed">
                 {latestMetric?.fitspark_recommendation ||
-                  'Tu sistema nervioso central (SNA) se encuentra plenamente recuperado. Recomendación: Sesión principal de Fuerza Pesada (Presses / Sentadillas) o Hipertrofia de alta intensidad.'}
+                  'Tu sistema nervioso central (SNA) se encuentra plenamente recuperado. Recomendación: Sesión principal de Fuerza Pesada o Hipertrofia de alta intensidad.'}
               </p>
             </div>
           </div>
 
-          {/* Semáforo de Intensidad */}
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
             <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
             <span className="text-xs text-emerald-300 font-bold">
               Semáforo Verde: Permiso total para entrenar a alta intensidad (RIR 1-2).
@@ -194,51 +185,49 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
           </div>
         </div>
 
-        {/* Distribución en Zonas de Frecuencia Cardíaca (7 cols) */}
-        <div className="lg:col-span-7 glass-panel p-6 rounded-2xl space-y-4 bg-slate-900/70">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Heart className="w-4 h-4 text-rose-400" />
+        <div className="lg:col-span-7 p-7 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-5 shadow-xl">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h3 className="text-base font-bold text-white flex items-center gap-2.5">
+              <Heart className="w-5 h-5 text-rose-400" />
               Zonas de Frecuencia Cardíaca Polar (Grit X Pro)
             </h3>
-            <span className="text-xs text-slate-400">Total Cardio: {(latestMetric?.cardio_z1_z2_min || 35) + (latestMetric?.cardio_z3_min || 20) + (latestMetric?.cardio_z4_z5_min || 15)} min</span>
+            <span className="text-xs text-slate-400 font-bold">
+              Total: {(latestMetric?.cardio_z1_z2_min || 35) + (latestMetric?.cardio_z3_min || 20) + (latestMetric?.cardio_z4_z5_min || 15)} min
+            </span>
           </div>
 
-          <div className="space-y-3 pt-1">
-            {/* Zona 1 & 2 */}
-            <div className="space-y-1">
+          <div className="space-y-4 pt-1">
+            <div className="space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="font-semibold text-emerald-400">Zona 1 & 2: Quema Grasa / Base Aeróbica (50-70% FC)</span>
+                <span className="font-bold text-emerald-400">Zona 1 & 2: Quema Grasa / Base Aeróbica (50-70% FC)</span>
                 <span className="text-white font-bold">{latestMetric?.cardio_z1_z2_min || 35} min</span>
               </div>
-              <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full w-3/5" />
               </div>
-              <p className="text-[10px] text-slate-400">Máxima salud mitocondrial y quema de triglicéridos sin fatigar el músculo.</p>
+              <p className="text-[11px] text-slate-400">Máxima salud mitocondrial y oxidación de grasas sin fatiga residual.</p>
             </div>
 
-            {/* Zona 3 */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="font-semibold text-amber-400">Zona 3: Resistencia Aeróbica (70-80% FC)</span>
+                <span className="font-bold text-amber-400">Zona 3: Resistencia Aeróbica (70-80% FC)</span>
                 <span className="text-white font-bold">{latestMetric?.cardio_z3_min || 20} min</span>
               </div>
-              <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-amber-500 rounded-full w-2/5" />
               </div>
-              <p className="text-[10px] text-slate-400">Mejora el gasto cardíaco y la capacidad de transporte de oxígeno.</p>
+              <p className="text-[11px] text-slate-400">Mejora el gasto cardíaco y la eficiencia cardiovascular.</p>
             </div>
 
-            {/* Zona 4 & 5 */}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="font-semibold text-rose-400">Zona 4 & 5: Umbral Anaeróbico & VO2max (80-100% FC)</span>
+                <span className="font-bold text-rose-400">Zona 4 & 5: Umbral Anaeróbico & VO2max (80-100% FC)</span>
                 <span className="text-white font-bold">{latestMetric?.cardio_z4_z5_min || 15} min</span>
               </div>
-              <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-rose-500 rounded-full w-1/4" />
               </div>
-              <p className="text-[10px] text-slate-400">HIIT y series pesadas. Acelera el metabolismo (efecto EPOC).</p>
+              <p className="text-[11px] text-slate-400">HIIT y series pesadas. Acelera el metabolismo post-ejercicio.</p>
             </div>
           </div>
         </div>
@@ -247,10 +236,10 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
       {/* MODAL REGISTRAR DATOS POLAR */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg p-6 sm:p-8 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Watch className="w-4 h-4 text-rose-400" /> Registrar Métricas Polar Grit X Pro
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Watch className="w-5 h-5 text-rose-400" /> Registrar Métricas Polar
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -260,23 +249,23 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400">Fecha</label>
+                  <label className="text-slate-400 font-medium">Fecha</label>
                   <input
                     type="date"
                     value={date}
                     onChange={e => setDate(e.target.value)}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400">Nightly Recharge</label>
+                  <label className="text-slate-400 font-medium">Nightly Recharge</label>
                   <select
                     value={nightlyStatus}
                     onChange={e => setNightlyStatus(e.target.value as any)}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   >
                     <option value="Muy Bueno">Muy Bueno (Verde)</option>
                     <option value="Bueno">Bueno (Verde Claro)</option>
@@ -286,7 +275,7 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-slate-400">Carga SNA</label>
                   <input
@@ -294,7 +283,7 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
                     step="0.1"
                     value={ansCharge}
                     onChange={e => setAnsCharge(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
                 <div>
@@ -303,7 +292,7 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
                     type="number"
                     value={sleepScore}
                     onChange={e => setSleepScore(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
                 <div>
@@ -312,49 +301,49 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
                     type="number"
                     value={restingHr}
                     onChange={e => setRestingHr(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-slate-400">Minutos Z1-Z2</label>
+                  <label className="text-slate-400">Z1-Z2 (min)</label>
                   <input
                     type="number"
                     value={z1z2Min}
                     onChange={e => setZ1z2Min(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400">Minutos Z3</label>
+                  <label className="text-slate-400">Z3 (min)</label>
                   <input
                     type="number"
                     value={z3Min}
                     onChange={e => setZ3Min(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400">Minutos Z4-Z5</label>
+                  <label className="text-slate-400">Z4-Z5 (min)</label>
                   <input
                     type="number"
                     value={z4z5Min}
                     onChange={e => setZ4z5Min(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400">Pasos Diarios</label>
+                  <label className="text-slate-400">Pasos</label>
                   <input
                     type="number"
                     value={steps}
                     onChange={e => setSteps(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
                 <div>
@@ -363,34 +352,24 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
                     type="number"
                     value={calories}
                     onChange={e => setCalories(Number(e.target.value))}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="text-slate-400">Consejo FitSpark de la Sesión</label>
-                <textarea
-                  rows={2}
-                  value={recommendation}
-                  onChange={e => setRecommendation(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-rose-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-slate-400 hover:text-white"
+                  className="px-4 py-2.5 text-slate-400 hover:text-white"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl"
+                  className="px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl"
                 >
-                  Guardar Métricas
+                  Guardar
                 </button>
               </div>
             </form>

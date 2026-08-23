@@ -4,15 +4,14 @@ import {
   Flame,
   Scale,
   Heart,
-  Calculator,
   Wrench,
   User,
   LayoutDashboard,
   ShieldAlert,
   ArrowLeft,
   Sparkles,
-  Zap,
-  Droplet
+  Calculator,
+  ChevronRight
 } from 'lucide-react';
 import {
   FitnessProfile,
@@ -83,7 +82,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     return () => unsubscribe();
   }, []);
 
-  // Handlers de persistencia
+  // Handlers
   const handleSaveProfile = async (updated: Partial<FitnessProfile>) => {
     const saved = await storageService.updateFitnessProfile(updated);
     setProfile(saved);
@@ -144,19 +143,19 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
 
   if (!profile || !todayNutrition) {
     return (
-      <div className="flex items-center justify-center p-12 min-h-[300px]">
+      <div className="flex items-center justify-center p-16 min-h-[350px]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs text-slate-400 font-medium">Cargando Centro de Fitness & Salud...</span>
+          <div className="w-10 h-10 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-slate-400 font-medium">Cargando Centro de Fitness...</span>
         </div>
       </div>
     );
   }
 
-  const tabs = [
-    { id: 'dashboard', label: 'Centro de Mando', icon: LayoutDashboard },
+  const navItems = [
+    { id: 'dashboard', label: 'Resumen Diario', icon: LayoutDashboard },
     { id: 'workouts', label: 'Entrenamientos', icon: Dumbbell },
-    { id: 'nutrition', label: 'Nutrición & Diario', icon: Flame },
+    { id: 'nutrition', label: 'Nutrición & Dieta', icon: Flame },
     { id: 'macros', label: 'Calculadora Macros', icon: Calculator },
     { id: 'weight', label: 'Peso & Medidas', icon: Scale },
     { id: 'polar', label: 'Polar Grit X Pro', icon: Heart },
@@ -164,31 +163,33 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header Principal de la App */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-slate-900 p-6 rounded-3xl border border-orange-500/25">
-        <div className="flex items-center gap-4">
+    <div className="space-y-8 max-w-7xl mx-auto pb-10">
+      {/* Header Limpio y Espacioso */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900/80 backdrop-blur-xl p-6 sm:p-7 rounded-3xl border border-slate-800 shadow-xl">
+        <div className="flex items-center gap-5">
           {onBack && (
             <button
               onClick={onBack}
               title="Volver a la Plataforma"
-              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-orange-500 hover:text-white text-slate-300 border border-slate-700 hover:border-orange-400 transition-all flex items-center justify-center group"
+              className="p-3.5 rounded-2xl bg-slate-800/90 hover:bg-orange-500 hover:text-white text-slate-300 border border-slate-700 hover:border-orange-400 transition-all flex items-center justify-center group shadow-md"
             >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
             </button>
           )}
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0 text-white">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0 text-white">
             <Dumbbell className="w-7 h-7" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold text-white tracking-tight">APP FITNESS & CAMBIO FÍSICO</h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-semibold">
-                Polar Pro Edition
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Fitness & Cambio Físico
+              </h1>
+              <span className="text-xs px-3 py-1 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 font-bold">
+                Polar Grit X Pro
               </span>
             </div>
-            <p className="text-slate-400 text-xs mt-0.5">
-              Fuerza, Hipertrofia, Nutrición Inteligente, Peso Tendencia & Rendimiento Polar Grit X Pro.
+            <p className="text-slate-400 text-sm mt-1">
+              Entrenamiento de fuerza, nutrición por macros y recuperación neuromuscular.
             </p>
           </div>
         </div>
@@ -196,45 +197,45 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
           <button
             onClick={() => setShowProfileModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all hover:border-orange-500/50"
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 font-semibold text-sm rounded-2xl border border-slate-700 transition-all hover:border-orange-500/50 shadow-md"
           >
             <User className="w-4 h-4 text-orange-400" />
-            Mi Perfil ({profile.current_weight} kg)
+            <span>Perfil ({profile.current_weight} kg)</span>
           </button>
 
           {!canEdit && (
-            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20">
+            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3.5 py-2 rounded-2xl border border-amber-400/20 font-medium">
               <ShieldAlert className="w-4 h-4" />
-              Solo Lectura
+              Modo Lectura
             </div>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Navegación por Pestañas (Desktop & Mobile Scrollable) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 text-xs no-scrollbar">
-        {tabs.map(tab => {
-          const Icon = tab.icon;
-          const isActive = currentTab === tab.id;
+      {/* Barra de Navegación Limpia y Elegante */}
+      <nav className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar p-1.5 bg-slate-900/60 rounded-2xl border border-slate-800/80">
+        {navItems.map(item => {
+          const Icon = item.icon;
+          const isActive = currentTab === item.id;
           return (
             <button
-              key={tab.id}
-              onClick={() => setCurrentTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all ${
+              key={item.id}
+              onClick={() => setCurrentTab(item.id)}
+              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-200 ${
                 isActive
                   ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/20 scale-[1.02]'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              {tab.label}
+              {item.label}
             </button>
           );
         })}
-      </div>
+      </nav>
 
-      {/* CONTENIDO SEGÚN LA PESTAÑA SELECCIONADA */}
-      <div className="pt-2">
+      {/* Contenido Principal con Espaciado Generoso */}
+      <main className="transition-all duration-300">
         {currentTab === 'dashboard' && (
           <FitnessDashboard
             profile={profile}
@@ -308,9 +309,9 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
         )}
 
         {currentTab === 'tools' && <FitnessTools />}
-      </div>
+      </main>
 
-      {/* MODAL CONFIGURACIÓN PERFIL */}
+      {/* Modal de Perfil */}
       <FitnessProfileModal
         profile={profile}
         isOpen={showProfileModal}

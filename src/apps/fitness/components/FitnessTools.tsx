@@ -9,8 +9,7 @@ import {
   Layers,
   Calculator,
   Flame,
-  CheckCircle2,
-  Volume2
+  CheckCircle2
 } from 'lucide-react';
 
 export const FitnessTools: React.FC = () => {
@@ -20,7 +19,6 @@ export const FitnessTools: React.FC = () => {
   const [oneRmWeight, setOneRmWeight] = useState(85);
   const [oneRmReps, setOneRmReps] = useState(6);
 
-  // Epley Formula: Weight * (1 + Reps / 30)
   const estimated1RM = Math.round(oneRmWeight * (1 + oneRmReps / 30));
   const brzycki1RM = Math.round(oneRmWeight * (36 / (37 - oneRmReps)));
 
@@ -37,7 +35,7 @@ export const FitnessTools: React.FC = () => {
 
   // BARBELL PLATE CALCULATOR
   const [targetBarWeight, setTargetBarWeight] = useState(100);
-  const [barWeight, setBarWeight] = useState(20); // 20kg olímpica o 15kg técnica
+  const [barWeight, setBarWeight] = useState(20);
 
   const calculatePlates = (target: number, bar: number) => {
     const weightPerSide = Math.max(0, (target - bar) / 2);
@@ -53,12 +51,12 @@ export const FitnessTools: React.FC = () => {
       }
     }
 
-    return { weightPerSide, platesUsed, remainingPerSide: remaining };
+    return { weightPerSide, platesUsed };
   };
 
   const plateResult = calculatePlates(targetBarWeight, barWeight);
 
-  // HIIT / TABATA TIMER
+  // HIIT TIMER
   const [workSeconds, setWorkSeconds] = useState(30);
   const [restSeconds, setRestSeconds] = useState(15);
   const [totalRounds, setTotalRounds] = useState(8);
@@ -74,20 +72,17 @@ export const FitnessTools: React.FC = () => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
     } else if (isTimerRunning && timeRemaining === 0) {
-      // Switch phase
       if (currentPhase === 'work') {
         if (currentRound < totalRounds) {
           setCurrentPhase('rest');
           setTimeRemaining(restSeconds);
         } else {
-          // Finished all rounds
           setIsTimerRunning(false);
           setCurrentRound(1);
           setCurrentPhase('work');
           setTimeRemaining(workSeconds);
         }
       } else {
-        // Rest finished, start next round work
         setCurrentRound(prev => prev + 1);
         setCurrentPhase('work');
         setTimeRemaining(workSeconds);
@@ -96,14 +91,8 @@ export const FitnessTools: React.FC = () => {
     return () => clearInterval(interval);
   }, [isTimerRunning, timeRemaining, currentPhase, currentRound, totalRounds, workSeconds, restSeconds]);
 
-  const handleStartTimer = () => {
-    setIsTimerRunning(true);
-  };
-
-  const handlePauseTimer = () => {
-    setIsTimerRunning(false);
-  };
-
+  const handleStartTimer = () => setIsTimerRunning(true);
+  const handlePauseTimer = () => setIsTimerRunning(false);
   const handleResetTimer = () => {
     setIsTimerRunning(false);
     setCurrentRound(1);
@@ -112,113 +101,110 @@ export const FitnessTools: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Sub-header & Tool Tabs */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-        <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
-          <button
-            onClick={() => setActiveTool('1rm')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
-              activeTool === '1rm'
-                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Calculadora 1RM (Fuerza)
-          </button>
-          <button
-            onClick={() => setActiveTool('barbell')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
-              activeTool === 'barbell'
-                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Carga de Discos en Barra
-          </button>
-          <button
-            onClick={() => setActiveTool('hiit')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
-              activeTool === 'hiit'
-                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Temporizador HIIT / Tabata
-          </button>
-        </div>
+    <div className="space-y-7">
+      {/* Selector de Herramienta */}
+      <div className="flex items-center gap-2 bg-slate-900/70 p-2 rounded-2xl border border-slate-800 text-xs w-fit">
+        <button
+          onClick={() => setActiveTool('1rm')}
+          className={`px-4 py-2 rounded-xl font-bold transition-all ${
+            activeTool === '1rm'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Calculadora 1RM (Fuerza)
+        </button>
+        <button
+          onClick={() => setActiveTool('barbell')}
+          className={`px-4 py-2 rounded-xl font-bold transition-all ${
+            activeTool === 'barbell'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Carga de Discos en Barra
+        </button>
+        <button
+          onClick={() => setActiveTool('hiit')}
+          className={`px-4 py-2 rounded-xl font-bold transition-all ${
+            activeTool === 'hiit'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Temporizador HIIT / Tabata
+        </button>
       </div>
 
-      {/* HERRAMIENTA 1: CALCULADORA 1RM */}
+      {/* 1RM */}
       {activeTool === '1rm' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-6 glass-panel p-6 rounded-2xl space-y-6 bg-slate-900/70">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
+          <div className="lg:col-span-6 p-7 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-6 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
-                <Dumbbell className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                <Dumbbell className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Calculadora de 1RM (Repetición Máxima)</h3>
-                <p className="text-xs text-slate-400">Estimación basada en las fórmulas de Epley y Brzycki</p>
+                <h3 className="text-lg font-bold text-white">Calculadora de 1RM</h3>
+                <p className="text-xs text-slate-400">Estimación de repetición máxima</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-slate-400">Peso Levantado (kg)</label>
+                <label className="text-xs text-slate-400 font-medium">Peso Levantado (kg)</label>
                 <input
                   type="number"
                   step="0.5"
                   value={oneRmWeight}
                   onChange={e => setOneRmWeight(Number(e.target.value))}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-bold text-base focus:border-orange-500 focus:outline-none"
+                  className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold text-base focus:border-orange-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400">Repeticiones Logradas</label>
+                <label className="text-xs text-slate-400 font-medium">Repeticiones Logradas</label>
                 <input
                   type="number"
                   min="1"
                   max="20"
                   value={oneRmReps}
                   onChange={e => setOneRmReps(Number(e.target.value))}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-bold text-base focus:border-orange-500 focus:outline-none"
+                  className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold text-base focus:border-orange-500 focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* Hero 1RM Result */}
-            <div className="p-5 rounded-2xl bg-gradient-to-tr from-orange-500/20 via-amber-500/10 to-transparent border border-orange-500/30 text-center space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-300">1RM Estimado</span>
+            <div className="p-6 rounded-3xl bg-gradient-to-tr from-orange-500/20 via-amber-500/10 to-transparent border border-orange-500/30 text-center space-y-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-300">1RM Estimado</span>
               <div className="text-4xl font-black text-white tracking-tight">
                 {estimated1RM} <span className="text-base font-normal text-amber-400">kg</span>
               </div>
-              <p className="text-xs text-slate-400">Brzycki: {brzycki1RM} kg • Epley: {estimated1RM} kg</p>
+              <p className="text-xs text-slate-400 mt-1">Brzycki: {brzycki1RM} kg • Epley: {estimated1RM} kg</p>
             </div>
           </div>
 
-          <div className="lg:col-span-6 glass-panel p-6 rounded-2xl space-y-4 bg-slate-900/70">
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider text-slate-300">
-              Tabla de Porcentajes de Carga para Periodización
+          <div className="lg:col-span-6 p-7 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-4 shadow-xl">
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+              Tabla de Porcentajes de Carga
             </h4>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+                <thead className="text-[11px] uppercase font-bold text-slate-400 border-b border-slate-800">
                   <tr>
-                    <th className="py-2.5 px-3">% 1RM</th>
-                    <th className="py-2.5 px-3">Carga Sugerida</th>
-                    <th className="py-2.5 px-3">Reps Estimadas</th>
-                    <th className="py-2.5 px-3">Zona de Trabajo</th>
+                    <th className="py-3 px-3">% 1RM</th>
+                    <th className="py-3 px-3">Carga Sugerida</th>
+                    <th className="py-3 px-3">Reps Estimadas</th>
+                    <th className="py-3 px-3">Zona</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium">
                   {percentageTable.map(row => (
                     <tr key={row.pct} className="hover:bg-slate-800/30">
-                      <td className="py-2.5 px-3 font-bold text-amber-400">{row.pct}%</td>
-                      <td className="py-2.5 px-3 font-bold text-white">{row.weight} kg</td>
-                      <td className="py-2.5 px-3 text-slate-300 font-mono">{row.reps} reps</td>
-                      <td className="py-2.5 px-3 text-slate-400">
-                        {row.pct >= 85 ? 'Fuerza Máxima' : row.pct >= 75 ? 'Hipertrofia Pesada' : 'Volumen & Resistencia'}
+                      <td className="py-3 px-3 font-bold text-amber-400">{row.pct}%</td>
+                      <td className="py-3 px-3 font-bold text-white">{row.weight} kg</td>
+                      <td className="py-3 px-3 text-slate-300 font-mono">{row.reps} reps</td>
+                      <td className="py-3 px-3 text-slate-400">
+                        {row.pct >= 85 ? 'Fuerza Máxima' : row.pct >= 75 ? 'Hipertrofia' : 'Resistencia'}
                       </td>
                     </tr>
                   ))}
@@ -229,64 +215,63 @@ export const FitnessTools: React.FC = () => {
         </div>
       )}
 
-      {/* HERRAMIENTA 2: CARGA DE DISCOS EN BARRA */}
+      {/* DISCOS */}
       {activeTool === 'barbell' && (
-        <div className="glass-panel p-6 rounded-2xl space-y-6 bg-slate-900/70 max-w-2xl mx-auto">
+        <div className="p-7 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-6 shadow-xl max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
-              <Layers className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+              <Layers className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Calculadora de Carga de Discos</h3>
-              <p className="text-xs text-slate-400">Distribución exacta por cada lado de la barra olímpica</p>
+              <h3 className="text-lg font-bold text-white">Calculadora de Discos en Barra</h3>
+              <p className="text-xs text-slate-400">Distribución por lado en barra olímpica</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-slate-400">Peso Total Deseado (kg)</label>
+              <label className="text-xs text-slate-400 font-medium">Peso Total Deseado (kg)</label>
               <input
                 type="number"
                 step="2.5"
                 value={targetBarWeight}
                 onChange={e => setTargetBarWeight(Number(e.target.value))}
-                className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-bold text-base focus:border-orange-500 focus:outline-none"
+                className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold text-base focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400">Peso de la Barra</label>
+              <label className="text-xs text-slate-400 font-medium">Peso de la Barra</label>
               <select
                 value={barWeight}
                 onChange={e => setBarWeight(Number(e.target.value))}
-                className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-bold text-base focus:border-orange-500 focus:outline-none"
+                className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold text-base"
               >
                 <option value={20}>Barra Olímpica Estándar (20 kg)</option>
-                <option value={15}>Barra Olímpica Femenina / Técnica (15 kg)</option>
-                <option value={10}>Barra Ligera / Z (10 kg)</option>
+                <option value={15}>Barra Femenina / Técnica (15 kg)</option>
+                <option value={10}>Barra Z / Ligera (10 kg)</option>
               </select>
             </div>
           </div>
 
-          {/* Visual Breakdown */}
-          <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+          <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <span className="text-xs text-slate-400">Peso por cada lado:</span>
-              <span className="text-xl font-bold text-orange-400">{plateResult.weightPerSide} kg / lado</span>
+              <span className="text-xs text-slate-400 font-medium">Peso por cada lado:</span>
+              <span className="text-2xl font-black text-orange-400">{plateResult.weightPerSide} kg / lado</span>
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-bold text-white">Discos a colocar en CADA LADO de la barra:</p>
+              <p className="text-xs font-bold text-white">Discos a colocar en CADA LADO:</p>
               {plateResult.platesUsed.length === 0 ? (
                 <p className="text-xs text-slate-500 italic">Solo necesitas la barra vacía ({barWeight} kg).</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5 pt-1">
                   {plateResult.platesUsed.map((p, idx) => (
                     <div
                       key={idx}
-                      className="px-3 py-2 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 font-bold text-xs flex items-center gap-1.5"
+                      className="px-4 py-2.5 rounded-2xl bg-orange-500/20 border border-orange-500/40 text-orange-300 font-bold text-xs flex items-center gap-2"
                     >
                       <span>{p.count}x</span>
-                      <span className="text-white text-sm">{p.weight} kg</span>
+                      <span className="text-white text-sm font-extrabold">{p.weight} kg</span>
                     </div>
                   ))}
                 </div>
@@ -296,59 +281,57 @@ export const FitnessTools: React.FC = () => {
         </div>
       )}
 
-      {/* HERRAMIENTA 3: TEMPORIZADOR HIIT & TABATA */}
+      {/* HIIT */}
       {activeTool === 'hiit' && (
-        <div className="glass-panel p-6 rounded-2xl space-y-6 bg-slate-900/70 max-w-xl mx-auto text-center">
+        <div className="p-7 sm:p-9 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-6 shadow-xl max-w-xl mx-auto text-center">
           <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
-              <Timer className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+              <Timer className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <h3 className="text-base font-bold text-white">Temporizador HIIT / Tabata / Polar</h3>
-              <p className="text-xs text-slate-400">Intervalos de alta intensidad y descansos activos</p>
+              <h3 className="text-lg font-bold text-white">Temporizador HIIT / Tabata</h3>
+              <p className="text-xs text-slate-400">Intervalos de esfuerzo y descanso</p>
             </div>
           </div>
 
-          {/* Big Timer Screen */}
           <div
-            className={`p-8 rounded-3xl border-2 transition-all duration-300 space-y-2 ${
+            className={`p-8 sm:p-10 rounded-3xl border-2 transition-all duration-300 space-y-3 ${
               currentPhase === 'work'
-                ? 'bg-rose-500/15 border-rose-500 shadow-xl shadow-rose-500/10'
-                : 'bg-emerald-500/15 border-emerald-500 shadow-xl shadow-emerald-500/10'
+                ? 'bg-rose-500/15 border-rose-500 shadow-xl shadow-rose-500/15'
+                : 'bg-emerald-500/15 border-emerald-500 shadow-xl shadow-emerald-500/15'
             }`}
           >
             <span
-              className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+              className={`text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full ${
                 currentPhase === 'work'
                   ? 'bg-rose-500 text-white'
                   : 'bg-emerald-500 text-white'
               }`}
             >
-              {currentPhase === 'work' ? '🔥 ¡TRABAJO / INTENSIDAD!' : '💨 DESCANSO ACTIVO'}
+              {currentPhase === 'work' ? '🔥 ¡INTENSIDAD MÁXIMA!' : '💨 DESCANSO ACTIVO'}
             </span>
 
-            <div className="text-6xl font-black text-white font-mono tracking-tighter py-2">
+            <div className="text-7xl font-black text-white font-mono tracking-tighter py-3">
               {timeRemaining}s
             </div>
 
-            <p className="text-xs text-slate-400 font-semibold">
-              Ronda <span className="text-white font-bold">{currentRound}</span> de {totalRounds}
+            <p className="text-xs text-slate-400 font-bold">
+              Ronda <span className="text-white font-extrabold">{currentRound}</span> de {totalRounds}
             </p>
           </div>
 
-          {/* Controles del Temporizador */}
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-4">
             {!isTimerRunning ? (
               <button
                 onClick={handleStartTimer}
-                className="px-6 py-3 bg-gradient-to-r from-rose-500 to-orange-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-rose-500/25 flex items-center gap-2 hover:scale-105 transition-all"
+                className="px-7 py-3.5 bg-gradient-to-r from-rose-500 to-orange-500 text-white font-bold text-sm rounded-2xl shadow-lg shadow-rose-500/25 flex items-center gap-2 hover:scale-105 transition-all"
               >
-                <Play className="w-4 h-4" /> Iniciar Intervalos
+                <Play className="w-4 h-4" /> Iniciar
               </button>
             ) : (
               <button
                 onClick={handlePauseTimer}
-                className="px-6 py-3 bg-amber-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-amber-500/25 flex items-center gap-2"
+                className="px-7 py-3.5 bg-amber-500 text-white font-bold text-sm rounded-2xl shadow-lg shadow-amber-500/25 flex items-center gap-2"
               >
                 <Pause className="w-4 h-4" /> Pausar
               </button>
@@ -356,17 +339,16 @@ export const FitnessTools: React.FC = () => {
 
             <button
               onClick={handleResetTimer}
-              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors"
+              className="p-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl transition-colors"
               title="Reiniciar"
             >
               <RotateCcw className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Ajustes de Intervalos */}
-          <div className="grid grid-cols-3 gap-3 text-xs pt-2">
+          <div className="grid grid-cols-3 gap-3 text-xs pt-3">
             <div>
-              <label className="text-slate-400">Trabajo (s)</label>
+              <label className="text-slate-400 font-medium">Trabajo (s)</label>
               <input
                 type="number"
                 disabled={isTimerRunning}
@@ -376,27 +358,27 @@ export const FitnessTools: React.FC = () => {
                   setWorkSeconds(val);
                   if (!isTimerRunning && currentPhase === 'work') setTimeRemaining(val);
                 }}
-                className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 text-center text-white font-bold"
+                className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-2 py-2 text-center text-white font-bold"
               />
             </div>
             <div>
-              <label className="text-slate-400">Descanso (s)</label>
+              <label className="text-slate-400 font-medium">Descanso (s)</label>
               <input
                 type="number"
                 disabled={isTimerRunning}
                 value={restSeconds}
                 onChange={e => setRestSeconds(Number(e.target.value))}
-                className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 text-center text-white font-bold"
+                className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-2 py-2 text-center text-white font-bold"
               />
             </div>
             <div>
-              <label className="text-slate-400">Rondas Totales</label>
+              <label className="text-slate-400 font-medium">Rondas</label>
               <input
                 type="number"
                 disabled={isTimerRunning}
                 value={totalRounds}
                 onChange={e => setTotalRounds(Number(e.target.value))}
-                className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 text-center text-white font-bold"
+                className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-2 py-2 text-center text-white font-bold"
               />
             </div>
           </div>
