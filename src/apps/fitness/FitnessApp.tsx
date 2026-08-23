@@ -9,9 +9,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   ArrowLeft,
-  Sparkles,
-  Calculator,
-  ChevronRight
+  Calculator
 } from 'lucide-react';
 import {
   FitnessProfile,
@@ -82,7 +80,6 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     return () => unsubscribe();
   }, []);
 
-  // Handlers
   const handleSaveProfile = async (updated: Partial<FitnessProfile>) => {
     const saved = await storageService.updateFitnessProfile(updated);
     setProfile(saved);
@@ -145,75 +142,73 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     return (
       <div className="flex items-center justify-center p-16 min-h-[350px]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-slate-400 font-medium">Cargando Centro de Fitness...</span>
+          <div className="w-8 h-8 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-slate-400 font-medium">Cargando Fitness Hub...</span>
         </div>
       </div>
     );
   }
 
   const navItems = [
-    { id: 'dashboard', label: 'Resumen Diario', icon: LayoutDashboard },
-    { id: 'workouts', label: 'Entrenamientos', icon: Dumbbell },
-    { id: 'nutrition', label: 'Nutrición & Dieta', icon: Flame },
+    { id: 'dashboard', label: 'Hoy', icon: LayoutDashboard },
+    { id: 'workouts', label: 'Entrenar', icon: Dumbbell },
+    { id: 'nutrition', label: 'Nutrición', icon: Flame },
     { id: 'macros', label: 'Calculadora Macros', icon: Calculator },
-    { id: 'weight', label: 'Peso & Medidas', icon: Scale },
+    { id: 'weight', label: 'Cuerpo & Peso', icon: Scale },
     { id: 'polar', label: 'Polar Grit X Pro', icon: Heart },
     { id: 'tools', label: 'Herramientas', icon: Wrench }
   ];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-10">
-      {/* Header Limpio y Espacioso */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900/80 backdrop-blur-xl p-6 sm:p-7 rounded-3xl border border-slate-800 shadow-xl">
-        <div className="flex items-center gap-5">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Minimalist Top App Bar */}
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#111622] p-5 sm:p-6 rounded-3xl border border-white/5 shadow-xl">
+        <div className="flex items-center gap-4">
           {onBack && (
             <button
               onClick={onBack}
-              title="Volver a la Plataforma"
-              className="p-3.5 rounded-2xl bg-slate-800/90 hover:bg-orange-500 hover:text-white text-slate-300 border border-slate-700 hover:border-orange-400 transition-all flex items-center justify-center group shadow-md"
+              title="Volver"
+              className="p-3 rounded-2xl bg-[#090C15] hover:bg-white/10 text-slate-300 border border-white/5 transition-all"
             >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0 text-white">
-            <Dumbbell className="w-7 h-7" />
+          <div className="w-12 h-12 rounded-2xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center flex-shrink-0">
+            <Dumbbell className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Fitness & Cambio Físico
-              </h1>
-              <span className="text-xs px-3 py-1 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 font-bold">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Fitness & Polar</h1>
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#FF6B00]/15 text-[#FF6B00] font-bold">
                 Polar Grit X Pro
               </span>
             </div>
-            <p className="text-slate-400 text-sm mt-1">
-              Entrenamiento de fuerza, nutrición por macros y recuperación neuromuscular.
+            <p className="text-slate-400 text-xs mt-0.5">
+              Fuerza, calorías, recuperación de frecuencia cardíaca y peso.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
           <button
             onClick={() => setShowProfileModal(true)}
-            className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 font-semibold text-sm rounded-2xl border border-slate-700 transition-all hover:border-orange-500/50 shadow-md"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#090C15] hover:bg-white/10 text-white font-bold text-xs rounded-2xl border border-white/5 transition-all"
           >
-            <User className="w-4 h-4 text-orange-400" />
+            <User className="w-3.5 h-3.5 text-[#FF6B00]" />
             <span>Perfil ({profile.current_weight} kg)</span>
           </button>
 
           {!canEdit && (
-            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3.5 py-2 rounded-2xl border border-amber-400/20 font-medium">
-              <ShieldAlert className="w-4 h-4" />
-              Modo Lectura
+            <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-2xl border border-amber-400/20">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Lectura
             </div>
           )}
         </div>
       </header>
 
-      {/* Barra de Navegación Limpia y Elegante */}
-      <nav className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar p-1.5 bg-slate-900/60 rounded-2xl border border-slate-800/80">
+      {/* Modern Segmented Navigation Bar */}
+      <nav className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar p-1.5 bg-[#111622] rounded-2xl border border-white/5">
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
@@ -221,21 +216,21 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
             <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
-              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
                 isActive
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/20 scale-[1.02]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  ? 'bg-[#FF6B00] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              <Icon className="w-3.5 h-3.5" />
               {item.label}
             </button>
           );
         })}
       </nav>
 
-      {/* Contenido Principal con Espaciado Generoso */}
-      <main className="transition-all duration-300">
+      {/* Main Views */}
+      <main className="pt-1">
         {currentTab === 'dashboard' && (
           <FitnessDashboard
             profile={profile}
@@ -311,7 +306,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
         {currentTab === 'tools' && <FitnessTools />}
       </main>
 
-      {/* Modal de Perfil */}
+      {/* Modal Profile */}
       <FitnessProfileModal
         profile={profile}
         isOpen={showProfileModal}

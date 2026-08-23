@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Flame, Dumbbell, Sparkles, Check, ArrowRight, ShieldCheck, PieChart, Activity, RefreshCw, Zap } from 'lucide-react';
+import { Calculator, Flame, Sparkles, Check, PieChart, Activity, Zap } from 'lucide-react';
 import { FitnessProfile, FitnessGoal, ActivityLevel, Gender, MacroCalculationResult } from '../../../types';
 
 interface MacroCalculatorProps {
@@ -140,229 +140,120 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
     }
   };
 
-  const totalMacroCals = result.target_protein * 4 + result.target_carbs * 4 + result.target_fat * 9;
-  const pctProtein = Math.round(((result.target_protein * 4) / totalMacroCals) * 100) || 30;
-  const pctCarbs = Math.round(((result.target_carbs * 4) / totalMacroCals) * 100) || 45;
-  const pctFat = 100 - pctProtein - pctCarbs;
-
   return (
-    <div className="space-y-7">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-slate-900 p-6 sm:p-7 rounded-3xl border border-orange-500/25 flex flex-col md:flex-row justify-between items-start md:items-center gap-5 shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/25 flex-shrink-0">
-            <Calculator className="w-7 h-7" />
-          </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-3">
-              Calculadora de Macronutrientes
-              <span className="text-xs px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold">
-                TDEE Adaptativo
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Cálculo metabólico por ciencia nutricional (Mifflin-St Jeor / Katch-McArdle).
-            </p>
-          </div>
+    <div className="space-y-7 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#111622] p-6 rounded-3xl border border-white/5 shadow-xl">
+        <div>
+          <h2 className="text-xl font-extrabold text-white">Calculadora Metabólica & Macros</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Mifflin-St Jeor & Katch-McArdle con ajuste por objetivo.</p>
         </div>
 
         <button
           onClick={handleApply}
           disabled={isApplying}
-          className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl font-bold text-xs transition-all shadow-lg ${
-            appliedSuccess
-              ? 'bg-emerald-500 text-white shadow-emerald-500/25'
-              : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:scale-105 shadow-orange-500/25'
+          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs transition-all ${
+            appliedSuccess ? 'bg-[#30D158] text-white' : 'bg-[#FF6B00] hover:bg-[#FA8500] text-white shadow-lg'
           }`}
         >
-          {appliedSuccess ? (
-            <>
-              <Check className="w-4 h-4" /> ¡Metas Aplicadas con Éxito!
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4" /> Aplicar a mis Metas Diarias
-            </>
-          )}
+          {appliedSuccess ? <Check className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+          {appliedSuccess ? '¡Guardado en tu Perfil!' : 'Aplicar a mis Metas'}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
-        {/* Columna Izquierda: Parámetros (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Parámetros Básicos */}
-          <div className="p-6 sm:p-7 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-5 shadow-lg">
-            <h3 className="text-base font-bold text-white flex items-center gap-2.5">
-              <Activity className="w-5 h-5 text-orange-400" />
-              1. Biometría & Nivel de Actividad
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Parámetros (7 Cols) */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* Biometría */}
+          <div className="p-6 rounded-3xl bg-[#111622] border border-white/5 space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">1. Biometría</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
-                <label className="text-xs text-slate-400 font-medium">Género</label>
+                <label className="text-slate-500">Género</label>
                 <select
                   value={gender}
                   onChange={e => setGender(e.target.value as Gender)}
-                  className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
                 >
                   <option value="male">Hombre</option>
                   <option value="female">Mujer</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-medium">Edad</label>
+                <label className="text-slate-500">Edad</label>
                 <input
                   type="number"
                   value={age}
                   onChange={e => setAge(Number(e.target.value))}
-                  className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-medium">Altura (cm)</label>
+                <label className="text-slate-500">Altura (cm)</label>
                 <input
                   type="number"
                   value={heightCm}
                   onChange={e => setHeightCm(Number(e.target.value))}
-                  className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-medium">Peso (kg)</label>
+                <label className="text-slate-500">Peso (kg)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={weightKg}
                   onChange={e => setWeightKg(Number(e.target.value))}
-                  className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-orange-400 font-bold text-xs"
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-[#FF6B00] font-bold"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              <div>
-                <label className="text-xs text-slate-400 font-medium">% Grasa Corporal (Opcional)</label>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <input
-                    type="number"
-                    placeholder="Ej. 17"
-                    value={bodyFatPct}
-                    onChange={e => setBodyFatPct(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
-                  />
-                  <span className="text-xs text-slate-500 font-bold">%</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-400 font-medium">Nivel de Actividad Diaria</label>
-                <select
-                  value={activityLevel}
-                  onChange={e => setActivityLevel(e.target.value as ActivityLevel)}
-                  className="w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
-                >
-                  <option value="sedentary">Sedentario (Poco movimiento)</option>
-                  <option value="light">Ligero (1-2 días entreno / ~6k pasos)</option>
-                  <option value="moderate">Moderado (3-5 días entreno / ~10k pasos)</option>
-                  <option value="very_active">Muy Activo (6-7 días entreno intenso)</option>
-                  <option value="extra_active">Atleta / Doble sesión</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-xs text-slate-500">Nivel de Actividad Diaria</label>
+              <select
+                value={activityLevel}
+                onChange={e => setActivityLevel(e.target.value as ActivityLevel)}
+                className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-xs text-white"
+              >
+                <option value="sedentary">Sedentario (Oficina / ~4k pasos)</option>
+                <option value="light">Ligero (1-2 días entreno / ~7k pasos)</option>
+                <option value="moderate">Moderado (3-5 días entreno / ~10k pasos)</option>
+                <option value="very_active">Muy Activo (6-7 días entreno intenso)</option>
+              </select>
             </div>
           </div>
 
           {/* Objetivo */}
-          <div className="p-6 sm:p-7 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-5 shadow-lg">
-            <h3 className="text-base font-bold text-white flex items-center gap-2.5">
-              <Flame className="w-5 h-5 text-amber-400" />
-              2. Objetivo de Transformación
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-6 rounded-3xl bg-[#111622] border border-white/5 space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">2. Estrategia</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {[
-                { key: 'fat_loss', label: 'Definición', desc: 'Déficit calórico para quemar grasa' },
-                { key: 'recomp', label: 'Recomposición', desc: 'Perder grasa y ganar músculo' },
-                { key: 'muscle_gain', label: 'Volumen', desc: 'Superávit para hipertrofia' },
-                { key: 'maintenance', label: 'Mantenimiento', desc: 'Estabilizar peso' }
+                { key: 'fat_loss', label: 'Definición' },
+                { key: 'recomp', label: 'Recomposición' },
+                { key: 'muscle_gain', label: 'Volumen' },
+                { key: 'maintenance', label: 'Mantenimiento' }
               ].map(item => (
                 <button
                   key={item.key}
                   type="button"
                   onClick={() => setGoal(item.key as FitnessGoal)}
-                  className={`p-4 rounded-2xl border text-left transition-all ${
+                  className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
                     goal === item.key
-                      ? 'bg-orange-500/20 border-orange-500 text-white shadow-md shadow-orange-500/15 scale-[1.02]'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                      ? 'bg-[#FF6B00] border-[#FF6B00] text-white shadow-md'
+                      : 'bg-[#090C15] border-white/5 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <p className="font-extrabold text-xs">{item.label}</p>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">{item.desc}</p>
+                  {item.label}
                 </button>
               ))}
             </div>
 
-            {goal !== 'maintenance' && (
-              <div className="pt-2">
-                <label className="text-xs text-slate-400 font-medium">Ritmo del Déficit / Superávit</label>
-                <div className="grid grid-cols-3 gap-3 mt-1.5">
-                  {[
-                    { key: 'mild', label: 'Conservador', pct: goal === 'fat_loss' ? '-15%' : '+8%' },
-                    { key: 'moderate', label: 'Óptimo (Recomendado)', pct: goal === 'fat_loss' ? '-20%' : '+12%' },
-                    { key: 'aggressive', label: 'Agresivo', pct: goal === 'fat_loss' ? '-25%' : '+18%' }
-                  ].map(m => (
-                    <button
-                      key={m.key}
-                      type="button"
-                      onClick={() => setDeficitSurplusMode(m.key as any)}
-                      className={`p-3 rounded-2xl border text-center text-xs transition-all ${
-                        deficitSurplusMode === m.key
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
-                          : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <div>{m.label}</div>
-                      <div className="text-xs font-black text-white mt-0.5">{m.pct}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Protocolo */}
-          <div className="p-6 sm:p-7 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-5 shadow-lg">
-            <h3 className="text-base font-bold text-white flex items-center gap-2.5">
-              <PieChart className="w-5 h-5 text-sky-400" />
-              3. Protocolo de Macronutrientes
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { key: 'balanced_fit', title: 'Equilibrado High Protein', desc: '2.2g/kg proteína, óptimo para fuerza' },
-                { key: 'carb_cycling', title: 'Ciclado de Carbos', desc: '+Carbos en entreno, -Carbos en descanso' },
-                { key: 'high_protein_recomp', title: 'Recomposición Agresiva', desc: '2.4g/kg proteína para corte magro' }
-              ].map(p => (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => setProtocol(p.key as MacroProtocol)}
-                  className={`p-4 rounded-2xl border text-left transition-all ${
-                    protocol === p.key
-                      ? 'bg-sky-500/20 border-sky-500 text-white shadow-md shadow-sky-500/15'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <p className="font-bold text-xs text-sky-300">{p.title}</p>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">{p.desc}</p>
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-2 gap-4 pt-2 text-xs">
               <div>
-                <label className="text-xs text-slate-400 flex justify-between font-medium">
+                <label className="text-slate-400 flex justify-between font-medium">
                   <span>Proteína</span>
-                  <span className="text-rose-400 font-bold">{proteinGPerKg} g/kg</span>
+                  <span className="text-[#FF3B30] font-bold">{proteinGPerKg} g/kg</span>
                 </label>
                 <input
                   type="range"
@@ -371,13 +262,13 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
                   step="0.1"
                   value={proteinGPerKg}
                   onChange={e => setProteinGPerKg(Number(e.target.value))}
-                  className="w-full accent-rose-500 mt-2 cursor-pointer"
+                  className="w-full accent-[#FF3B30] mt-2 cursor-pointer"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 flex justify-between font-medium">
+                <label className="text-slate-400 flex justify-between font-medium">
                   <span>Grasas</span>
-                  <span className="text-emerald-400 font-bold">{fatGPerKg} g/kg</span>
+                  <span className="text-[#30D158] font-bold">{fatGPerKg} g/kg</span>
                 </label>
                 <input
                   type="range"
@@ -386,127 +277,45 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
                   step="0.05"
                   value={fatGPerKg}
                   onChange={e => setFatGPerKg(Number(e.target.value))}
-                  className="w-full accent-emerald-500 mt-2 cursor-pointer"
+                  className="w-full accent-[#30D158] mt-2 cursor-pointer"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Columna Derecha: Tarjeta de Resultados (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="p-7 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-6 shadow-xl sticky top-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div>
-                <span className="text-xs uppercase font-extrabold tracking-wider text-orange-400">Resultado</span>
-                <h3 className="text-xl font-bold text-white mt-0.5">Plan Diario</h3>
+        {/* Tarjeta Resultado (5 Cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="p-7 rounded-3xl bg-[#111622] border border-white/5 space-y-6 shadow-xl sticky top-6">
+            <div className="text-center space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Calorías Diarias Meta</span>
+              <div className="text-4xl font-black text-white tracking-tight flex items-baseline justify-center gap-1">
+                {result.target_calories} <span className="text-sm font-normal text-[#FF6B00]">kcal</span>
               </div>
-              <div className="px-3 py-1 rounded-xl bg-slate-800 text-xs font-bold text-slate-300">
-                TDEE: <span className="text-amber-400">{result.tdee} kcal</span>
-              </div>
+              <p className="text-xs text-slate-400">Gasto TDEE: {result.tdee} kcal</p>
             </div>
 
-            {/* Target Calories Hero Card */}
-            <div className="p-6 rounded-3xl bg-gradient-to-tr from-amber-500/20 via-orange-500/10 to-transparent border border-orange-500/30 text-center space-y-1.5">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-amber-300">Calorías Diarias Meta</span>
-              <div className="text-4xl font-black text-white tracking-tight flex items-center justify-center gap-1.5">
-                {result.target_calories}
-                <span className="text-base font-normal text-amber-400">kcal</span>
+            <div className="space-y-2.5">
+              <div className="flex justify-between items-center p-3.5 rounded-2xl bg-[#090C15] border border-white/5 text-xs">
+                <span className="font-bold text-[#FF3B30]">Proteínas</span>
+                <span className="font-black text-white font-mono">{result.target_protein}g</span>
               </div>
-              <p className="text-xs text-slate-400">
-                {result.target_calories < result.tdee ? (
-                  <span className="text-rose-400 font-bold">Déficit de {result.tdee - result.target_calories} kcal/día</span>
-                ) : result.target_calories > result.tdee ? (
-                  <span className="text-emerald-400 font-bold">Superávit de {result.target_calories - result.tdee} kcal/día</span>
-                ) : (
-                  <span className="text-sky-400 font-bold">Mantenimiento Exacto</span>
-                )}
-              </p>
-            </div>
-
-            {/* Macro Breakdown */}
-            <div className="space-y-3">
-              <div className="p-4 rounded-2xl bg-slate-950/70 border border-rose-500/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs">
-                    PRO
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Proteínas</h4>
-                    <p className="text-xs text-slate-400">{proteinGPerKg} g/kg • {pctProtein}% cals</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-black text-rose-400">{result.target_protein} g</span>
-                  <p className="text-[11px] text-slate-400">{result.target_protein * 4} kcal</p>
-                </div>
+              <div className="flex justify-between items-center p-3.5 rounded-2xl bg-[#090C15] border border-white/5 text-xs">
+                <span className="font-bold text-[#38BDF8]">Carbohidratos</span>
+                <span className="font-black text-white font-mono">{result.target_carbs}g</span>
               </div>
-
-              <div className="p-4 rounded-2xl bg-slate-950/70 border border-sky-500/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs">
-                    CARB
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Carbohidratos</h4>
-                    <p className="text-xs text-slate-400">{pctCarbs}% cals</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-black text-sky-400">{result.target_carbs} g</span>
-                  <p className="text-[11px] text-slate-400">{result.target_carbs * 4} kcal</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
-                    FAT
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Grasas Saludables</h4>
-                    <p className="text-xs text-slate-400">{fatGPerKg} g/kg • {pctFat}% cals</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-black text-emerald-400">{result.target_fat} g</span>
-                  <p className="text-[11px] text-slate-400">{result.target_fat * 9} kcal</p>
-                </div>
+              <div className="flex justify-between items-center p-3.5 rounded-2xl bg-[#090C15] border border-white/5 text-xs">
+                <span className="font-bold text-[#30D158]">Grasas</span>
+                <span className="font-black text-white font-mono">{result.target_fat}g</span>
               </div>
             </div>
-
-            {protocol === 'carb_cycling' && (
-              <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/20 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-sky-300">
-                  <Zap className="w-4 h-4" /> Ciclado de Carbos:
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                    <p className="text-slate-400 text-[11px]">Día Entreno</p>
-                    <p className="font-bold text-sky-400 text-sm mt-0.5">{result.training_day_carbs}g</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                    <p className="text-slate-400 text-[11px]">Día Descanso</p>
-                    <p className="font-bold text-amber-400 text-sm mt-0.5">{result.rest_day_carbs}g</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <button
               onClick={handleApply}
               disabled={isApplying}
-              className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/25 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-xs"
+              className="w-full py-3.5 bg-[#FF6B00] hover:bg-[#FA8500] text-white font-bold text-xs rounded-2xl shadow-lg transition-all"
             >
-              {appliedSuccess ? (
-                <>
-                  <Check className="w-4 h-4" /> ¡Guardado en tu Perfil!
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" /> Guardar y Aplicar al Plan
-                </>
-              )}
+              {appliedSuccess ? '¡Guardado con Éxito!' : 'Aplicar a mi Perfil'}
             </button>
           </div>
         </div>
