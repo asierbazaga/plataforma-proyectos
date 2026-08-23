@@ -29,7 +29,10 @@ import {
   Sliders,
   AlertTriangle,
   Flame,
-  Check
+  Check,
+  BarChart3,
+  Scale,
+  Award
 } from 'lucide-react';
 import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount } from '../../types';
 import { storageService } from '../../services/storageService';
@@ -303,6 +306,57 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const totalMonthlyBudget = budgets.reduce((acc, b) => acc + b.monthly_limit, 0);
   const totalBudgetConsumedPct = totalMonthlyBudget > 0 ? (totalExpenseSum / totalMonthlyBudget) * 100 : 0;
 
+  // =========================================================================
+  // CÁLCULO DE COMPARATIVA MES A MES (HISTÓRICO ÚLTIMOS 6 MESES)
+  // =========================================================================
+  const currentDate = new Date();
+  const last6Months = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - (5 - i), 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const label = `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
+    const fullLabel = `${d.toLocaleString('es-ES', { month: 'long' })} ${d.getFullYear()}`;
+
+    const monthExpenses = filteredExpenses.filter(e => e.transaction_date.startsWith(key) && e.type === 'expense');
+    const monthIncomes = filteredExpenses.filter(e => e.transaction_date.startsWith(key) && e.type === 'income');
+
+    const expenseTotal = monthExpenses.reduce((acc, c) => acc + c.amount, 0);
+    const incomeTotal = monthIncomes.reduce((acc, c) => acc + c.amount, 0);
+    const netSavings = incomeTotal - expenseTotal;
+    const savingsRate = incomeTotal > 0 ? (netSavings / incomeTotal) * 100 : 0;
+
+    return {
+      key,
+      label,
+      fullLabel,
+      expenseTotal,
+      incomeTotal,
+      netSavings,
+      savingsRate,
+      isCurrent: i === 5
+    };
+  });
+
+  const currentMonthData = last6Months[5];
+  const previousMonthData = last6Months[4];
+
+  // Diferencia porcentual de gastos e ingresos
+  const expenseDiff = previousMonthData.expenseTotal > 0
+    ? ((currentMonthData.expenseTotal - previousMonthData.expenseTotal) / previousMonthData.expenseTotal) * 100
+    : 0;
+
+  const incomeDiff = previousMonthData.incomeTotal > 0
+    ? ((currentMonthData.incomeTotal - previousMonthData.incomeTotal) / previousMonthData.incomeTotal) * 100
+    : 0;
+
+  const savingsDiff = currentMonthData.netSavings - previousMonthData.netSavings;
+
+  // Escala máxima para las barras visuales
+  const maxMonthlyBar = Math.max(
+    ...last6Months.map(m => Math.max(m.expenseTotal, m.incomeTotal)),
+    100
+  );
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 font-sans">
       {/* Header Principal */}
@@ -325,11 +379,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               <div className="flex items-center gap-1.5">
                 <h1 className="text-base sm:text-xl font-black text-white tracking-tight">GASTOS & FINANZAS</h1>
                 <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Multi-Cartera & Presupuestos
+                  Multi-Cartera & Análisis
                 </span>
               </div>
               <p className="text-slate-400 text-[11px] sm:text-xs">
-                Abanca Personal • ING Conjunta • Gráficos & Alertas
+                Abanca Personal • ING Conjunta • Comparativa & Metas
               </p>
             </div>
           </div>
@@ -392,9 +446,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <PieChart className="w-3.5 h-3.5" />
-          <span className="hidden xs:inline">Distribución</span>
-          <span className="xs:hidden">Gráficos</span>
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span className="hidden xs:inline">Análisis & Mes a Mes</span>
+          <span className="xs:hidden">Análisis</span>
         </button>
 
         <button
@@ -733,61 +787,166 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* VISTA 2: DISTRIBUCIÓN (GRÁFICOS) & PRESUPUESTOS CON ALERTAS */}
+      {/* VISTA 2: ANÁLISIS & COMPARATIVA MES A MES */}
       {/* ========================================================================= */}
       {activeTab === 'analytics' && (
         <div className="space-y-6">
-          {/* Header de Resumen Presupuestario */}
-          <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-950/40 via-slate-900 to-slate-900 border border-teal-500/30 space-y-4 shadow-xl">
+          {/* MÓDULO 1: COMPARATIVA MES A MES & KPIS */}
+          <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-950/50 via-slate-900 to-slate-900 border border-indigo-500/30 space-y-5 shadow-xl">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase tracking-wider">
-                  Control Presupuestario Mensual
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+                  Evolución Temporal
                 </span>
-                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">¿En qué se va el dinero?</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-white mt-1 flex items-center gap-2">
+                  <BarChart3 className="w-6 h-6 text-indigo-400" />
+                  <span>Comparativa Mes a Mes</span>
+                </h2>
                 <p className="text-xs text-slate-400">
-                  Distribución del gasto y límites configurados por categoría.
+                  Compara tus ingresos, gastos y ahorro neto de este mes respecto al anterior.
                 </p>
               </div>
 
-              <div className="text-left sm:text-right bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Gasto Total vs Presupuesto</p>
-                <p className="text-lg sm:text-xl font-black text-white">
-                  {totalExpenseSum.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €{' '}
-                  <span className="text-xs font-normal text-slate-400">/ {totalMonthlyBudget} €</span>
-                </p>
-                <div className="flex items-center gap-1.5 mt-0.5 justify-start sm:justify-end">
-                  <span className={`text-xs font-bold ${
-                    totalBudgetConsumedPct > 90 ? 'text-rose-400' : totalBudgetConsumedPct > 70 ? 'text-amber-400' : 'text-emerald-400'
+              {/* Badge de Resumen del Comportamiento */}
+              <div className="bg-slate-950/80 px-3.5 py-2 rounded-2xl border border-slate-800 text-xs">
+                {expenseDiff < 0 ? (
+                  <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                    <TrendingDown className="w-4 h-4" /> Has gastado un {Math.abs(expenseDiff).toFixed(1)}% MENOS este mes
+                  </span>
+                ) : expenseDiff > 0 ? (
+                  <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                    <TrendingUp className="w-4 h-4" /> Gastos +{expenseDiff.toFixed(1)}% respecto al mes pasado
+                  </span>
+                ) : (
+                  <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-indigo-400" /> Seguimiento activo del mes
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 3 Tarjetas Comparativas (Ingresos, Gastos, Ahorro Neto) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* 1. Gastos Comparados */}
+              <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Gastos del Mes</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    expenseDiff <= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
                   }`}>
-                    {totalBudgetConsumedPct.toFixed(1)}% del límite
+                    {expenseDiff > 0 ? `+${expenseDiff.toFixed(1)}%` : `${expenseDiff.toFixed(1)}%`}
+                  </span>
+                </div>
+                <p className="text-xl font-black text-rose-400">
+                  {currentMonthData.expenseTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Mes anterior: <b className="text-slate-400">{previousMonthData.expenseTotal.toFixed(2)} €</b>
+                </p>
+              </div>
+
+              {/* 2. Ingresos Comparados */}
+              <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Ingresos del Mes</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    incomeDiff >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                  }`}>
+                    {incomeDiff > 0 ? `+${incomeDiff.toFixed(1)}%` : `${incomeDiff.toFixed(1)}%`}
+                  </span>
+                </div>
+                <p className="text-xl font-black text-emerald-400">
+                  {currentMonthData.incomeTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Mes anterior: <b className="text-slate-400">{previousMonthData.incomeTotal.toFixed(2)} €</b>
+                </p>
+              </div>
+
+              {/* 3. Ahorro Neto / Superávit */}
+              <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Capacidad Ahorro</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">
+                    {currentMonthData.savingsRate.toFixed(1)}% Tasa
+                  </span>
+                </div>
+                <p className={`text-xl font-black ${currentMonthData.netSavings >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
+                  {currentMonthData.netSavings.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Variación neta: <b className={savingsDiff >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{savingsDiff >= 0 ? `+${savingsDiff.toFixed(2)}` : savingsDiff.toFixed(2)} €</b>
+                </p>
+              </div>
+            </div>
+
+            {/* Gráfico de Barras: Histórico de los Últimos 6 Meses */}
+            <div className="space-y-3 pt-2">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Histórico de Evolución (Últimos 6 Meses)</span>
+                </h3>
+                <div className="flex items-center gap-3 text-[10px] font-bold">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Ingresos
+                  </span>
+                  <span className="flex items-center gap-1 text-rose-400">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" /> Gastos
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* Barra General de Presupuesto */}
-            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-              <div 
-                className={`h-full transition-all duration-500 ${
-                  totalBudgetConsumedPct > 90 
-                    ? 'bg-gradient-to-r from-amber-500 to-rose-500' 
-                    : totalBudgetConsumedPct > 70 
-                    ? 'bg-gradient-to-r from-teal-400 to-amber-400' 
-                    : 'bg-gradient-to-r from-teal-500 to-emerald-400'
-                }`}
-                style={{ width: `${Math.min(100, Math.max(0, totalBudgetConsumedPct))}%` }}
-              />
+              {/* Grid de Barras por Mes */}
+              <div className="grid grid-cols-6 gap-2 sm:gap-3 bg-slate-950/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800/80 items-end min-h-[160px]">
+                {last6Months.map((m, idx) => {
+                  const expenseBarHeight = maxMonthlyBar > 0 ? (m.expenseTotal / maxMonthlyBar) * 100 : 0;
+                  const incomeBarHeight = maxMonthlyBar > 0 ? (m.incomeTotal / maxMonthlyBar) * 100 : 0;
+
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end group">
+                      {/* Valores en hover o visibles */}
+                      <div className="flex items-end gap-1 sm:gap-1.5 w-full justify-center h-28">
+                        {/* Barra Ingresos */}
+                        <div 
+                          className="w-3 sm:w-4 bg-emerald-500/80 hover:bg-emerald-400 rounded-t-md transition-all duration-500 relative group-hover:scale-105"
+                          style={{ height: `${Math.max(6, incomeBarHeight)}%` }}
+                          title={`Ingresos ${m.label}: ${m.incomeTotal.toFixed(2)} €`}
+                        />
+
+                        {/* Barra Gastos */}
+                        <div 
+                          className="w-3 sm:w-4 bg-rose-500/80 hover:bg-rose-400 rounded-t-md transition-all duration-500 relative group-hover:scale-105"
+                          style={{ height: `${Math.max(6, expenseBarHeight)}%` }}
+                          title={`Gastos ${m.label}: ${m.expenseTotal.toFixed(2)} €`}
+                        />
+                      </div>
+
+                      {/* Etiqueta del Mes */}
+                      <div className="text-center">
+                        <span className={`text-[10px] sm:text-xs font-bold block ${
+                          m.isCurrent ? 'text-indigo-400 font-black' : 'text-slate-400'
+                        }`}>
+                          {m.label}
+                        </span>
+                        <span className="text-[9px] text-slate-500 block font-mono">
+                          {m.expenseTotal.toFixed(0)}€
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Gráfico y Desglose en 2 Columnas */}
+          {/* MÓDULO 2: DISTRIBUCIÓN POR CATEGORÍA Y LÍMITES PRESUPUESTARIOS */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* Columna 1: Gráfico Visual de Donut (5 Cols) */}
             <div className="lg:col-span-5 glass-panel bg-slate-900/90 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center space-y-4 shadow-xl">
               <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider text-center flex items-center gap-2">
                 <PieChart className="w-4 h-4 text-teal-400" />
-                <span>Distribución Porcentual</span>
+                <span>Distribución del Mes</span>
               </h3>
 
               {totalExpenseSum === 0 ? (
@@ -1043,161 +1202,161 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
               {goals.map(goal => {
                 const pct = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
-              const remaining = Math.max(0, goal.target_amount - goal.current_amount);
-              const isCompleted = goal.current_amount >= goal.target_amount;
+                const remaining = Math.max(0, goal.target_amount - goal.current_amount);
+                const isCompleted = goal.current_amount >= goal.target_amount;
 
-              return (
-                <div 
-                  key={goal.id}
-                  className={`p-4 sm:p-6 rounded-2xl sm:rounded-3xl border transition-all space-y-4 relative overflow-hidden shadow-lg ${
-                    isCompleted 
-                      ? 'bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/50' 
-                      : 'bg-slate-900/80 border-slate-800 hover:border-purple-500/40'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        {goal.account === 'abanca' ? (
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            🏦 Abanca
-                          </span>
-                        ) : (
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                            🤝 ING Conjunta
-                          </span>
-                        )}
+                return (
+                  <div 
+                    key={goal.id}
+                    className={`p-4 sm:p-6 rounded-2xl sm:rounded-3xl border transition-all space-y-4 relative overflow-hidden shadow-lg ${
+                      isCompleted 
+                        ? 'bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/50' 
+                        : 'bg-slate-900/80 border-slate-800 hover:border-purple-500/40'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          {goal.account === 'abanca' ? (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                              🏦 Abanca
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                              🤝 ING Conjunta
+                            </span>
+                          )}
 
-                        {isCompleted && (
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> ¡Completado!
-                          </span>
+                          {isCompleted && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> ¡Completado!
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="text-base sm:text-xl font-black text-white tracking-tight pt-0.5">
+                          {goal.title}
+                        </h3>
+                        {goal.notes && (
+                          <p className="text-xs text-slate-400">{goal.notes}</p>
                         )}
                       </div>
 
-                      <h3 className="text-base sm:text-xl font-black text-white tracking-tight pt-0.5">
-                        {goal.title}
-                      </h3>
-                      {goal.notes && (
-                        <p className="text-xs text-slate-400">{goal.notes}</p>
+                      {canEdit && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenEditGoal(goal)}
+                            className="text-slate-400 hover:text-purple-300 p-1.5 rounded-lg hover:bg-purple-500/10 transition-colors"
+                            title="Modificar este objetivo"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteGoal(goal.id)}
+                            className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
+                            title="Eliminar meta"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
 
-                    {canEdit && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleOpenEditGoal(goal)}
-                          className="text-slate-400 hover:text-purple-300 p-1.5 rounded-lg hover:bg-purple-500/10 transition-colors"
-                          title="Modificar este objetivo"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
+                    {/* Cifras: Precio vs Ahorrado */}
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 bg-slate-950/60 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80 text-center">
+                      <div>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Precio / Meta</p>
+                        <p className="text-xs sm:text-base font-black text-white">{goal.target_amount.toLocaleString('es-ES')} €</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase">Ahorrado</p>
+                        <p className="text-xs sm:text-base font-black text-emerald-400">{goal.current_amount.toLocaleString('es-ES')} €</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Falta</p>
+                        <p className="text-xs sm:text-base font-black text-slate-300">{remaining.toLocaleString('es-ES')} €</p>
+                      </div>
+                    </div>
 
-                        <button
-                          onClick={() => handleDeleteGoal(goal.id)}
-                          className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
-                          title="Eliminar meta"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                    {/* Barra de Progreso Individual */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-slate-400 text-[11px]">Progreso</span>
+                        <span className={`text-[11px] ${isCompleted ? 'text-emerald-400' : 'text-purple-400'}`}>
+                          {pct.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 sm:h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            isCompleted 
+                              ? 'bg-gradient-to-r from-emerald-500 to-teal-400' 
+                              : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                          }`}
+                          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Botón de Aportación Rápida */}
+                    {canEdit && (
+                      <div className="pt-2 border-t border-slate-800/80">
+                        {contributeGoalId === goal.id ? (
+                          <div className="flex items-center gap-1.5 animate-fadeIn">
+                            <input
+                              type="number"
+                              step="10"
+                              placeholder="Aportar (+€)"
+                              value={contributionAmount}
+                              onChange={e => setContributionAmount(e.target.value)}
+                              className="flex-1 bg-slate-800 border border-purple-500/50 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleContribute(goal.id)}
+                              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md flex-shrink-0"
+                            >
+                              Sumar
+                            </button>
+                            <button
+                              onClick={() => { setContributeGoalId(null); setContributionAmount(''); }}
+                              className="px-2 py-2 text-slate-400 hover:text-white text-xs"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {goal.target_date ? `Meta: ${goal.target_date}` : 'Sin fecha'}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditGoal(goal)}
+                                className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all"
+                              >
+                                Modificar
+                              </button>
+                              <button
+                                onClick={() => { setContributeGoalId(goal.id); setContributionAmount(50); }}
+                                className="px-3.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold transition-all flex items-center gap-1 shadow-sm active:scale-95"
+                              >
+                                <Coins className="w-3.5 h-3.5" />
+                                <span>+ Aportar</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-
-                  {/* Cifras: Precio vs Ahorrado */}
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 bg-slate-950/60 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80 text-center">
-                    <div>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Precio / Meta</p>
-                      <p className="text-xs sm:text-base font-black text-white">{goal.target_amount.toLocaleString('es-ES')} €</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase">Ahorrado</p>
-                      <p className="text-xs sm:text-base font-black text-emerald-400">{goal.current_amount.toLocaleString('es-ES')} €</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Falta</p>
-                      <p className="text-xs sm:text-base font-black text-slate-300">{remaining.toLocaleString('es-ES')} €</p>
-                    </div>
-                  </div>
-
-                  {/* Barra de Progreso Individual */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-400 text-[11px]">Progreso</span>
-                      <span className={`text-[11px] ${isCompleted ? 'text-emerald-400' : 'text-purple-400'}`}>
-                        {pct.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="w-full h-2 sm:h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                      <div 
-                        className={`h-full transition-all duration-500 ${
-                          isCompleted 
-                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400' 
-                            : 'bg-gradient-to-r from-purple-500 to-pink-500'
-                        }`}
-                        style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Botón de Aportación Rápida */}
-                  {canEdit && (
-                    <div className="pt-2 border-t border-slate-800/80">
-                      {contributeGoalId === goal.id ? (
-                        <div className="flex items-center gap-1.5 animate-fadeIn">
-                          <input
-                            type="number"
-                            step="10"
-                            placeholder="Aportar (+€)"
-                            value={contributionAmount}
-                            onChange={e => setContributionAmount(e.target.value)}
-                            className="flex-1 bg-slate-800 border border-purple-500/50 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleContribute(goal.id)}
-                            className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md flex-shrink-0"
-                          >
-                            Sumar
-                          </button>
-                          <button
-                            onClick={() => { setContributeGoalId(null); setContributionAmount(''); }}
-                            className="px-2 py-2 text-slate-400 hover:text-white text-xs"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-500 font-medium">
-                            {goal.target_date ? `Meta: ${goal.target_date}` : 'Sin fecha'}
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleOpenEditGoal(goal)}
-                              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all"
-                            >
-                              Modificar
-                            </button>
-                            <button
-                              onClick={() => { setContributeGoalId(goal.id); setContributionAmount(50); }}
-                              className="px-3.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold transition-all flex items-center gap-1 shadow-sm active:scale-95"
-                            >
-                              <Coins className="w-3.5 h-3.5" />
-                              <span>+ Aportar</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    )}
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: NUEVA TRANSACCIÓN (Bottom Sheet en móvil) */}
@@ -1362,7 +1521,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Fondo Emergencia, Viaje Vacaciones, Inversión..."
+                  placeholder="Ej. Play, Viaje Vacaciones, Coche, Fondo..."
                   value={goalTitle}
                   onChange={e => setGoalTitle(e.target.value)}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm font-semibold"
