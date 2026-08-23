@@ -95,34 +95,30 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [goalNotes, setGoalNotes] = useState('');
 
   const loadData = async () => {
-    const list = await storageService.getExpenses();
-    const goalsList = await storageService.getSavingsGoals();
-    const budgetsList = await storageService.getCategoryBudgets();
+    const [list, goalsList, budgetsList] = await Promise.all([
+      storageService.getExpenses(),
+      storageService.getSavingsGoals(),
+      storageService.getCategoryBudgets()
+    ]);
     setExpenses(list);
     setGoals(goalsList);
     setBudgets(budgetsList);
   };
 
   useEffect(() => {
-    // 1. Carga inmediata de datos
+    // 1. Carga instantánea (0ms) desde memoria
     loadData();
 
-    // 2. Sincronización automática silenciosa con Supabase al abrir
+    // 2. Sincronización transparente con Supabase
     storageService.syncFromCloud().then(() => loadData());
 
-    // 3. Suscripción a cambios en tiempo real vía WebSockets (PostgreSQL Realtime)
+    // 3. Suscripción instantánea a WebSockets de PostgreSQL Realtime
     const unsubscribe = storageService.onSync(() => {
       loadData();
     });
 
-    // 4. Heartbeat silencioso en segundo plano cada 5 segundos para que siempre esté al día
-    const interval = setInterval(() => {
-      storageService.syncFromCloud().then(() => loadData());
-    }, 5000);
-
     return () => {
       unsubscribe();
-      clearInterval(interval);
     };
   }, []);
 

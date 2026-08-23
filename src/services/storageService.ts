@@ -278,44 +278,37 @@ class StorageService {
     }
   }
 
-  // Sincronizar todos los módulos automáticamente desde Supabase a LocalStorage
+  // Sincronizar todos los módulos automáticamente desde Supabase a LocalStorage en paralelo
   async syncFromCloud(): Promise<void> {
     if (!isSupabaseConfigured || !supabase) return;
 
     try {
-      // 1. Metas de Ahorro
-      const goalsRes = await withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }));
-      if (!goalsRes.error && goalsRes.data) {
-        this.setLocal('savings_goals', goalsRes.data);
-      }
+      const [goalsRes, expRes, budRes, clientsRes, wkRes, libRes] = await Promise.allSettled([
+        withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 1500),
+        withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 1500),
+        withTimeout(supabase.from('category_budgets').select('*'), 1500),
+        withTimeout(supabase.from('lore_clients').select('*'), 1500),
+        withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 1500),
+        withTimeout(supabase.from('user_library').select('*'), 1500)
+      ]);
 
-      // 2. Gastos & Movimientos
-      const expRes = await withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }));
-      if (!expRes.error && expRes.data) {
-        this.setLocal('expenses', expRes.data);
+      if (goalsRes.status === 'fulfilled' && !goalsRes.value.error && goalsRes.value.data) {
+        this.setLocal('savings_goals', goalsRes.value.data);
       }
-
-      // 3. Presupuestos
-      const budRes = await withTimeout(supabase.from('category_budgets').select('*'));
-      if (!budRes.error && budRes.data && budRes.data.length > 0) {
-        this.setLocal('category_budgets', budRes.data);
+      if (expRes.status === 'fulfilled' && !expRes.value.error && expRes.value.data) {
+        this.setLocal('expenses', expRes.value.data);
       }
-
-      // 4. Clientes Lore / Farmacias
-      const clientsRes = await withTimeout(supabase.from('lore_clients').select('*'));
-      if (!clientsRes.error && clientsRes.data && clientsRes.data.length > 0) {
-        this.setLocal('lore_clients', clientsRes.data);
+      if (budRes.status === 'fulfilled' && !budRes.value.error && budRes.value.data) {
+        this.setLocal('category_budgets', budRes.value.data);
       }
-
-      // 5. Workouts & Biblioteca
-      const wkRes = await withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }));
-      if (!wkRes.error && wkRes.data) {
-        this.setLocal('workouts', wkRes.data);
+      if (clientsRes.status === 'fulfilled' && !clientsRes.value.error && clientsRes.value.data) {
+        this.setLocal('lore_clients', clientsRes.value.data);
       }
-
-      const libRes = await withTimeout(supabase.from('user_library').select('*'));
-      if (!libRes.error && libRes.data) {
-        this.setLocal('library', libRes.data);
+      if (wkRes.status === 'fulfilled' && !wkRes.value.error && wkRes.value.data) {
+        this.setLocal('workouts', wkRes.value.data);
+      }
+      if (libRes.status === 'fulfilled' && !libRes.value.error && libRes.value.data) {
+        this.setLocal('library', libRes.value.data);
       }
 
       this.notifySubscribers();
@@ -360,29 +353,27 @@ class StorageService {
   }
 
   async getProfiles(): Promise<UserProfile[]> {
+    const local = this.getLocal('profiles', DEFAULT_PROFILES);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('profiles').select('*'));
+      withTimeout(supabase.from('profiles').select('*'), 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('profiles', res.data as UserProfile[]);
-          return res.data as UserProfile[];
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('profiles', DEFAULT_PROFILES);
+    return local;
   }
 
   async getPermissions(): Promise<AppPermission[]> {
+    const local = this.getLocal('permissions', DEFAULT_PERMISSIONS);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('app_permissions').select('*'));
+      withTimeout(supabase.from('app_permissions').select('*'), 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('permissions', res.data as AppPermission[]);
-          return res.data as AppPermission[];
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('permissions', DEFAULT_PERMISSIONS);
+    return local;
   }
 
   async updatePermission(userId: string, appId: string, canAccess: boolean, canEdit: boolean): Promise<void> {
@@ -414,16 +405,15 @@ class StorageService {
   }
 
   async getWorkouts(): Promise<FitnessWorkout[]> {
+    const local = this.getLocal('workouts', DEFAULT_WORKOUTS);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }));
+      withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 1500).then(res => {
         if (!res.error && res.data) {
           this.setLocal('workouts', res.data as FitnessWorkout[]);
-          return res.data as FitnessWorkout[];
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('workouts', DEFAULT_WORKOUTS);
+    return local;
   }
 
   async addWorkout(workout: Omit<FitnessWorkout, 'id'>): Promise<FitnessWorkout> {
@@ -431,13 +421,14 @@ class StorageService {
       ...workout,
       id: crypto.randomUUID ? crypto.randomUUID() : `wk_${Date.now()}`
     };
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').insert(item)).catch(() => {});
-    }
     const current = this.getLocal('workouts', DEFAULT_WORKOUTS);
     const updated = [item, ...current];
     this.setLocal('workouts', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('fitness_workouts').insert(item)).catch(() => {});
+    }
     return item;
   }
 
@@ -445,16 +436,15 @@ class StorageService {
   // GASTOS & MOVIMIENTOS
   // ==========================================
   async getExpenses(): Promise<ExpenseItem[]> {
+    const local = this.getLocal('expenses', DEFAULT_EXPENSES);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }));
+      withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 1500).then(res => {
         if (!res.error && res.data) {
           this.setLocal('expenses', res.data as ExpenseItem[]);
-          return res.data as ExpenseItem[];
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('expenses', DEFAULT_EXPENSES);
+    return local;
   }
 
   async addExpense(expense: Omit<ExpenseItem, 'id'>): Promise<ExpenseItem> {
@@ -462,48 +452,50 @@ class StorageService {
       ...expense,
       id: crypto.randomUUID ? crypto.randomUUID() : `exp_${Date.now()}`
     };
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').insert(item)).catch(() => {});
-    }
     const current = this.getLocal('expenses', DEFAULT_EXPENSES);
     const updated = [item, ...current];
     this.setLocal('expenses', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('expenses').insert(item)).catch(() => {});
+    }
     return item;
   }
 
   async deleteExpense(id: string): Promise<void> {
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').delete().eq('id', id)).catch(() => {});
-    }
     const current = this.getLocal('expenses', DEFAULT_EXPENSES);
     const updated = current.filter(e => e.id !== id);
     this.setLocal('expenses', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('expenses').delete().eq('id', id)).catch(() => {});
+    }
   }
 
   async clearAllExpenses(): Promise<void> {
+    this.setLocal('expenses', []);
+    this.broadcastChange();
+
     if (isSupabaseConfigured && supabase) {
       withTimeout(supabase.from('expenses').delete().neq('id', '0')).catch(() => {});
     }
-    this.setLocal('expenses', []);
-    this.broadcastChange();
   }
 
   // ==========================================
   // METAS DE AHORRO (SAVINGS GOALS)
   // ==========================================
   async getSavingsGoals(): Promise<SavingsGoal[]> {
+    const local = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }));
+      withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('savings_goals', res.data as SavingsGoal[]);
-          return res.data as SavingsGoal[];
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+    return local;
   }
 
   async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>): Promise<SavingsGoal> {
@@ -512,50 +504,52 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : `goal_${Date.now()}`,
       created_at: new Date().toISOString()
     };
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').insert(item)).catch(() => {});
-    }
     const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
     const updated = [item, ...current];
     this.setLocal('savings_goals', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('savings_goals').insert(item)).catch(() => {});
+    }
     return item;
   }
 
   async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>): Promise<void> {
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id)).catch(() => {});
-    }
     const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
     const updated = current.map(g => g.id === id ? { ...g, ...updates } : g);
     this.setLocal('savings_goals', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id)).catch(() => {});
+    }
   }
 
   async deleteSavingsGoal(id: string): Promise<void> {
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').delete().eq('id', id)).catch(() => {});
-    }
     const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
     const updated = current.filter(g => g.id !== id);
     this.setLocal('savings_goals', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('savings_goals').delete().eq('id', id)).catch(() => {});
+    }
   }
 
   // ==========================================
   // PRESUPUESTOS POR CATEGORÍA
   // ==========================================
   async getCategoryBudgets(): Promise<CategoryBudget[]> {
+    const local = this.getLocal('category_budgets', DEFAULT_CATEGORY_BUDGETS);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('category_budgets').select('*'));
+      withTimeout(supabase.from('category_budgets').select('*'), 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('category_budgets', res.data as CategoryBudget[]);
-          return res.data as CategoryBudget[];
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('category_budgets', DEFAULT_CATEGORY_BUDGETS);
+    return local;
   }
 
   async updateCategoryBudget(category: string, monthlyLimit: number): Promise<void> {
