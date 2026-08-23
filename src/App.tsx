@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
-import { FitnessApp } from './apps/fitness/FitnessApp';
-import { GastosApp } from './apps/gastos/GastosApp';
-import { LibrosJuegosApp } from './apps/libros-juegos/LibrosJuegosApp';
-import { LoreApp } from './apps/lore/LoreApp';
-import { UserManagement } from './components/UserManagement';
-import { ActivityLogs } from './components/ActivityLogs';
 import { ShieldAlert, ArrowLeft, LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, ChevronRight, Home } from 'lucide-react';
 import { AppId } from './types';
+
+// Lazy loading de módulos para optimización extrema de carga y rendimiento
+const FitnessApp = lazy(() => import('./apps/fitness/FitnessApp').then(m => ({ default: m.FitnessApp })));
+const GastosApp = lazy(() => import('./apps/gastos/GastosApp').then(m => ({ default: m.GastosApp })));
+const LibrosJuegosApp = lazy(() => import('./apps/libros-juegos/LibrosJuegosApp').then(m => ({ default: m.LibrosJuegosApp })));
+const LoreApp = lazy(() => import('./apps/lore/LoreApp').then(m => ({ default: m.LoreApp })));
+const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
+const ActivityLogs = lazy(() => import('./components/ActivityLogs').then(m => ({ default: m.ActivityLogs })));
+
+const ModuleLoader: React.FC = () => (
+  <div className="flex items-center justify-center p-12 min-h-[300px]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs text-slate-400 font-medium">Cargando aplicación...</span>
+    </div>
+  </div>
+);
 
 const MainLayout: React.FC = () => {
   const { currentUser, loading, hasAccessToApp } = useAuth();
@@ -95,7 +106,9 @@ const MainLayout: React.FC = () => {
       <div className="flex flex-1">
         <Sidebar currentTab={currentTab} onSelectTab={handleSelectTab} />
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
-          {renderContent()}
+          <Suspense fallback={<ModuleLoader />}>
+            {renderContent()}
+          </Suspense>
         </main>
       </div>
 
@@ -109,69 +122,63 @@ const MainLayout: React.FC = () => {
               : 'text-slate-400 hover:text-white font-medium'
           }`}
         >
-          <LayoutDashboard className="w-5 h-5" />
+          <Home className="w-4 h-4" />
           <span className="text-[10px]">Catálogo</span>
         </button>
 
-        <button
-          onClick={() => setCurrentTab('fitness')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-            currentTab === 'fitness'
-              ? 'text-orange-400 font-bold'
-              : 'text-slate-400 hover:text-white font-medium'
-          }`}
-        >
-          <Dumbbell className="w-5 h-5" />
-          <span className="text-[10px]">Fitness</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('gastos')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-            currentTab === 'gastos'
-              ? 'text-emerald-400 font-bold'
-              : 'text-slate-400 hover:text-white font-medium'
-          }`}
-        >
-          <DollarSign className="w-5 h-5" />
-          <span className="text-[10px]">Gastos</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('libros-juegos')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-            currentTab === 'libros-juegos'
-              ? 'text-purple-400 font-bold'
-              : 'text-slate-400 hover:text-white font-medium'
-          }`}
-        >
-          <BookOpen className="w-5 h-5" />
-          <span className="text-[10px]">Libros</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('lore')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-            currentTab === 'lore'
-              ? 'text-blue-400 font-bold'
-              : 'text-slate-400 hover:text-white font-medium'
-          }`}
-        >
-          <BookMarked className="w-5 h-5" />
-          <span className="text-[10px]">Lore</span>
-        </button>
-
-        {currentUser.role === 'admin' && (
+        {hasAccessToApp('gastos') && (
           <button
-            onClick={() => setCurrentTab('permissions')}
+            onClick={() => handleSelectTab('gastos')}
             className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              currentTab === 'permissions' || currentTab === 'logs'
+              currentTab === 'gastos'
+                ? 'text-emerald-400 font-bold'
+                : 'text-slate-400 hover:text-white font-medium'
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            <span className="text-[10px]">Gastos</span>
+          </button>
+        )}
+
+        {hasAccessToApp('fitness') && (
+          <button
+            onClick={() => handleSelectTab('fitness')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
+              currentTab === 'fitness'
                 ? 'text-indigo-400 font-bold'
                 : 'text-slate-400 hover:text-white font-medium'
             }`}
           >
-            <ShieldCheck className="w-5 h-5" />
-            <span className="text-[10px]">Admin</span>
+            <Dumbbell className="w-4 h-4" />
+            <span className="text-[10px]">Fitness</span>
+          </button>
+        )}
+
+        {hasAccessToApp('libros-juegos') && (
+          <button
+            onClick={() => handleSelectTab('libros-juegos')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
+              currentTab === 'libros-juegos'
+                ? 'text-purple-400 font-bold'
+                : 'text-slate-400 hover:text-white font-medium'
+            }`}
+          >
+            <BookMarked className="w-4 h-4" />
+            <span className="text-[10px]">Biblioteca</span>
+          </button>
+        )}
+
+        {hasAccessToApp('lore') && (
+          <button
+            onClick={() => handleSelectTab('lore')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
+              currentTab === 'lore'
+                ? 'text-teal-400 font-bold'
+                : 'text-slate-400 hover:text-white font-medium'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span className="text-[10px]">Lore</span>
           </button>
         )}
       </nav>
@@ -180,30 +187,29 @@ const MainLayout: React.FC = () => {
 };
 
 const AccessDeniedView: React.FC<{ onBack: () => void; appName: string }> = ({ onBack, appName }) => (
-  <div className="glass-panel p-12 rounded-3xl border border-rose-500/30 text-center space-y-4 max-w-lg mx-auto my-12">
-    <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto">
+  <div className="glass-panel rounded-3xl p-12 text-center max-w-lg mx-auto my-12 border-rose-500/30">
+    <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-6">
       <ShieldAlert className="w-8 h-8" />
     </div>
-    <h2 className="text-2xl font-extrabold text-white">Acceso Restringido</h2>
-    <p className="text-sm text-slate-400">
-      Tu usuario no dispone de permiso suficiente para acceder a <span className="font-bold text-white">{appName}</span>. Contacta con el Administrador para otorgar acceso en la Matriz RBAC.
+    <h2 className="text-2xl font-bold text-white mb-2">Acceso No Autorizado</h2>
+    <p className="text-slate-400 mb-6 text-sm">
+      Tu perfil actual no dispone de permisos para acceder a <strong className="text-white">{appName}</strong>.
+      Ponte en contacto con el administrador para solicitar acceso.
     </p>
     <button
       onClick={onBack}
-      className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-all"
+      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition-all border border-slate-700"
     >
       <ArrowLeft className="w-4 h-4" />
-      Volver al Catálogo
+      <span>Volver al Catálogo</span>
     </button>
   </div>
 );
 
-export function App() {
+export default function App() {
   return (
     <AuthProvider>
       <MainLayout />
     </AuthProvider>
   );
 }
-
-export default App;
