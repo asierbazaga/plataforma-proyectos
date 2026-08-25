@@ -410,6 +410,30 @@ class StorageService {
     localStorage.setItem(`plataforma_${key}`, JSON.stringify(data));
   }
 
+  private getPasswordMap(): Record<string, string> {
+    return this.getLocal<Record<string, string>>('user_passwords', {
+      'asier.bazaga@plataforma.com': 'admin',
+      'asier': 'admin',
+      'lore@plataforma.com': 'lore',
+      'lore': 'lore',
+      'invitado@plataforma.com': 'demo',
+      'invitado': 'demo'
+    });
+  }
+
+  private savePassword(identifier: string, pass: string): void {
+    const map = this.getPasswordMap();
+    const cleanId = identifier.trim().toLowerCase();
+    map[cleanId] = pass.trim();
+    this.setLocal('user_passwords', map);
+  }
+
+  getPasswordForUser(user: UserProfile): string {
+    const map = this.getPasswordMap();
+    const fromMap = map[user.email.toLowerCase()] || map[user.id] || map[user.full_name.toLowerCase()] || map[user.full_name.split(' ')[0].toLowerCase()];
+    return user.password || fromMap || (user.role === 'admin' ? 'admin' : '123456');
+  }
+
   getProfilesSync(): UserProfile[] {
     const ver = localStorage.getItem('plataforma_data_version');
     if (ver !== PROFILES_VERSION) {
@@ -418,7 +442,12 @@ class StorageService {
       localStorage.setItem('plataforma_data_version', PROFILES_VERSION);
       return DEFAULT_PROFILES;
     }
-    return this.getLocal('profiles', DEFAULT_PROFILES);
+    const profiles = this.getLocal('profiles', DEFAULT_PROFILES);
+    const map = this.getPasswordMap();
+    return profiles.map(p => ({
+      ...p,
+      password: p.password || map[p.email.toLowerCase()] || map[p.id] || (p.role === 'admin' ? 'admin' : '123456')
+    }));
   }
 
   getPermissionsSync(): AppPermission[] {
@@ -431,11 +460,16 @@ class StorageService {
   }
 
   async getProfiles(): Promise<UserProfile[]> {
-    const local = this.getLocal('profiles', DEFAULT_PROFILES);
+    const local = this.getProfilesSync();
     if (isSupabaseConfigured && supabase) {
       withTimeout(supabase.from('profiles').select('*'), 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('profiles', res.data as UserProfile[]);
+          const map = this.getPasswordMap();
+          const merged = (res.data as UserProfile[]).map(p => ({
+            ...p,
+            password: map[p.email.toLowerCase()] || map[p.id] || p.password || (p.role === 'admin' ? 'admin' : '123456')
+          }));
+          this.setLocal('profiles', merged);
         }
       }).catch(() => {});
     }
@@ -1055,26 +1089,32 @@ class StorageService {
     this.broadcastChange();
   }
 
-  async createProfile(profile: Omit<UserProfile, 'id' | 'created_at'>): Promise<UserProfile> {
+  async createProfile(profile: Omit<UserProfile, 'id'>): Promise<UserProfile> {
     const newProfile: UserProfile = {
       ...profile,
       id: crypto.randomUUID ? crypto.randomUUID() : `usr_${Date.now()}`,
-      status: profile.status || 'active',
       created_at: new Date().toISOString()
     };
+
+    if (newProfile.password) {
+      this.savePassword(newProfile.id, newProfile.password);
+      this.savePassword(newProfile.email, newProfile.password);
+    }
+
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('profiles').insert(newProfile)).catch(() => {});
+      const { password, ...supabaseProfile } = newProfile;
+      withTimeout(supabase.from('profiles').insert(supabaseProfile)).catch(() => {});
     }
     const current = await this.getProfiles();
     const updated = [...current, newProfile];
     this.setLocal('profiles', updated);
 
-    // Inicializar permisos por defecto para las 4 aplicaciones
-    const defaultApps: import('../types').AppId[] = ['fitness', 'gastos', 'libros-juegos', 'lore'];
+    // Inicializar permisos por defecto para las 5 aplicaciones
+    const defaultApps: import('../types').AppId[] = ['fitness', 'gastos', 'libros-juegos', 'lore', 'entrevistas'];
     const initialPerms: AppPermission[] = defaultApps.map(appId => ({
       user_id: newProfile.id,
       app_id: appId,
-      can_access: newProfile.role === 'admin' ? true : appId === 'fitness' || appId === 'libros-juegos',
+      can_access: newProfile.role === 'admin' ? true : (appId === 'fitness' || appId === 'libros-juegos'),
       can_edit: newProfile.role === 'admin' ? true : appId === 'fitness'
     }));
     await this.updateUserPermissions(newProfile.id, initialPerms);
@@ -1093,12 +1133,24 @@ class StorageService {
       ...updates
     };
 
+    if (updates.password) {
+      this.savePassword(id, updates.password);
+      this.savePassword(updatedProfile.email, updates.password);
+      if (updatedProfile.full_name) {
+        this.savePassword(updatedProfile.full_name, updates.password);
+        this.savePassword(updatedProfile.full_name.split(' ')[0], updates.password);
+      }
+    }
+
     const updated = [...current];
     updated[existingIndex] = updatedProfile;
     this.setLocal('profiles', updated);
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('profiles').update(updates).eq('id', id)).catch(() => {});
+      const { password, ...supabaseUpdates } = updates;
+      if (Object.keys(supabaseUpdates).length > 0) {
+        withTimeout(supabase.from('profiles').update(supabaseUpdates).eq('id', id)).catch(() => {});
+      }
     }
 
     this.broadcastChange();
