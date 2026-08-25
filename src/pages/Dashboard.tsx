@@ -124,9 +124,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
       tagColor: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
       btnGradient: 'from-pink-500 via-purple-600 to-cyan-600 hover:from-pink-400 hover:to-cyan-500 shadow-pink-500/25',
       highlights: [
-        { label: '🌸 Objetivos Drasanvi', icon: Sparkles },
-        { label: '🏥 CRM Farmacias', icon: Building2 },
-        { label: '🗺️ Rutas & Deciles', icon: MapPin }
+        { text: 'Objetivos Drasanvi', icon: Sparkles },
+        { text: 'CRM Farmacias', icon: Building2 },
+        { text: 'Rutas & Deciles', icon: MapPin }
       ]
     }
   ];
@@ -135,6 +135,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
   const sortedApps = isLore 
     ? [...apps.filter(a => a.id === 'lore'), ...apps.filter(a => a.id !== 'lore')]
     : apps;
+
+  // Filtrar estrictamente solo las aplicaciones a las que el usuario tiene permisos
+  const accessibleApps = sortedApps.filter(app => hasAccessToApp(app.id));
 
   // Monograma de iniciales para el avatar
   const getInitials = (name: string) => {
@@ -169,7 +172,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
                 ? 'Super Administrador' 
                 : isLore 
                 ? 'Comercial Drasanvi' 
-                : 'Modo Invitado'}
+                : 'Usuario Plataforma'}
             </p>
           </div>
         </div>
@@ -182,96 +185,97 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
 
       {/* 2. CATÁLOGO DE APLICACIONES (Limpio y directo) */}
       <div className="space-y-4">
-        <div className="px-1">
+        <div className="px-1 flex justify-between items-center">
           <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-            Catálogo de Aplicaciones
+            {accessibleApps.length === 4 ? 'Catálogo de Aplicaciones' : 'Tus Módulos Asignados'}
           </h2>
+          <span className="text-xs text-slate-400 font-medium">
+            {accessibleApps.length} {accessibleApps.length === 1 ? 'módulo activo' : 'módulos activos'}
+          </span>
         </div>
 
-        {/* Grid de Tarjetas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-          {sortedApps.map((app) => {
-            const hasAccess = hasAccessToApp(app.id);
-            const Icon = app.icon;
+        {/* Grid de Tarjetas o Estado Vacío */}
+        {accessibleApps.length === 0 ? (
+          <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-white">Sin módulos asignados</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Tu cuenta está registrada pero aún no tiene módulos asignados. El administrador te otorgará los accesos oportunos.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+            {accessibleApps.map((app) => {
+              const Icon = app.icon;
 
-            return (
-              <div
-                key={app.id}
-                onClick={() => hasAccess && onSelectApp(app.id)}
-                className={`group relative overflow-hidden rounded-3xl bg-slate-900/70 border border-slate-800/90 p-6 sm:p-7 flex flex-col justify-between space-y-6 transition-all duration-300 backdrop-blur-md ${
-                  hasAccess
-                    ? `cursor-pointer hover:border-slate-700 hover:-translate-y-1 hover:shadow-2xl ${app.glowColor}`
-                    : 'opacity-70 border-slate-800/50 cursor-not-allowed'
-                }`}
-              >
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/[0.02] rounded-full blur-2xl group-hover:bg-white/[0.05] transition-all" />
+              return (
+                <div
+                  key={app.id}
+                  onClick={() => onSelectApp(app.id)}
+                  className={`group relative overflow-hidden rounded-3xl bg-slate-900/70 border border-slate-800/90 p-6 sm:p-7 flex flex-col justify-between space-y-6 transition-all duration-300 backdrop-blur-md cursor-pointer hover:border-slate-700 hover:-translate-y-1 hover:shadow-2xl ${app.glowColor}`}
+                >
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-white/[0.02] rounded-full blur-2xl group-hover:bg-white/[0.05] transition-all" />
 
-                <div className="space-y-4 relative z-10">
-                  {/* Category & Status */}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2.5">
-                      <span className={`text-[11px] font-bold px-3 py-1 rounded-xl border uppercase tracking-wider ${app.tagColor}`}>
-                        {app.category}
-                      </span>
-                      <span className="text-xs font-mono font-bold text-slate-500">
-                        #{app.number}
-                      </span>
-                    </div>
+                  <div className="space-y-4 relative z-10">
+                    {/* Category & Status */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`text-[11px] font-bold px-3 py-1 rounded-xl border uppercase tracking-wider ${app.tagColor}`}>
+                          {app.category}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-slate-500">
+                          #{app.number}
+                        </span>
+                      </div>
 
-                    {hasAccess ? (
                       <span className="text-[11px] font-bold px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5 shadow-sm">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Habilitado</span>
                       </span>
-                    ) : (
-                      <span className="text-[11px] font-bold px-3 py-1 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Restringido</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Icon & Title */}
-                  <div className="flex items-start gap-4 pt-1">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${app.iconGradient} flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform flex-shrink-0 ring-1 ring-white/20`}>
-                      <Icon className="w-7 h-7 text-white" />
                     </div>
 
-                    <div className="space-y-1">
-                      <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight group-hover:text-white transition-colors">
-                        {app.title}
-                      </h3>
-                      <p className="text-xs font-medium text-slate-400">
-                        {app.subtitle}
-                      </p>
+                    {/* Icon & Title */}
+                    <div className="flex items-start gap-4 pt-1">
+                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${app.iconGradient} flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform flex-shrink-0 ring-1 ring-white/20`}>
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight group-hover:text-white transition-colors">
+                          {app.title}
+                        </h3>
+                        <p className="text-xs font-medium text-slate-400">
+                          {app.subtitle}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-sm text-slate-300/90 leading-relaxed pt-1">
+                      {app.description}
+                    </p>
+
+                    {/* Highlights */}
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {app.highlights.map((h, i) => {
+                        const HIcon = h.icon;
+                        return (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs font-medium text-slate-300"
+                          >
+                            <HIcon className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>{h.text}</span>
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Description */}
-                  <p className="text-sm text-slate-300/90 leading-relaxed pt-1">
-                    {app.description}
-                  </p>
-
-                  {/* Highlights */}
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {app.highlights.map((h, i) => {
-                      const HIcon = h.icon;
-                      return (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60"
-                        >
-                          <HIcon className="w-3 h-3 text-slate-400" />
-                          <span>{h.label}</span>
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Card Action Button */}
-                <div className="pt-4 border-t border-slate-800/80 relative z-10">
-                  {hasAccess ? (
+                  {/* Card Action Button */}
+                  <div className="pt-4 border-t border-slate-800/80 relative z-10">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -282,20 +286,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
                       <span>Abrir {app.title}</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
                     </button>
-                  ) : (
-                    <button
-                      disabled
-                      className="w-full py-3 px-4 rounded-xl text-slate-500 font-semibold text-sm bg-slate-800/40 border border-slate-800 transition-all flex items-center justify-center gap-2 cursor-not-allowed"
-                    >
-                      <Lock className="w-4 h-4 text-rose-400" />
-                      <span>Acceso Denegado por Permisos</span>
-                    </button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 3. HERRAMIENTAS DE ADMINISTRACIÓN (Solo visible si es Asier / Admin) */}

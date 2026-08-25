@@ -40,40 +40,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
           </button>
         </div>
 
-        {/* 4 Application Modules */}
-        <div className="space-y-1">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">Las 4 Aplicaciones</p>
-          {appsList.map(app => {
-            const hasAccess = hasAccessToApp(app.id);
-            const Icon = app.icon;
-            const isActive = currentTab === app.id;
+        {/* Application Modules (Only authorized ones) */}
+        {appsList.some(app => hasAccessToApp(app.id)) && (
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
+              {currentUser?.role === 'admin' ? 'Las 4 Aplicaciones' : 'Módulos Autorizados'}
+            </p>
+            {appsList
+              .filter(app => hasAccessToApp(app.id))
+              .map(app => {
+                const Icon = app.icon;
+                const isActive = currentTab === app.id;
 
-            return (
-              <button
-                key={app.id}
-                onClick={() => onSelectTab(app.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                  isActive
-                    ? 'bg-slate-800 text-white border border-slate-700'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${app.color}`} />
-                  <span>{app.name}</span>
-                </div>
+                return (
+                  <button
+                    key={app.id}
+                    onClick={() => onSelectTab(app.id)}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                      isActive
+                        ? 'bg-slate-800 text-white border border-slate-700'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-4 h-4 ${app.color}`} />
+                      <span>{app.name}</span>
+                    </div>
 
-                {hasAccess ? (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" title="Acceso Permitido" />
-                ) : (
-                  <span title="Acceso Denegado por Permisos">
-                    <Lock className="w-3.5 h-3.5 text-rose-500" />
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                    <ChevronRight className="w-4 h-4 opacity-40" />
+                  </button>
+                );
+              })}
+          </div>
+        )}
 
         {/* Admin Tools */}
         {currentUser?.role === 'admin' && (
