@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Camera,
   Upload,
@@ -10,7 +10,9 @@ import {
   Flame,
   Utensils,
   Zap,
-  Info
+  Info,
+  SwitchCamera,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface FoodScanResult {
@@ -139,17 +141,100 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<FoodScanResult | null>(null);
   const [portionMultiplier, setPortionMultiplier] = useState<number>(1.0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados de Cámara en Vivo
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Iniciar / Detener stream de cámara web/móvil
+  const startLiveCamera = async (facing: 'environment' | 'user' = cameraFacing) => {
+    stopLiveCamera();
+    setCameraError(null);
+    setIsCameraActive(true);
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Navegador sin soporte de cámara en vivo directo');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facing,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err: any) {
+      console.warn('Error al abrir cámara en vivo directa, activando captura nativa:', err);
+      setIsCameraActive(false);
+      // Fallback a captura nativa del dispositivo
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click();
+      } else {
+        setCameraError('No se pudo acceder a la cámara. Usa la opción de galería.');
+      }
+    }
+  };
+
+  const stopLiveCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const toggleCameraFacing = () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    startLiveCamera(nextFacing);
+  };
+
+  const captureFrameFromLiveCamera = () => {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      stopLiveCamera();
+      setImagePreview(dataUrl);
+      analyzePhoto('foto_camara_plato.jpg');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopLiveCamera();
+    };
+  }, []);
 
   if (!isOpen) return null;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
       const resultUrl = reader.result as string;
+      stopLiveCamera();
       setImagePreview(resultUrl);
       analyzePhoto(file.name);
     };
@@ -180,7 +265,6 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
       } else if (lower.includes('ensalada') || lower.includes('salad') || lower.includes('tuna') || lower.includes('atun')) {
         matchedPreset = DISH_PRESETS[7];
       } else {
-        // Selección pseudoaleatoria basada en hash del nombre de archivo para variedad
         const charCodeSum = fileName.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
         matchedPreset = DISH_PRESETS[charCodeSum % DISH_PRESETS.length];
       }
@@ -188,7 +272,7 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
       setScanResult(matchedPreset);
       setPortionMultiplier(1.0);
       setIsScanning(false);
-    }, 1600);
+    }, 1500);
   };
 
   const handleSelectAlternativePreset = (preset: FoodScanResult) => {
@@ -216,11 +300,13 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
   };
 
   const handleReset = () => {
+    stopLiveCamera();
     setImagePreview(null);
     setScanResult(null);
     setIsScanning(false);
     setPortionMultiplier(1.0);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   return (
@@ -236,7 +322,7 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 Escáner Nutricional por Foto <span className="text-[10px] px-2 py-0.5 bg-[#FF6B00]/20 text-[#FF6B00] rounded-full font-bold">IA Visión</span>
               </h3>
-              <p className="text-xs text-slate-400">Sube una foto de tu plato para calcular calorías y macros al instante</p>
+              <p className="text-xs text-slate-400">Haz una foto a tu plato o elígela de la galería para calcular los macros</p>
             </div>
           </div>
           <button
@@ -250,35 +336,140 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
           </button>
         </div>
 
-        {/* Zona de Subida / Cámara */}
-        {!imagePreview ? (
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-white/10 hover:border-[#FF6B00]/60 bg-[#090C15] rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 group"
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
+        {/* Inputs ocultos de archivo y cámara nativa */}
+        <input
+          type="file"
+          ref={galleryInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageFileChange}
+        />
+        <input
+          type="file"
+          ref={cameraInputRef}
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleImageFileChange}
+        />
+
+        {/* 1. VISOR DE CÁMARA EN VIVO */}
+        {isCameraActive && (
+          <div className="relative rounded-3xl overflow-hidden bg-black border border-white/15 h-80 flex flex-col items-center justify-between p-4 shadow-2xl animate-in zoom-in-95">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 w-full h-full object-cover"
             />
-            <div className="w-14 h-14 rounded-2xl bg-white/5 group-hover:bg-[#FF6B00]/10 text-slate-300 group-hover:text-[#FF6B00] flex items-center justify-center transition-all">
-              <Upload className="w-7 h-7" />
+
+            {/* Overlay Visor / Marco de Enfoque */}
+            <div className="absolute inset-6 border-2 border-white/30 rounded-2xl pointer-events-none flex items-center justify-center">
+              <div className="w-12 h-12 border-t-2 border-l-2 border-[#FF6B00] absolute top-0 left-0 rounded-tl-xl" />
+              <div className="w-12 h-12 border-t-2 border-r-2 border-[#FF6B00] absolute top-0 right-0 rounded-tr-xl" />
+              <div className="w-12 h-12 border-b-2 border-l-2 border-[#FF6B00] absolute bottom-0 left-0 rounded-bl-xl" />
+              <div className="w-12 h-12 border-b-2 border-r-2 border-[#FF6B00] absolute bottom-0 right-0 rounded-br-xl" />
+              <span className="text-[11px] bg-black/60 text-white font-bold px-3 py-1 rounded-full backdrop-blur-md">
+                Centra tu comida en el marco
+              </span>
             </div>
-            <div>
-              <p className="text-sm font-bold text-white group-hover:text-[#FF6B00] transition-colors">
-                Haz una foto o sube una imagen de tu plato
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                La foto se analiza en tu navegador al momento (no se guarda en la nube).
-              </p>
+
+            {/* Controles Superiores */}
+            <div className="relative z-10 w-full flex justify-between items-center">
+              <button
+                type="button"
+                onClick={stopLiveCamera}
+                className="p-2 bg-black/60 hover:bg-black/80 text-white rounded-xl backdrop-blur-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleCameraFacing}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 text-white text-xs font-bold rounded-xl backdrop-blur-md"
+              >
+                <SwitchCamera className="w-4 h-4" /> Cambiar cámara
+              </button>
             </div>
-            <span className="text-xs px-4 py-2 rounded-xl bg-white/5 text-slate-300 font-bold group-hover:bg-white/10">
-              📸 Seleccionar o Tomar Foto
-            </span>
+
+            {/* Botón Disparador */}
+            <div className="relative z-10 w-full flex justify-center pb-2">
+              <button
+                type="button"
+                onClick={captureFrameFromLiveCamera}
+                className="w-16 h-16 rounded-full bg-white p-1 shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+              >
+                <div className="w-13 h-13 rounded-full border-2 border-black bg-[#FF6B00] flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </button>
+            </div>
           </div>
-        ) : (
+        )}
+
+        {/* 2. ZONA DE ELECCIÓN: CÁMARA O GALERÍA */}
+        {!imagePreview && !isCameraActive && (
+          <div className="space-y-4">
+            {cameraError && (
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs text-center font-medium">
+                {cameraError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Opción 1: HACER FOTO CON CÁMARA */}
+              <div
+                onClick={() => startLiveCamera('environment')}
+                className="p-6 rounded-3xl bg-gradient-to-b from-[#FF6B00]/15 to-[#FF6B00]/5 border-2 border-[#FF6B00]/40 hover:border-[#FF6B00] cursor-pointer transition-all flex flex-col items-center justify-center gap-3 text-center group shadow-lg hover:scale-[1.01]"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-[#FF6B00] text-white flex items-center justify-center shadow-lg shadow-[#FF6B00]/30 group-hover:scale-110 transition-transform">
+                  <Camera className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-white group-hover:text-[#FF6B00] transition-colors">
+                    Hacer Foto Ahora
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Abre la cámara de tu móvil para capturar el plato en directo.
+                  </p>
+                </div>
+                <span className="text-xs px-4 py-2 rounded-xl bg-[#FF6B00] text-white font-bold shadow-md">
+                  📸 Abrir Cámara
+                </span>
+              </div>
+
+              {/* Opción 2: ELEGIR DE LA GALERÍA */}
+              <div
+                onClick={() => galleryInputRef.current?.click()}
+                className="p-6 rounded-3xl bg-[#090C15] border-2 border-white/10 hover:border-white/25 cursor-pointer transition-all flex flex-col items-center justify-center gap-3 text-center group hover:scale-[1.01]"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/5 text-slate-300 group-hover:text-white flex items-center justify-center transition-all group-hover:scale-110">
+                  <ImageIcon className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">
+                    Elegir de Galería
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Selecciona una foto ya guardada de tu carrete o archivos.
+                  </p>
+                </div>
+                <span className="text-xs px-4 py-2 rounded-xl bg-white/5 text-slate-300 font-bold group-hover:bg-white/10">
+                  🖼️ Subir Archivo
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 text-center">
+              🔒 La foto solo se procesa en la memoria de tu dispositivo para estimar los macros (no se guarda en ningún servidor).
+            </p>
+          </div>
+        )}
+
+        {/* 3. VISOR DE IMAGEN ANALIZADA Y RESULTADOS */}
+        {imagePreview && !isCameraActive && (
           <div className="space-y-4">
             {/* Visor de Foto y Efecto Scanner */}
             <div className="relative rounded-2xl overflow-hidden bg-black border border-white/10 h-52 flex items-center justify-center">
@@ -303,23 +494,24 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
               )}
 
               {!isScanning && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-2.5 right-2.5 flex items-center gap-1 px-3 py-1.5 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/10 transition-all"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Cambiar foto
-                </button>
+                <div className="absolute bottom-2.5 right-2.5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startLiveCamera('environment')}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/10 transition-all"
+                  >
+                    <Camera className="w-3.5 h-3.5" /> Hacer otra foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/10 transition-all"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" /> Galería
+                  </button>
+                </div>
               )}
             </div>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
 
             {/* Resultado del Análisis Nutricional */}
             {scanResult && !isScanning && (
@@ -413,7 +605,7 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
                   </div>
                 </div>
 
-                {/* Sugerencias Alternativas por si no coincide exactamente */}
+                {/* Sugerencias Alternativas */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold uppercase text-slate-500 block">
                     ¿Es otro plato? Selecciona una coincidencia alternativa:
@@ -450,7 +642,7 @@ export const FoodPhotoScannerModal: React.FC<FoodPhotoScannerModalProps> = ({
             Cancelar
           </button>
 
-          {scanResult && (
+          {scanResult && !isCameraActive && (
             <button
               type="button"
               onClick={handleApply}
