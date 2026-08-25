@@ -72,6 +72,23 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
+      const creds = webAuthnService.getRegisteredCredentials();
+      if (creds.length === 0) {
+        // Registro rápido de huella para Asier o el correo escrito
+        const targetEmail = loginIdentifier.trim().toLowerCase() || 'asier.bazaga@plataforma.com';
+        const targetName = targetEmail.includes('asier') ? 'Asier Bazaga' : targetEmail.split('@')[0];
+        const targetId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+        const regRes = await webAuthnService.registerDeviceBiometric(targetId, targetEmail, targetName);
+        if (!regRes.success) {
+          setError(regRes.error || 'No se pudo registrar la huella en este dispositivo.');
+          setLoading(false);
+          setStatusMessage('');
+          return;
+        }
+        setRegisteredCredentials(webAuthnService.getRegisteredCredentials());
+      }
+
       const res = await webAuthnService.authenticateWithDeviceBiometric();
 
       if (res.success && res.userEmail) {
@@ -84,7 +101,7 @@ export const Login: React.FC = () => {
             setLoading(false);
             setStatusMessage('');
           }
-        }, 400);
+        }, 300);
       } else {
         setLoading(false);
         setError(res.error || 'No se pudo verificar la huella en el sensor del dispositivo.');
@@ -211,21 +228,25 @@ export const Login: React.FC = () => {
         {/* 1. MODO INICIAR SESIÓN */}
         {authMode === 'login' && (
           <div className="space-y-5">
-            {/* Botón Biométrico si está soportado */}
-            {isBiometricSupported && registeredCredentials.length > 0 && (
+            {/* Botón Biométrico si está soportado en este dispositivo */}
+            {isBiometricSupported && (
               <button
                 type="button"
                 onClick={handleScanPhoneFingerprint}
                 disabled={loading}
-                className="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 border border-indigo-500/30 hover:border-indigo-500/60 flex items-center justify-between text-left transition-all group"
+                className="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 border border-indigo-500/30 hover:border-indigo-500/60 flex items-center justify-between text-left transition-all group shadow-lg shadow-indigo-500/10"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-md shadow-indigo-500/30">
                     <Fingerprint className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white">Desbloqueo Biométrico</p>
-                    <p className="text-[11px] text-slate-400">Usar huella o Face ID de este dispositivo</p>
+                    <p className="text-xs font-bold text-white">
+                      {registeredCredentials.length > 0 ? 'Desbloqueo con Huella Dactilar' : 'Acceso con Huella / Face ID'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      {registeredCredentials.length > 0 ? 'Toca para escanear en tu sensor' : 'Activar inicio de sesión biométrico'}
+                    </p>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
