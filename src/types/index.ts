@@ -2,7 +2,7 @@ export type Role = 'admin' | 'user' | 'guest';
 
 export type UserStatus = 'active' | 'pending' | 'suspended';
 
-export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore';
+export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas';
 
 export interface UserProfile {
   id: string;
@@ -308,3 +308,67 @@ export interface LoreSavedRoute {
   totalDistanceKm: number;
   createdAt: string;
 }
+
+// ============================================================================
+// MECALUX TALENT & ENTREVISTAS (TEAM LEADER)
+// ============================================================================
+
+export type MecaluxEvaluationLevel = 'Inexistente' | 'Pobre' | 'Bueno' | 'Fuerte';
+export type MecaluxCompetencySection = 'Framework' | 'Competencias Profesionales' | 'Softskills';
+
+export interface MecaluxCompetencyRubric {
+  id: string;
+  section: MecaluxCompetencySection;
+  nombre: string;
+  criterios: {
+    inexistente: string;
+    pobre: string;
+    bueno: string;
+    fuerte: string;
+  };
+  disparadores: string[];
+  defaultWeight?: number;
+}
+
+export interface CompetencyEvaluation {
+  competencyId: string;
+  section: MecaluxCompetencySection;
+  nombre: string;
+  evaluacion: MecaluxEvaluationLevel | '';
+  comentarios: string;
+}
+
+export interface CandidateInterview {
+  id: string;
+  user_id?: string;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  role: string;
+  seniority: 'Junior' | 'Mid' | 'Senior' | 'Lead' | 'Tech Lead' | 'Especialista';
+  currentCompany?: string;
+  currentSalaryEur?: number;
+  expectedSalaryEur?: number;
+  noticePeriodWeeks?: number;
+  englishLevel?: string;
+  location?: string;
+  linkedinUrl?: string;
+  status: 'scheduled' | 'in_progress' | 'evaluated' | 'approved' | 'rejected' | 'on_hold';
+  interviewDate: string; // YYYY-MM-DD
+  durationMinutes?: number;
+  cvText?: string;
+  cvFileName?: string;
+  parsedSkills?: string[];
+  evaluations: Record<string, CompetencyEvaluation>; // key: competencyId
+  resultadoFinal: {
+    decision: 'Aprobado / Contratar' | 'Duda / 2ª Vuelta' | 'Rechazado' | 'Reserva para otro puesto' | 'Pendiente';
+    puntuacionGlobal: number; // 0 a 100%
+    puntosFuertes: string[];
+    puntosAMejorar: string[];
+    conclusionesTeamLeader: string;
+    salarioRecomendadoEur?: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+

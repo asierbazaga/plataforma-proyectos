@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, Dumbbell, DollarSign, BookOpen, BookMarked, FileText } from 'lucide-react';
+import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, Dumbbell, DollarSign, BookOpen, BookMarked, FileText, Building } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -44,6 +44,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
           icon: <BookMarked className="w-5 h-5 text-white" />,
           gradient: 'from-blue-600 to-cyan-500 shadow-blue-500/25',
           accent: 'hover:text-blue-300'
+        };
+      case 'entrevistas':
+        return {
+          title: 'MECALUX TALENT & ENTREVISTAS',
+          subtitle: 'Evaluación Team Leader & Excel',
+          icon: <Building className="w-5 h-5 text-white" />,
+          gradient: 'from-cyan-600 via-blue-600 to-indigo-600 shadow-blue-500/25',
+          accent: 'hover:text-cyan-300'
         };
       case 'permissions':
         return {

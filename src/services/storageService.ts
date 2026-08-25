@@ -13,10 +13,12 @@ import {
   CategoryBudget,
   LibraryItem,
   LoreClient,
-  LoreSavedRoute
+  LoreSavedRoute,
+  CandidateInterview
 } from '../types';
+import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const PROFILES_VERSION = 'v2_asier_lore';
+const PROFILES_VERSION = 'v3_asier_entrevistas_mecalux';
 
 const DEFAULT_PROFILES: UserProfile[] = [
   {
@@ -55,23 +57,26 @@ const DEFAULT_PROFILES: UserProfile[] = [
 ];
 
 const DEFAULT_PERMISSIONS: AppPermission[] = [
-  // Asier Bazaga: Admin Total
+  // Asier Bazaga: Admin Total (Módulo Entrevistas Exclusivo para Asier)
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'lore', can_access: true, can_edit: true },
+  { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'entrevistas', can_access: true, can_edit: true },
 
-  // Lore: Usuario
+  // Lore: Usuario (Sin acceso al módulo de entrevistas de Asier)
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'lore', can_access: true, can_edit: true },
+  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'entrevistas', can_access: false, can_edit: false },
 
-  // Invitado: Solo lectura
+  // Invitado: Solo lectura (Sin acceso al módulo de entrevistas)
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'fitness', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'gastos', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'libros-juegos', can_access: true, can_edit: false },
-  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'lore', can_access: false, can_edit: false }
+  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'lore', can_access: false, can_edit: false },
+  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'entrevistas', can_access: false, can_edit: false }
 ];
 
 const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
@@ -1199,6 +1204,47 @@ class StorageService {
     this.setLocal('lore_saved_routes', updated);
     this.broadcastChange();
   }
+
+  // ==========================================
+  // MECALUX TALENT & ENTREVISTAS (TEAM LEADER)
+  // ==========================================
+  async getInterviewCandidates(userId?: string): Promise<CandidateInterview[]> {
+    const key = this.getUserKey('interview_candidates', userId);
+    const local = this.getLocal<CandidateInterview[]>(key, [INITIAL_CANDIDATE_SAMPLE]);
+    return local;
+  }
+
+  async saveInterviewCandidate(candidate: CandidateInterview, userId?: string): Promise<CandidateInterview> {
+    const key = this.getUserKey('interview_candidates', userId);
+    const current = await this.getInterviewCandidates(userId);
+    const index = current.findIndex(c => c.id === candidate.id);
+    let updated: CandidateInterview[];
+
+    const candidateToSave: CandidateInterview = {
+      ...candidate,
+      user_id: userId || candidate.user_id,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (index >= 0) {
+      updated = current.map((c, i) => i === index ? candidateToSave : c);
+    } else {
+      updated = [candidateToSave, ...current];
+    }
+
+    this.setLocal(key, updated);
+    this.broadcastChange();
+    return candidateToSave;
+  }
+
+  async deleteInterviewCandidate(id: string, userId?: string): Promise<void> {
+    const key = this.getUserKey('interview_candidates', userId);
+    const current = await this.getInterviewCandidates(userId);
+    const updated = current.filter(c => c.id !== id);
+    this.setLocal(key, updated);
+    this.broadcastChange();
+  }
 }
 
 export const storageService = new StorageService();
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight, Building } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppId } from '../types';
 
@@ -16,6 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
     { id: 'gastos', name: 'APP GASTOS', icon: DollarSign, color: 'text-emerald-400' },
     { id: 'libros-juegos', name: 'LIBROS & JUEGOS', icon: BookOpen, color: 'text-purple-400' },
     { id: 'lore', name: 'APP LORE', icon: BookMarked, color: 'text-blue-400' },
+    { id: 'entrevistas', name: 'ENTREVISTAS MECALUX', icon: Building, color: 'text-cyan-400' },
   ];
 
   return (
@@ -44,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
         {appsList.some(app => hasAccessToApp(app.id)) && (
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
-              {currentUser?.role === 'admin' ? 'Las 4 Aplicaciones' : 'Módulos Autorizados'}
+              {currentUser?.role === 'admin' ? 'Módulos de Aplicaciones' : 'Módulos Autorizados'}
             </p>
             {appsList
               .filter(app => hasAccessToApp(app.id))

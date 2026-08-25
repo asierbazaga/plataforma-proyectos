@@ -1,0 +1,530 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  CheckCircle2, 
+  FileSpreadsheet, 
+  Sparkles, 
+  ChevronDown, 
+  ChevronUp, 
+  HelpCircle, 
+  Save, 
+  ArrowLeft,
+  ArrowRight,
+  Clock,
+  Layers,
+  Award,
+  AlertTriangle,
+  UserCheck
+} from 'lucide-react';
+import { CandidateInterview, MecaluxCompetencySection, MecaluxEvaluationLevel } from '../../../types';
+import { MECALUX_RUBRICS, EVALUATION_LEVELS } from '../services/mecaluxRubrics';
+import { ExcelInterviewService } from '../services/excelService';
+
+interface LiveInterviewViewProps {
+  candidate: CandidateInterview;
+  onUpdateCandidate: (updated: CandidateInterview) => void;
+  onGoToResultado: () => void;
+  onBackToList: () => void;
+}
+
+export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
+  candidate,
+  onUpdateCandidate,
+  onGoToResultado,
+  onBackToList
+}) => {
+  const [activeSection, setActiveSection] = useState<MecaluxCompetencySection>('Competencias Profesionales');
+  const [secondsElapsed, setSecondsElapsed] = useState<number>(candidate.durationMinutes ? candidate.durationMinutes * 60 : 0);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [expandedRubrics, setExpandedRubrics] = useState<Record<string, boolean>>({});
+  const [autoSaveToast, setAutoSaveToast] = useState<boolean>(false);
+
+  // Temporizador de entrevista
+  useEffect(() => {
+    let interval: any = null;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setSecondsElapsed(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
+
+  const formatTimer = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleRatingChange = (rubricId: string, section: MecaluxCompetencySection, name: string, level: MecaluxEvaluationLevel) => {
+    const existing = candidate.evaluations[rubricId] || {
+      competencyId: rubricId,
+      section,
+      nombre: name,
+      evaluacion: '',
+      comentarios: ''
+    };
+
+    const updatedEvaluations = {
+      ...candidate.evaluations,
+      [rubricId]: {
+        ...existing,
+        evaluacion: level
+      }
+    };
+
+    // Recalcular puntuación global automáticamente
+    const totalPossible = MECALUX_RUBRICS.length * 3; // Nivel máximo 'Fuerte' = 3 pts
+    let totalScore = 0;
+    let evaluatedCount = 0;
+
+    MECALUX_RUBRICS.forEach(r => {
+      const ev = updatedEvaluations[r.id];
+      if (ev && ev.evaluacion) {
+        evaluatedCount++;
+        if (ev.evaluacion === 'Fuerte') totalScore += 3;
+        else if (ev.evaluacion === 'Bueno') totalScore += 2;
+        else if (ev.evaluacion === 'Pobre') totalScore += 1;
+      }
+    });
+
+    const puntuacionGlobal = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
+
+    const updatedCandidate: CandidateInterview = {
+      ...candidate,
+      durationMinutes: Math.ceil(secondsElapsed / 60),
+      status: evaluatedCount > 0 ? 'in_progress' : candidate.status,
+      evaluations: updatedEvaluations,
+      resultadoFinal: {
+        ...candidate.resultadoFinal,
+        puntuacionGlobal
+      },
+      updatedAt: new Date().toISOString()
+    };
+
+    onUpdateCandidate(updatedCandidate);
+    triggerAutoSaveToast();
+  };
+
+  const handleCommentsChange = (rubricId: string, section: MecaluxCompetencySection, name: string, comments: string) => {
+    const existing = candidate.evaluations[rubricId] || {
+      competencyId: rubricId,
+      section,
+      nombre: name,
+      evaluacion: '',
+      comentarios: ''
+    };
+
+    const updatedCandidate: CandidateInterview = {
+      ...candidate,
+      durationMinutes: Math.ceil(secondsElapsed / 60),
+      evaluations: {
+        ...candidate.evaluations,
+        [rubricId]: {
+          ...existing,
+          comentarios: comments
+        }
+      },
+      updatedAt: new Date().toISOString()
+    };
+
+    onUpdateCandidate(updatedCandidate);
+  };
+
+  const triggerAutoSaveToast = () => {
+    setAutoSaveToast(true);
+    setTimeout(() => setAutoSaveToast(false), 1800);
+  };
+
+  const toggleExpand = (rubricId: string) => {
+    setExpandedRubrics(prev => ({ ...prev, [rubricId]: !prev[rubricId] }));
+  };
+
+  const rubricsInSection = MECALUX_RUBRICS.filter(r => r.section === activeSection);
+
+  const sections: { id: MecaluxCompetencySection; label: string; count: number }[] = [
+    { id: 'Competencias Profesionales', label: 'Competencias Profesionales', count: MECALUX_RUBRICS.filter(r => r.section === 'Competencias Profesionales').length },
+    { id: 'Framework', label: 'Framework & Metodologías', count: MECALUX_RUBRICS.filter(r => r.section === 'Framework').length },
+    { id: 'Softskills', label: 'Softskills & Liderazgo', count: MECALUX_RUBRICS.filter(r => r.section === 'Softskills').length }
+  ];
+
+  // Conteo de evaluados en la sección actual
+  const evaluatedInSection = rubricsInSection.filter(r => candidate.evaluations[r.id]?.evaluacion).length;
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* 1. Header Bar de Entrevista en Directo */}
+      <div className="rounded-3xl bg-slate-900/90 border border-slate-800 p-5 sm:p-6 backdrop-blur-xl shadow-xl space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Info Candidato */}
+          <div className="flex items-center gap-3.5">
+            <button
+              onClick={onBackToList}
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all"
+              title="Volver a lista de candidatos"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {candidate.fullName}
+                </h2>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {candidate.seniority}
+                </span>
+                <span className="text-xs font-medium text-slate-400">
+                  {candidate.role}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {candidate.currentCompany ? `Empresa: ${candidate.currentCompany} • ` : ''}
+                {candidate.expectedSalaryEur ? `Pretende: ${candidate.expectedSalaryEur.toLocaleString()} € • ` : ''}
+                Inglés: {candidate.englishLevel || 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          {/* Cronómetro & Acciones Rápidas */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Cronómetro */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-slate-950 border border-slate-800">
+              <Clock className="w-4 h-4 text-cyan-400" />
+              <span className="font-mono text-base font-extrabold text-white">
+                {formatTimer(secondsElapsed)}
+              </span>
+              <button
+                onClick={() => setIsTimerRunning(!isTimerRunning)}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                  isTimerRunning 
+                    ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' 
+                    : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                }`}
+                title={isTimerRunning ? 'Pausar Cronómetro' : 'Iniciar Cronómetro'}
+              >
+                {isTimerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                onClick={() => {
+                  setIsTimerRunning(false);
+                  setSecondsElapsed(0);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-xs"
+                title="Reiniciar Cronómetro"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Score Global Badge */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/30">
+              <Award className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs text-indigo-300 font-semibold">Nota:</span>
+              <span className="font-extrabold text-sm text-white">
+                {candidate.resultadoFinal.puntuacionGlobal}%
+              </span>
+            </div>
+
+            {/* Descargar Excel Nativo */}
+            <button
+              onClick={() => ExcelInterviewService.exportCandidateToExcel(candidate)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all shadow-sm"
+              title="Descargar plantilla Excel oficial Mecalux rellena con estas evaluaciones"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Exportar Excel</span>
+            </button>
+
+            {/* Botón Ir a Resultado Final */}
+            <button
+              onClick={onGoToResultado}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 transition-all"
+            >
+              <span>Ver Dictamen Final</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Notificación flotante de autoguardado */}
+        {autoSaveToast && (
+          <div className="text-right">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20 animate-fade-in">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Guardado en directo</span>
+            </span>
+          </div>
+        )}
+
+        {/* 2. Pestañas de Secciones (Idénticas a las hojas del Excel de Mecalux) */}
+        <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-slate-800/80">
+          {sections.map(s => {
+            const isActive = activeSection === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20'
+                    : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>{s.label}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-900 text-slate-400'
+                }`}>
+                  {s.count}
+                </span>
+              </button>
+            );
+          })}
+
+          <button
+            onClick={onGoToResultado}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all bg-slate-800/80 text-indigo-300 hover:bg-indigo-950/60 hover:text-white border border-indigo-500/30"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Pestaña Resultado</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Bloques de Competencias con el Diseño Oficial de la Plantilla Excel */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Evaluando {activeSection} ({evaluatedInSection}/{rubricsInSection.length} completadas)
+          </p>
+          <span className="text-xs text-slate-500">
+            Escala oficial: Inexistente | Pobre | Bueno | Fuerte
+          </span>
+        </div>
+
+        {rubricsInSection.map((rubric) => {
+          const evalData = candidate.evaluations[rubric.id] || {
+            evaluacion: '',
+            comentarios: ''
+          };
+          const currentLevel = evalData.evaluacion;
+          const isExpanded = expandedRubrics[rubric.id] !== false; // Abierto por defecto
+
+          return (
+            <div
+              key={rubric.id}
+              className="rounded-3xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-lg backdrop-blur-md transition-all hover:border-slate-700"
+            >
+              {/* Barra Azul Oficial Mecalux (Cabecera de Competencia) */}
+              <div 
+                onClick={() => toggleExpand(rubric.id)}
+                className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 sm:p-5 flex items-center justify-between cursor-pointer border-b border-indigo-500/20 select-none"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-xl border border-indigo-500/30">
+                    Competencia
+                  </span>
+                  <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                    {rubric.nombre}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Badge de Nivel Actual */}
+                  {currentLevel ? (
+                    <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
+                      currentLevel === 'Fuerte' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                      currentLevel === 'Bueno' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' :
+                      currentLevel === 'Pobre' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                      'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    }`}>
+                      {currentLevel}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700">
+                      Sin calificar
+                    </span>
+                  )}
+
+                  <button className="text-slate-400 hover:text-white p-1 rounded-lg">
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Contenido del Bloque (Criterios, Disparadores, Evaluación y Comentarios) */}
+              {isExpanded && (
+                <div className="p-5 sm:p-6 space-y-6">
+                  {/* Tabla de 4 Niveles / Criterios de Evaluación */}
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Criterios de evaluación:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      {/* Inexistente */}
+                      <div 
+                        onClick={() => handleRatingChange(rubric.id, rubric.section, rubric.nombre, 'Inexistente')}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                          currentLevel === 'Inexistente'
+                            ? 'bg-rose-950/40 border-rose-500 text-rose-100 shadow-md shadow-rose-500/10 ring-1 ring-rose-500/30'
+                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-rose-400">Inexistente</span>
+                            {currentLevel === 'Inexistente' && <CheckCircle2 className="w-4 h-4 text-rose-400" />}
+                          </div>
+                          <p className="text-xs leading-relaxed text-slate-300">
+                            {rubric.criterios.inexistente}
+                          </p>
+                        </div>
+                        <button className={`mt-3 py-1 px-2 rounded-lg text-[10px] font-bold w-full ${
+                          currentLevel === 'Inexistente' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                        }`}>
+                          Seleccionar
+                        </button>
+                      </div>
+
+                      {/* Pobre */}
+                      <div 
+                        onClick={() => handleRatingChange(rubric.id, rubric.section, rubric.nombre, 'Pobre')}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                          currentLevel === 'Pobre'
+                            ? 'bg-amber-950/40 border-amber-500 text-amber-100 shadow-md shadow-amber-500/10 ring-1 ring-amber-500/30'
+                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-amber-400">Pobre</span>
+                            {currentLevel === 'Pobre' && <CheckCircle2 className="w-4 h-4 text-amber-400" />}
+                          </div>
+                          <p className="text-xs leading-relaxed text-slate-300">
+                            {rubric.criterios.pobre}
+                          </p>
+                        </div>
+                        <button className={`mt-3 py-1 px-2 rounded-lg text-[10px] font-bold w-full ${
+                          currentLevel === 'Pobre' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                        }`}>
+                          Seleccionar
+                        </button>
+                      </div>
+
+                      {/* Bueno */}
+                      <div 
+                        onClick={() => handleRatingChange(rubric.id, rubric.section, rubric.nombre, 'Bueno')}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                          currentLevel === 'Bueno'
+                            ? 'bg-blue-950/40 border-blue-500 text-blue-100 shadow-md shadow-blue-500/10 ring-1 ring-blue-500/30'
+                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-blue-400">Bueno</span>
+                            {currentLevel === 'Bueno' && <CheckCircle2 className="w-4 h-4 text-blue-400" />}
+                          </div>
+                          <p className="text-xs leading-relaxed text-slate-300">
+                            {rubric.criterios.bueno}
+                          </p>
+                        </div>
+                        <button className={`mt-3 py-1 px-2 rounded-lg text-[10px] font-bold w-full ${
+                          currentLevel === 'Bueno' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                        }`}>
+                          Seleccionar
+                        </button>
+                      </div>
+
+                      {/* Fuerte */}
+                      <div 
+                        onClick={() => handleRatingChange(rubric.id, rubric.section, rubric.nombre, 'Fuerte')}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                          currentLevel === 'Fuerte'
+                            ? 'bg-emerald-950/40 border-emerald-500 text-emerald-100 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-emerald-400">Fuerte</span>
+                            {currentLevel === 'Fuerte' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                          </div>
+                          <p className="text-xs leading-relaxed text-slate-300">
+                            {rubric.criterios.fuerte}
+                          </p>
+                        </div>
+                        <button className={`mt-3 py-1 px-2 rounded-lg text-[10px] font-bold w-full ${
+                          currentLevel === 'Fuerte' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                        }`}>
+                          Seleccionar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Disparadores (Preguntas dinámicas a realizar) */}
+                  <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-400" />
+                      <span className="text-xs font-extrabold text-indigo-200 uppercase tracking-wider">
+                        Disparadores sugeridos para el Team Leader:
+                      </span>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-slate-300">
+                      {rubric.disparadores.map((d, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-indigo-400 font-bold">•</span>
+                          <span className="leading-relaxed">{d}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Comentarios de la persona entrevistadora */}
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Comentarios persona entrevistadora:
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={evalData.comentarios}
+                      onChange={(e) => handleCommentsChange(rubric.id, rubric.section, rubric.nombre, e.target.value)}
+                      placeholder="Escribe aquí tus observaciones, respuestas destacadas del candidato o dudas técnicas..."
+                      className="w-full rounded-2xl bg-slate-950/80 border border-slate-800 p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-y"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Barra Inferior Flotante de Navegación de Secciones */}
+      <div className="sticky bottom-4 z-30 p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-800 flex items-center justify-between shadow-2xl">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBackToList}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-all border border-slate-700"
+          >
+            ← Volver a Candidatos
+          </button>
+          <span className="text-xs text-slate-400 hidden sm:inline">
+            Progreso total: {candidate.resultadoFinal.puntuacionGlobal}%
+          </span>
+        </div>
+
+        <button
+          onClick={onGoToResultado}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all"
+        >
+          <span>Pestaña de Resultado & Conclusiones</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};

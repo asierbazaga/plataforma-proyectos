@@ -21,7 +21,9 @@ import {
   Building2,
   Award,
   Calendar,
-  PhoneCall
+  PhoneCall,
+  Building,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppId } from '../types';
@@ -124,9 +126,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
       tagColor: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
       btnGradient: 'from-pink-500 via-purple-600 to-cyan-600 hover:from-pink-400 hover:to-cyan-500 shadow-pink-500/25',
       highlights: [
-        { text: 'Objetivos Drasanvi', icon: Sparkles },
-        { text: 'CRM Farmacias', icon: Building2 },
-        { text: 'Rutas & Deciles', icon: MapPin }
+        { text: 'Objetivos Drasanvi', label: 'Objetivos Drasanvi', icon: Sparkles },
+        { text: 'CRM Farmacias', label: 'CRM Farmacias', icon: Building2 },
+        { text: 'Rutas & Deciles', label: 'Rutas & Deciles', icon: MapPin }
+      ]
+    },
+    {
+      id: 'entrevistas' as AppId,
+      number: '05',
+      category: 'Selección & Team Leader',
+      title: 'Mecalux Talent & Entrevistas',
+      subtitle: 'Evaluación por competencias, disparadores y Excel',
+      description: 'Módulo de entrevistas técnicas y de liderazgo para Mecalux. Guía con disparadores dinámicos según CV, cálculo ponderado y generación automática de la plantilla Excel oficial (.xlsx).',
+      icon: Building,
+      glowColor: 'group-hover:shadow-cyan-500/20 group-hover:border-cyan-500/50',
+      iconGradient: 'from-cyan-500 via-blue-600 to-indigo-600 shadow-cyan-500/30',
+      tagColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+      btnGradient: 'from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 shadow-cyan-500/25',
+      highlights: [
+        { text: 'Rúbricas Mecalux', label: 'Rúbricas Mecalux', icon: Award },
+        { text: 'Plantilla Excel (.xlsx)', label: 'Plantilla Excel (.xlsx)', icon: FileSpreadsheet },
+        { text: 'Análisis de CV', label: 'Análisis de CV', icon: Sparkles }
       ]
     }
   ];
@@ -259,7 +279,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
 
                     {/* Highlights */}
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {app.highlights.map((h, i) => {
+                      {app.highlights.map((h: any, i) => {
                         const HIcon = h.icon;
                         return (
                           <span
@@ -267,7 +287,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs font-medium text-slate-300"
                           >
                             <HIcon className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>{h.text}</span>
+                            <span>{h.text || h.label}</span>
                           </span>
                         );
                       })}

@@ -4,7 +4,7 @@ import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
-import { ShieldAlert, ArrowLeft, LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, ChevronRight, Home } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, ChevronRight, Home, Building } from 'lucide-react';
 import { AppId } from './types';
 
 // Lazy loading de módulos para optimización extrema de carga y rendimiento
@@ -12,6 +12,7 @@ const FitnessApp = lazy(() => import('./apps/fitness/FitnessApp').then(m => ({ d
 const GastosApp = lazy(() => import('./apps/gastos/GastosApp').then(m => ({ default: m.GastosApp })));
 const LibrosJuegosApp = lazy(() => import('./apps/libros-juegos/LibrosJuegosApp').then(m => ({ default: m.LibrosJuegosApp })));
 const LoreApp = lazy(() => import('./apps/lore/LoreApp').then(m => ({ default: m.LoreApp })));
+const EntrevistasApp = lazy(() => import('./apps/entrevistas/EntrevistasApp').then(m => ({ default: m.EntrevistasApp })));
 const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
 const ActivityLogs = lazy(() => import('./components/ActivityLogs').then(m => ({ default: m.ActivityLogs })));
 
@@ -60,6 +61,7 @@ const MainLayout: React.FC = () => {
       case 'gastos': return 'App Gastos & Finanzas';
       case 'libros-juegos': return 'App Libros & Juegos';
       case 'lore': return 'App Lore & Rutas';
+      case 'entrevistas': return 'Mecalux Talent & Entrevistas';
       case 'permissions': return 'Matriz de Permisos (RBAC)';
       case 'logs': return 'Registro de Actividad';
       default: return 'Catálogo de Proyectos';
@@ -86,6 +88,10 @@ const MainLayout: React.FC = () => {
       case 'lore':
         if (!hasAccessToApp('lore')) return <AccessDeniedView onBack={handleBackToDashboard} appName="APP LORE" />;
         return <LoreApp onBack={handleBackToDashboard} />;
+
+      case 'entrevistas':
+        if (!hasAccessToApp('entrevistas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="ENTREVISTAS MECALUX" />;
+        return <EntrevistasApp onBack={handleBackToDashboard} />;
 
       case 'permissions':
         if (currentUser.role !== 'admin') return <AccessDeniedView onBack={handleBackToDashboard} appName="Matriz de Permisos" />;
@@ -179,6 +185,20 @@ const MainLayout: React.FC = () => {
           >
             <BookOpen className="w-4 h-4" />
             <span className="text-[10px]">Lore</span>
+          </button>
+        )}
+
+        {hasAccessToApp('entrevistas') && (
+          <button
+            onClick={() => handleSelectTab('entrevistas')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
+              currentTab === 'entrevistas'
+                ? 'text-cyan-400 font-bold'
+                : 'text-slate-400 hover:text-white font-medium'
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            <span className="text-[10px]">Entrevistas</span>
           </button>
         )}
       </nav>
