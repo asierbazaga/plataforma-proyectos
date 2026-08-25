@@ -25,7 +25,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [allProfiles, setAllProfiles] = useState<UserProfile[]>(() => storageService.getProfilesSync());
   const [permissions, setPermissions] = useState<AppPermission[]>(() => storageService.getPermissionsSync());
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    const activeEmail = typeof window !== 'undefined' ? localStorage.getItem('plataforma_active_email') : null;
+    if (activeEmail) {
+      const profiles = storageService.getProfilesSync();
+      return profiles.find(p => p.email.toLowerCase() === activeEmail.toLowerCase()) || null;
+    }
+    return null;
+  });
   const [loading, setLoading] = useState<boolean>(false);
 
   const refreshData = async () => {
@@ -35,9 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAllProfiles(profiles);
       setPermissions(perms);
 
-      // Si el usuario actual ha sido modificado, actualizarlo en el contexto
-      if (currentUser) {
-        const found = profiles.find(p => p.id === currentUser.id);
+      const activeEmail = typeof window !== 'undefined' ? localStorage.getItem('plataforma_active_email') : null;
+      const targetEmail = currentUser?.email || activeEmail;
+
+      if (targetEmail) {
+        const found = profiles.find(p => p.email.toLowerCase() === targetEmail.toLowerCase() || (currentUser && p.id === currentUser.id));
         if (found) {
           if (found.status === 'suspended') {
             setCurrentUser(null);
@@ -57,20 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storageService.syncFromCloud().then(() => {
       refreshData();
     });
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        sessionStorage.setItem('app_hidden_time', String(Date.now()));
-      } else if (document.visibilityState === 'visible') {
-        const hiddenTime = sessionStorage.getItem('app_hidden_time');
-        if (hiddenTime && Date.now() - Number(hiddenTime) > 60000) {
-          setCurrentUser(null);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const login = async (identifier: string, password?: string): Promise<{ success: boolean; error?: string }> => {
