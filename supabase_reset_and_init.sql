@@ -1,18 +1,16 @@
 -- ============================================================================
--- PLATAFORMA PROYECTOS - SCRIPT DE PRODUCCIÓN TOTAL PARA SUPABASE
--- SINCRONIZACIÓN BIDIRECCIONAL EN TIEMPO REAL (PC <-> MÓVIL)
+-- PLATAFORMA PROYECTOS - SCRIPT DEFINITIVO DE PRODUCCIÓN SUPABASE
 -- ============================================================================
 -- INSTRUCCIONES:
--- 1. Ve a tu proyecto de Supabase: https://supabase.com/dashboard/project/xmxrywztdmjzffgdknpd
--- 2. Entra en "SQL Editor" en el menú lateral izquierdo.
--- 3. Crea una "New Query", pega TODO este contenido y dale a "RUN".
+-- 1. Abre Supabase: https://supabase.com/dashboard/project/xmxrywztdmjzffgdknpd
+-- 2. Entra en "SQL Editor" en el menú de la izquierda.
+-- 3. Crea una "New Query", pega TODO este código y dale a "RUN".
 -- ============================================================================
 
--- 1. RESET TOTAL DEL ESQUEMA PÚBLICO
+-- 1. RESET DEL ESQUEMA PÚBLICO
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA public;
 
--- Conceder permisos de acceso a todos los roles
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
@@ -21,14 +19,12 @@ GRANT ALL ON ALL ROUTINES IN SCHEMA public TO postgres, anon, authenticated, ser
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
 
--- Extensión para UUIDs
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
 -- 2. TABLAS DEL SISTEMA RBAC (USUARIOS, PERMISOS Y AUDITORÍA)
 -- ============================================================================
 
--- Perfiles de usuario (con contraseñas sincronizadas)
 CREATE TABLE public.profiles (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
@@ -40,7 +36,6 @@ CREATE TABLE public.profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Matriz de permisos para las 5 aplicaciones
 CREATE TABLE public.app_permissions (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -51,7 +46,6 @@ CREATE TABLE public.app_permissions (
     UNIQUE(user_id, app_id)
 );
 
--- Historial de actividad (Audit Trail)
 CREATE TABLE public.audit_logs (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_email TEXT NOT NULL,
@@ -64,7 +58,6 @@ CREATE TABLE public.audit_logs (
 -- 3. MÓDULO GASTOS & FINANZAS
 -- ============================================================================
 
--- Configuración de cuentas y saldos de cartera
 CREATE TABLE public.wallet_config (
     user_id TEXT PRIMARY KEY,
     account_1_name TEXT DEFAULT 'Abanca Personal',
@@ -76,7 +69,6 @@ CREATE TABLE public.wallet_config (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Transacciones e ingresos/gastos
 CREATE TABLE public.expenses (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
@@ -89,7 +81,6 @@ CREATE TABLE public.expenses (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Metas de ahorro
 CREATE TABLE public.savings_goals (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
@@ -103,7 +94,6 @@ CREATE TABLE public.savings_goals (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Presupuestos mensuales por categoría
 CREATE TABLE public.category_budgets (
     category TEXT PRIMARY KEY,
     monthly_limit NUMERIC(10, 2) NOT NULL,
@@ -113,10 +103,9 @@ CREATE TABLE public.category_budgets (
 );
 
 -- ============================================================================
--- 4. MÓDULO FITNESS & SALUD INTEGRAL (CON POLAR GRIT X PRO)
+-- 4. MÓDULO FITNESS & SALUD INTEGRAL
 -- ============================================================================
 
--- Perfil metabólico y objetivos físicos
 CREATE TABLE public.fitness_profiles (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT UNIQUE,
@@ -142,7 +131,6 @@ CREATE TABLE public.fitness_profiles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Entrenamientos y sesiones de fuerza / cardio
 CREATE TABLE public.fitness_workouts (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
@@ -164,7 +152,6 @@ CREATE TABLE public.fitness_workouts (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Registro diario de comidas, macros y agua
 CREATE TABLE public.fitness_nutrition_logs (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
@@ -176,7 +163,6 @@ CREATE TABLE public.fitness_nutrition_logs (
     UNIQUE(user_id, date)
 );
 
--- Historial de pesaje corporal y medidas
 CREATE TABLE public.fitness_body_progress (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
@@ -195,7 +181,6 @@ CREATE TABLE public.fitness_body_progress (
     UNIQUE(user_id, date)
 );
 
--- Métricas Polar Grit X Pro (recuperación, sueño, carga)
 CREATE TABLE public.fitness_polar_metrics (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
@@ -238,7 +223,6 @@ CREATE TABLE public.user_library (
 -- 6. MÓDULO LORE COMERCIAL & DRASANVI CRM
 -- ============================================================================
 
--- Clientes del mapa y deciles
 CREATE TABLE public.lore_clients (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     nombre TEXT NOT NULL,
@@ -260,7 +244,6 @@ CREATE TABLE public.lore_clients (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Rutas comerciales optimizadas
 CREATE TABLE public.lore_saved_routes (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     name TEXT NOT NULL,
@@ -270,7 +253,6 @@ CREATE TABLE public.lore_saved_routes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Farmacias CRM detalladas y prospección
 CREATE TABLE public.lore_crm_pharmacies (
     id TEXT PRIMARY KEY,
     category_type TEXT DEFAULT 'cliente',
@@ -298,13 +280,12 @@ CREATE TABLE public.lore_crm_pharmacies (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Objetivos comerciales y ventas Drasanvi
 CREATE TABLE public.lore_goals (
-    id TEXT PRIMARY KEY DEFAULT 'current_goals',
+    id TEXT PRIMARY KEY,
     objetivo_mensual NUMERIC(10, 2) DEFAULT 15000,
     venta_acumulada NUMERIC(10, 2) DEFAULT 0,
     dias_laborables_restantes INT DEFAULT 21,
-    incentive_image TEXT,
+    incentive_image TEXT DEFAULT '/tabla-incentivos.png',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -319,17 +300,17 @@ CREATE TABLE public.interview_candidates (
     email TEXT,
     phone TEXT,
     role TEXT NOT NULL,
-    seniority TEXT DEFAULT 'Mid',
+    seniority TEXT NOT NULL,
     current_company TEXT,
     current_salary_eur NUMERIC(10, 2),
     expected_salary_eur NUMERIC(10, 2),
-    notice_period_weeks INT DEFAULT 2,
+    notice_period_weeks INT,
     english_level TEXT,
     location TEXT,
     linkedin_url TEXT,
-    status TEXT DEFAULT 'scheduled',
+    status TEXT DEFAULT 'pending',
     interview_date DATE DEFAULT CURRENT_DATE,
-    duration_minutes INT,
+    duration_minutes INT DEFAULT 60,
     cv_text TEXT,
     cv_file_name TEXT,
     parsed_skills JSONB DEFAULT '[]'::jsonb,
@@ -340,46 +321,29 @@ CREATE TABLE public.interview_candidates (
 );
 
 -- ============================================================================
--- 8. POLÍTICAS RLS (SIN BLOQUEOS ENTRE PC Y MÓVIL)
+-- 8. DESACTIVAR RLS PARA ACCESO DIRECTO SIN BLOQUEOS
 -- ============================================================================
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.app_permissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wallet_config ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.savings_goals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.category_budgets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.fitness_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.fitness_workouts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.fitness_nutrition_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.fitness_body_progress ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.fitness_polar_metrics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_library ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lore_clients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lore_saved_routes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lore_crm_pharmacies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lore_goals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.interview_candidates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_permissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallet_config DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expenses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.savings_goals DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.category_budgets DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_workouts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_nutrition_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_body_progress DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitness_polar_metrics DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_library DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lore_clients DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lore_saved_routes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lore_crm_pharmacies DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lore_goals DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.interview_candidates DISABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public all profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all permissions" ON public.app_permissions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all audit_logs" ON public.audit_logs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all wallet_config" ON public.wallet_config FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all expenses" ON public.expenses FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all savings_goals" ON public.savings_goals FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all category_budgets" ON public.category_budgets FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all fitness_profiles" ON public.fitness_profiles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all fitness_workouts" ON public.fitness_workouts FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all fitness_nutrition_logs" ON public.fitness_nutrition_logs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all fitness_body_progress" ON public.fitness_body_progress FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all fitness_polar_metrics" ON public.fitness_polar_metrics FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all user_library" ON public.user_library FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all lore_clients" ON public.lore_clients FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all lore_saved_routes" ON public.lore_saved_routes FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all lore_crm_pharmacies" ON public.lore_crm_pharmacies FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all lore_goals" ON public.lore_goals FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public all interview_candidates" ON public.interview_candidates FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- ============================================================================
 -- 9. ACTIVACIÓN DE REALTIME EN TODAS LAS TABLAS
@@ -411,8 +375,6 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
     NULL;
 END $$;
-
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- ============================================================================
 -- 10. DATOS SEMILLA LIMPIOS DE PRODUCCIÓN
@@ -461,7 +423,7 @@ INSERT INTO public.category_budgets (category, monthly_limit, icon, color) VALUE
 INSERT INTO public.lore_goals (id, objetivo_mensual, venta_acumulada, dias_laborables_restantes, incentive_image) VALUES
 ('current_goals', 15000, 0, 21, '/tabla-incentivos.png');
 
--- 6. Perfil Fitness Base para Asier
+-- 6. Perfil Fitness Base
 INSERT INTO public.fitness_profiles (user_id, age, gender, height_cm, current_weight, target_weight, activity_level, goal, target_calories, target_protein, target_carbs, target_fat, target_water_ml, target_daily_steps, onboarding_completed) VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 28, 'male', 178, 95.7, 75.0, 'moderate', 'fat_loss', 2150, 165, 210, 65, 3000, 10000, TRUE);
 
@@ -469,3 +431,20 @@ INSERT INTO public.fitness_profiles (user_id, age, gender, height_cm, current_we
 INSERT INTO public.savings_goals (id, user_id, title, target_amount, current_amount, account, target_date, notes) VALUES
 ('goal_1', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Viaje / Vacaciones', 2500, 0, 'ing', '2026-11-01', 'Ahorro conjunto para vacaciones'),
 ('goal_2', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Fondo de Emergencia Personal', 5000, 0, 'abanca', '2026-12-31', 'Colchón de seguridad personal Abanca');
+
+-- 8. Farmacias CRM Base
+INSERT INTO public.lore_crm_pharmacies (id, category_type, provincia, ciudad, farmacia_nombre, contacto, telefono, decil, ventas_anuales, frecuencia_visita, ultima_visita, proxima_accion, fecha_proxima_accion, le_interesa, no_le_interesa, marcas_competencia, detalles_competencia, estado_cliente, estado_prospeccion, tendencia_compra, prioridad, accion_completada, notas) VALUES
+('c_1', 'cliente', 'Asturias', 'Gijón', 'Farmacia Ateneo', 'Marta', '600 123 456', 'D05', 6712.17, '15 días', '14/08/2026', 'Llamar', '28/08/2026', 'Colágeno marino, Vitamina C', 'Línea infantil', 'Ana M. Lajusticia, Epaplus', 'Expositor Epaplus en mostrador', 'Activo', 'Cliente cerrado', 'En crecimiento', 'Alta', FALSE, 'Interesados en colágeno marino y promociones de otoño.'),
+('c_2', 'cliente', 'Asturias', 'Gijón', 'Farmacia La Paz', 'Javier', '600 234 567', 'D03', 4985.20, '15 días', '07/08/2026', 'Visita', '21/08/2026', 'Sportlife, Proteínas', 'Cosmética', 'Aquilea', 'Descuento 15% que hay que igualar', 'Activo', 'Cliente cerrado', 'Dejando de comprar', 'Media', FALSE, 'Potencial Sportlife. Mandar muestras para reenganchar.'),
+('c_3', 'cliente', 'Asturias', 'Avilés', 'Farmacia Avilés', 'Ana', '600 345 678', 'D04', 2450.75, '15 días', '10/08/2026', 'Visita', '24/08/2026', 'Magnesio, Complejos B', '', 'Arkopharma', '', 'Activo', 'Cliente cerrado', 'En crecimiento', 'Alta', FALSE, 'Trabaja muy bien magnesio. Ofrecer pack promocional.'),
+('p_1', 'prospeccion', 'Asturias', 'Gijón', 'Farmacia San Lorenzo', 'Covadonga', '600 678 901', 'D08', 0, '30 días', '', 'Primera visita', '20/08/2026', 'Fitoterapia general', '', 'Arkopharma, Pranarôm', 'Mucho producto natural en escaparate', 'Pendiente', 'Sin contactar', 'Potencial de subida', 'Alta', FALSE, 'Ubicación premium en paseo marítimo. Muy alto tráfico.'),
+('p_2', 'prospeccion', 'Asturias', 'Oviedo', 'Farmacia Uría', 'Pelayo', '600 789 012', 'D10', 0, '15 días', '', 'Llamar para cita', '18/08/2026', 'Todo el catálogo Drasanvi', '', 'Todas las grandes', 'Farmacia nº 1 de Oviedo', 'Pendiente', 'Contactado', 'Potencial de subida', 'Alta', FALSE, 'Cita solicitada. Decil 10. Si entramos aquí, volumen garantizado.');
+
+-- 9. Candidato Sample Mecalux
+INSERT INTO public.interview_candidates (id, user_id, full_name, email, phone, role, seniority, current_company, current_salary_eur, expected_salary_eur, notice_period_weeks, english_level, location, linkedin_url, status, interview_date, duration_minutes, parsed_skills, evaluations, resultado_final) VALUES
+('cand_sample_1', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'David Martínez Ruiz', 'david.martinez@email.com', '+34 612 345 678', 'Tech Lead / Team Leader Mecalux', 'Lead', 'Indra / Minsait', 48000, 55000, 4, 'B2 / C1 Profesional', 'Gijón / Remoto Híbrido', 'https://linkedin.com/in/davidmartinez-lead', 'evaluated', '2026-08-20', 60, '["Java 17", "Spring Boot", "Microservicios", "Docker", "Kubernetes", "AWS", "Liderazgo Técnico", "Scrum / Agile", "Code Reviews", "1-on-1s"]'::jsonb, '{"liderazgo": {"notas": "Gran experiencia en 1-on-1s y desbloqueo de equipo.", "puntuacion": 4}, "fit_cultural": {"notas": "Alineación perfecta con la cultura de Mecalux.", "puntuacion": 5}, "gestion_equipos": {"notas": "Gestión ágil con métricas de entrega.", "puntuacion": 4.5}, "arquitectura_tecnica": {"notas": "Sólido en microservicios y clean architecture.", "puntuacion": 4.5}, "resolucion_conflictos": {"notas": "Asertivo y comunicativo.", "puntuacion": 4}}'::jsonb, '{"decision": "Aprobado / Contratar", "areasMejora": "Profundizar en la operativa específica de almacenes automáticos.", "puntosFuertes": "Dominio técnico en backend, mentalidad de mentor y comunicación excelente.", "puntuacionGlobal": 95, "recomendacionContratacion": "Candidato ideal para liderar la célula de software logístico."}'::jsonb);
+
+-- 10. Libros & Juegos Base
+INSERT INTO public.user_library (id, user_id, title, media_type, genre, status, rating, progress_percentage) VALUES
+('lib_1', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Clean Code: A Handbook of Agile Software Craftsmanship', 'book', 'Software & Arquitectura', 'completed', 5, 100),
+('lib_2', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Witcher 3: Wild Hunt', 'game', 'RPG / Aventura', 'completed', 5, 100);
