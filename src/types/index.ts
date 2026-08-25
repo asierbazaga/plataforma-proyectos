@@ -247,6 +247,7 @@ export interface ExpenseItem {
   category: string;
   transaction_date: string;
   account?: WalletAccount;
+  created_at?: string;
 }
 
 export interface SavingsGoal {

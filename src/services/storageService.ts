@@ -21,7 +21,7 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const STORAGE_VERSION = 'v12_clean_auth_sync';
+const STORAGE_VERSION = 'v14_direct_cloud_sync';
 
 function generateId(prefix: string = 'id'): string {
   try {
@@ -127,13 +127,6 @@ const DEFAULT_LORE_GOALS: LoreGoalsConfig = {
   diasLaborablesRestantes: 21,
   incentiveImage: '/tabla-incentivos.png'
 };
-
-function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 7000): Promise<T> {
-  return Promise.race([
-    Promise.resolve(promiseLike),
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
-  ]);
-}
 
 type SyncCallback = () => void;
 
@@ -302,7 +295,7 @@ class StorageService {
   async getProfiles(): Promise<UserProfile[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('profiles').select('*'), 6000);
+        const { data, error } = await supabase.from('profiles').select('*');
         if (!error && data && data.length > 0) {
           const map = this.getPasswordMap();
           const merged = (data as UserProfile[]).map(p => ({
@@ -320,7 +313,7 @@ class StorageService {
   async getPermissions(): Promise<AppPermission[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('app_permissions').select('*'), 6000);
+        const { data, error } = await supabase.from('app_permissions').select('*');
         if (!error && data && data.length > 0) {
           this.setLocal('permissions', data as AppPermission[]);
           return data as AppPermission[];
@@ -456,7 +449,7 @@ class StorageService {
   async getAuditLogs(): Promise<AuditLog[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50), 6000);
+        const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50);
         if (!error && data) return data as AuditLog[];
       } catch (e) {}
     }
@@ -486,7 +479,7 @@ class StorageService {
   async getWalletConfig(_userId?: string): Promise<WalletConfig> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('wallet_config').select('*').limit(1), 6000);
+        const { data, error } = await supabase.from('wallet_config').select('*').limit(1);
         if (!error && data && data.length > 0) {
           const raw = data[0];
           const cfg: WalletConfig = {
@@ -543,10 +536,7 @@ class StorageService {
   async getExpenses(_userId?: string): Promise<ExpenseItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(
-          supabase.from('expenses').select('*').order('transaction_date', { ascending: false }),
-          6000
-        );
+        const { data, error } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
         if (!error && data) {
           const formatted: ExpenseItem[] = (data as any[]).map(row => ({
             id: row.id,
@@ -562,7 +552,9 @@ class StorageService {
           this.setLocal('expenses', formatted);
           return formatted;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Supabase getExpenses error:', e);
+      }
     }
     const local = this.getLocal<any[]>('expenses', []);
     return local.map(e => ({
@@ -577,7 +569,8 @@ class StorageService {
       ...expense,
       amount: Number(expense.amount) || 0,
       user_id: userId || expense.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      id: generateId('exp')
+      id: generateId('exp'),
+      created_at: new Date().toISOString()
     };
     const current = this.getLocal<ExpenseItem[]>('expenses', []);
     this.setLocal('expenses', [item, ...current.filter(e => e.id !== item.id)]);
@@ -595,7 +588,9 @@ class StorageService {
           account: item.account || 'abanca',
           transaction_date: item.transaction_date || new Date().toISOString().split('T')[0]
         });
-      } catch (e) {}
+      } catch (e) {
+        console.error('Supabase addExpense error:', e);
+      }
     }
     return item;
   }
@@ -626,7 +621,7 @@ class StorageService {
   async getSavingsGoals(_userId?: string): Promise<SavingsGoal[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('savings_goals').select('*').order('created_at', { ascending: false });
         if (!error && data) {
           const list: SavingsGoal[] = (data as any[]).map(row => ({
             id: row.id,
@@ -704,7 +699,7 @@ class StorageService {
   async getCategoryBudgets(_userId?: string): Promise<CategoryBudget[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('category_budgets').select('*'), 6000);
+        const { data, error } = await supabase.from('category_budgets').select('*');
         if (!error && data && data.length > 0) {
           const list: CategoryBudget[] = (data as any[])
             .filter(b => typeof b.category === 'string' && !b.category.startsWith('__'))
@@ -745,7 +740,7 @@ class StorageService {
   async getFitnessProfile(_userId?: string): Promise<FitnessProfile> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('fitness_profiles').select('*').limit(1), 6000);
+        const { data, error } = await supabase.from('fitness_profiles').select('*').limit(1);
         if (!error && data && data.length > 0) {
           const raw = data[0];
           const prof: FitnessProfile = {
@@ -806,7 +801,7 @@ class StorageService {
   async getWorkouts(_userId?: string): Promise<FitnessWorkout[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
         if (!error && data) {
           const list: FitnessWorkout[] = (data as any[]).map(row => ({
             id: row.id,
@@ -888,7 +883,7 @@ class StorageService {
   async getDailyNutritionLogs(_userId?: string): Promise<DailyNutritionLog[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false });
         if (!error && data) {
           const list: DailyNutritionLog[] = (data as any[]).map(row => ({
             id: row.id,
@@ -970,7 +965,7 @@ class StorageService {
   async getBodyProgress(_userId?: string): Promise<BodyProgressEntry[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('fitness_body_progress').select('*').order('date', { ascending: false });
         if (!error && data) {
           const list: BodyProgressEntry[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1030,7 +1025,7 @@ class StorageService {
   async getPolarMetrics(_userId?: string): Promise<PolarGritMetrics[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false });
         if (!error && data) {
           const list: PolarGritMetrics[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1113,7 +1108,7 @@ class StorageService {
   async getLibrary(): Promise<LibraryItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('user_library').select('*').order('created_at', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('user_library').select('*').order('created_at', { ascending: false });
         if (!error && data) {
           const list: LibraryItem[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1182,7 +1177,7 @@ class StorageService {
   async getLoreClients(): Promise<LoreClient[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('lore_clients').select('*'), 6000);
+        const { data, error } = await supabase.from('lore_clients').select('*');
         if (!error && data) {
           const list: LoreClient[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1255,7 +1250,7 @@ class StorageService {
   async getLoreCRMItems(): Promise<PharmacyCRMItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('lore_crm_pharmacies').select('*'), 6000);
+        const { data, error } = await supabase.from('lore_crm_pharmacies').select('*');
         if (!error && data && data.length > 0) {
           const list: PharmacyCRMItem[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1342,7 +1337,7 @@ class StorageService {
   async getLoreGoalsConfig(): Promise<LoreGoalsConfig> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('lore_goals').select('*').limit(1), 6000);
+        const { data, error } = await supabase.from('lore_goals').select('*').limit(1);
         if (!error && data && data.length > 0) {
           const g = data[0];
           const cfg: LoreGoalsConfig = {
@@ -1388,7 +1383,7 @@ class StorageService {
   async getSavedRoutes(): Promise<LoreSavedRoute[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('lore_saved_routes').select('*').order('created_at', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('lore_saved_routes').select('*').order('created_at', { ascending: false });
         if (!error && data) {
           const list: LoreSavedRoute[] = (data as any[]).map(r => ({
             id: r.id,
@@ -1462,7 +1457,7 @@ class StorageService {
   async getInterviewCandidates(_userId?: string): Promise<CandidateInterview[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('interview_candidates').select('*').order('created_at', { ascending: false }), 6000);
+        const { data, error } = await supabase.from('interview_candidates').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
           const list: CandidateInterview[] = (data as any[]).map(c => ({
             id: c.id,
