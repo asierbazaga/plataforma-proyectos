@@ -261,6 +261,7 @@ class StorageService {
   private syncCallbacks: Set<SyncCallback> = new Set();
   private broadcastChannel: BroadcastChannel | null = null;
   private realtimeChannel: any = null;
+  private isSyncing: boolean = false;
 
   constructor() {
     // 0. Limpieza única de objetivos de prueba para empezar de cero limpio
@@ -280,33 +281,103 @@ class StorageService {
     }
 
     // 2. Supabase Realtime (WebSockets) para sincronizar Móvil <-> Web en milisegundos
-    if (isSupabaseConfigured && supabase) {
-      try {
-        this.realtimeChannel = supabase.channel('plataforma-live-sync')
-          .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-            this.syncFromCloud().then(() => this.notifySubscribers());
-          })
-          .on('broadcast', { event: 'data_changed' }, () => {
-            this.syncFromCloud().then(() => this.notifySubscribers());
-          })
-          .subscribe();
-      } catch (e) {}
-    }
+    this.initRealtimeChannel();
 
-    // 3. Listener en reconexión, foco de ventana y desbloqueo de móvil
+    // 3. Listener en reconexión, foco de ventana, desbloqueo de móvil y timer de refresco
     if (typeof window !== 'undefined') {
-      window.addEventListener('focus', () => this.syncFromCloud());
-      window.addEventListener('online', () => this.syncFromCloud());
+      window.addEventListener('focus', () => {
+        this.initRealtimeChannel();
+        this.syncFromCloud();
+      });
+      window.addEventListener('online', () => {
+        this.initRealtimeChannel();
+        this.flushOfflineQueue();
+        this.syncFromCloud();
+      });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
+          this.initRealtimeChannel();
+          this.flushOfflineQueue();
           this.syncFromCloud();
         }
       });
+
+      // Sincronización continua de fondo cada 20 segundos
+      setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          this.flushOfflineQueue();
+          this.syncFromCloud();
+        }
+      }, 20000);
+
       // Sincronización inicial inmediata
       setTimeout(() => {
+        this.flushOfflineQueue();
         this.syncFromCloud();
       }, 100);
     }
+  }
+
+  private initRealtimeChannel() {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      if (this.realtimeChannel) {
+        try { supabase.removeChannel(this.realtimeChannel); } catch (e) {}
+      }
+      this.realtimeChannel = supabase.channel('plataforma-live-sync')
+        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+          this.syncFromCloud().then(() => this.notifySubscribers());
+        })
+        .on('broadcast', { event: 'data_changed' }, () => {
+          this.syncFromCloud().then(() => this.notifySubscribers());
+        })
+        .subscribe();
+    } catch (e) {}
+  }
+
+  // --- COLA OFFLINE Y AUTO-RECUPERACIÓN ---
+  private queueOfflineMutation(table: string, action: 'upsert' | 'delete', data: any, conflictTarget?: string) {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('plataforma_offline_queue') || '[]';
+      const queue = JSON.parse(raw);
+      queue.push({
+        id: `mut_${Date.now()}_${Math.random()}`,
+        table,
+        action,
+        data,
+        conflictTarget,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('plataforma_offline_queue', JSON.stringify(queue.slice(-100)));
+    } catch (e) {}
+  }
+
+  async flushOfflineQueue(): Promise<void> {
+    if (!isSupabaseConfigured || !supabase || typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('plataforma_offline_queue');
+      if (!raw) return;
+      const queue = JSON.parse(raw);
+      if (!Array.isArray(queue) || queue.length === 0) return;
+
+      const remaining: any[] = [];
+      for (const item of queue) {
+        try {
+          if (item.action === 'upsert') {
+            const opts = item.conflictTarget ? { onConflict: item.conflictTarget } : undefined;
+            const res = await withTimeout(supabase.from(item.table).upsert(item.data, opts), 4000);
+            if (res.error) remaining.push(item);
+          } else if (item.action === 'delete') {
+            const res = await withTimeout(supabase.from(item.table).delete().eq('id', item.data.id), 4000);
+            if (res.error) remaining.push(item);
+          }
+        } catch (e) {
+          remaining.push(item);
+        }
+      }
+      localStorage.setItem('plataforma_offline_queue', JSON.stringify(remaining));
+    } catch (e) {}
   }
 
   // Suscribirse a cambios en tiempo real
@@ -346,7 +417,8 @@ class StorageService {
 
   // Sincronizar todos los módulos automáticamente desde Supabase a LocalStorage en paralelo
   async syncFromCloud(): Promise<void> {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase || this.isSyncing) return;
+    this.isSyncing = true;
 
     try {
       const [goalsRes, expRes, budRes, clientsRes, wkRes, libRes, profRes, nutRes, bpRes, polRes, profilesRes, permsRes] = await Promise.allSettled([
@@ -491,7 +563,10 @@ class StorageService {
       }
 
       this.notifySubscribers();
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      this.isSyncing = false;
+    }
   }
 
   private getLocal<T>(key: string, fallback: T): T {
@@ -672,7 +747,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_profiles').upsert(updated), 6000).catch(() => {});
+      withTimeout(supabase.from('fitness_profiles').upsert(updated, { onConflict: 'user_id' }), 6000)
+        .catch(() => this.queueOfflineMutation('fitness_profiles', 'upsert', updated, 'user_id'));
     }
     return updated;
   }
@@ -708,7 +784,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').upsert(item), 6000).catch(() => {});
+      withTimeout(supabase.from('fitness_workouts').upsert(item), 6000)
+        .catch(() => this.queueOfflineMutation('fitness_workouts', 'upsert', item));
     }
     return item;
   }
@@ -721,7 +798,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').delete().eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('fitness_workouts').delete().eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('fitness_workouts', 'delete', { id }));
     }
   }
 
@@ -777,7 +855,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_nutrition_logs').upsert(logWithUser), 6000).catch(() => {});
+      withTimeout(supabase.from('fitness_nutrition_logs').upsert(logWithUser, { onConflict: 'user_id,date' }), 6000)
+        .catch(() => this.queueOfflineMutation('fitness_nutrition_logs', 'upsert', logWithUser, 'user_id,date'));
     }
   }
 
@@ -849,7 +928,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_body_progress').upsert(item), 6000).catch(() => {});
+      withTimeout(supabase.from('fitness_body_progress').upsert(item, { onConflict: 'user_id,date' }), 6000)
+        .catch(() => this.queueOfflineMutation('fitness_body_progress', 'upsert', item, 'user_id,date'));
     }
     return item;
   }
@@ -862,7 +942,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('fitness_body_progress', 'delete', { id }));
     }
   }
 
@@ -899,7 +980,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_polar_metrics').upsert(item), 6000).catch(() => {});
+      withTimeout(supabase.from('fitness_polar_metrics').upsert(item, { onConflict: 'user_id,date' }), 6000)
+        .catch(() => this.queueOfflineMutation('fitness_polar_metrics', 'upsert', item, 'user_id,date'));
     }
     return item;
   }
@@ -997,7 +1079,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').upsert(item), 6000).catch(() => {});
+      withTimeout(supabase.from('expenses').upsert(item), 6000)
+        .catch(() => this.queueOfflineMutation('expenses', 'upsert', item));
     }
     return item;
   }
@@ -1010,7 +1093,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').delete().eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('expenses').delete().eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('expenses', 'delete', { id }));
     }
   }
 
@@ -1061,7 +1145,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').upsert(item), 6000).catch(() => {});
+      withTimeout(supabase.from('savings_goals').upsert(item), 6000)
+        .catch(() => this.queueOfflineMutation('savings_goals', 'upsert', item));
     }
     return item;
   }
@@ -1074,7 +1159,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('savings_goals', 'upsert', { id, ...updates }));
     }
   }
 
@@ -1086,7 +1172,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').delete().eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('savings_goals').delete().eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('savings_goals', 'delete', { id }));
     }
   }
 
@@ -1124,12 +1211,14 @@ class StorageService {
     this.setLocal(key, updated);
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('category_budgets').upsert({
+      const row = {
         category,
         monthly_limit: monthlyLimit,
         user_id: userId,
         updated_at: new Date().toISOString()
-      })).catch(() => {});
+      };
+      withTimeout(supabase.from('category_budgets').upsert(row, { onConflict: 'category' }), 6000)
+        .catch(() => this.queueOfflineMutation('category_budgets', 'upsert', row, 'category'));
     }
 
     this.broadcastChange();
@@ -1162,7 +1251,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').upsert(newItem), 6000).catch(() => {});
+      withTimeout(supabase.from('user_library').upsert(newItem), 6000)
+        .catch(() => this.queueOfflineMutation('user_library', 'upsert', newItem));
     }
     return newItem;
   }
@@ -1174,7 +1264,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').update(updates).eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('user_library').update(updates).eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('user_library', 'upsert', { id, ...updates }));
     }
   }
 
@@ -1184,12 +1275,13 @@ class StorageService {
   async getLoreClients(): Promise<LoreClient[]> {
     const local = this.getLocal('lore_clients', DEFAULT_CLIENTS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').select('*'), 5000).then(res => {
+      try {
+        const res = await withTimeout(supabase.from('lore_clients').select('*'), 3000);
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('lore_clients', res.data as LoreClient[]);
-          this.broadcastChange();
+          return res.data as LoreClient[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
     return local;
   }
@@ -1205,7 +1297,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').upsert(item), 6000).catch(() => {});
+      withTimeout(supabase.from('lore_clients').upsert(item), 6000)
+        .catch(() => this.queueOfflineMutation('lore_clients', 'upsert', item));
     }
     return item;
   }
@@ -1217,7 +1310,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').update(updates).eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('lore_clients').update(updates).eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('lore_clients', 'upsert', { id, ...updates }));
     }
   }
 
@@ -1228,7 +1322,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').delete().eq('id', id), 6000).catch(() => {});
+      withTimeout(supabase.from('lore_clients').delete().eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('lore_clients', 'delete', { id }));
     }
   }
 
@@ -1246,7 +1341,8 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       const { password, ...supabaseProfile } = newProfile;
-      withTimeout(supabase.from('profiles').insert(supabaseProfile)).catch(() => {});
+      withTimeout(supabase.from('profiles').upsert(supabaseProfile), 6000)
+        .catch(() => this.queueOfflineMutation('profiles', 'upsert', supabaseProfile));
     }
     const current = await this.getProfiles();
     const updated = [...current, newProfile];
@@ -1292,7 +1388,8 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       const { password, ...supabaseUpdates } = updates;
       if (Object.keys(supabaseUpdates).length > 0) {
-        withTimeout(supabase.from('profiles').update(supabaseUpdates).eq('id', id)).catch(() => {});
+        withTimeout(supabase.from('profiles').update(supabaseUpdates).eq('id', id), 6000)
+          .catch(() => this.queueOfflineMutation('profiles', 'upsert', { id, ...supabaseUpdates }));
       }
     }
 
@@ -1311,8 +1408,10 @@ class StorageService {
     this.setLocal('permissions', updatedPerms);
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('profiles').delete().eq('id', id)).catch(() => {});
-      withTimeout(supabase.from('app_permissions').delete().eq('user_id', id)).catch(() => {});
+      withTimeout(supabase.from('profiles').delete().eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('profiles', 'delete', { id }));
+      withTimeout(supabase.from('app_permissions').delete().eq('user_id', id), 6000)
+        .catch(() => this.queueOfflineMutation('app_permissions', 'delete', { user_id: id }));
     }
 
     this.broadcastChange();
@@ -1326,13 +1425,15 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       newPerms.forEach(p => {
-        withTimeout(supabase.from('app_permissions').upsert({
+        const row = {
           user_id: p.user_id,
           app_id: p.app_id,
           can_access: p.can_access,
           can_edit: p.can_edit,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id,app_id' })).catch(() => {});
+        };
+        withTimeout(supabase.from('app_permissions').upsert(row, { onConflict: 'user_id,app_id' }), 6000)
+          .catch(() => this.queueOfflineMutation('app_permissions', 'upsert', row, 'user_id,app_id'));
       });
     }
     this.broadcastChange();
@@ -1341,7 +1442,7 @@ class StorageService {
   async getAuditLogs(): Promise<AuditLog[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const res = await withTimeout(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50));
+        const res = await withTimeout(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50), 3000);
         if (!res.error && res.data) return res.data as AuditLog[];
       } catch (e) {}
     }
@@ -1357,7 +1458,8 @@ class StorageService {
       created_at: new Date().toISOString()
     };
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('audit_logs').insert(log)).catch(() => {});
+      withTimeout(supabase.from('audit_logs').insert(log), 6000)
+        .catch(() => this.queueOfflineMutation('audit_logs', 'upsert', log));
     }
     const current = this.getLocal('audit_logs', []);
     const updated = [log, ...current.slice(0, 49)];
