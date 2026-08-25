@@ -21,7 +21,7 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const STORAGE_VERSION = 'v14_direct_cloud_sync';
+const STORAGE_VERSION = 'v15_sync_fix_and_clear';
 
 function generateId(prefix: string = 'id'): string {
   try {
