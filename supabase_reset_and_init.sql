@@ -95,14 +95,14 @@ CREATE TABLE public.category_budgets (
 );
 
 -- 🏋️‍♂️ Módulo Fitness & Cambio Físico Integral (Con Polar Grit X Pro)
-CREATE TABLE public.fitness_profiles (
+CREATE TABLE IF NOT EXISTS public.fitness_profiles (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
-    user_id TEXT,
+    user_id TEXT UNIQUE,
     age INT DEFAULT 28,
     gender TEXT DEFAULT 'male',
     height_cm NUMERIC(5, 1) DEFAULT 178,
-    current_weight NUMERIC(5, 2) DEFAULT 78.5,
-    target_weight NUMERIC(5, 2) DEFAULT 74.0,
+    current_weight NUMERIC(5, 2) DEFAULT 95.7,
+    target_weight NUMERIC(5, 2) DEFAULT 75.0,
     activity_level TEXT DEFAULT 'moderate',
     goal TEXT DEFAULT 'fat_loss',
     deficit_surplus_pct INT DEFAULT -20,
@@ -115,10 +115,12 @@ CREATE TABLE public.fitness_profiles (
     carb_cycling_enabled BOOLEAN DEFAULT FALSE,
     training_day_carbs INT,
     rest_day_carbs INT,
+    onboarding_completed BOOLEAN DEFAULT TRUE,
+    preferred_split TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE public.fitness_workouts (
+CREATE TABLE IF NOT EXISTS public.fitness_workouts (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
     title TEXT NOT NULL,
@@ -139,7 +141,7 @@ CREATE TABLE public.fitness_workouts (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE public.fitness_nutrition_logs (
+CREATE TABLE IF NOT EXISTS public.fitness_nutrition_logs (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
     date DATE NOT NULL,
@@ -150,7 +152,7 @@ CREATE TABLE public.fitness_nutrition_logs (
     UNIQUE(user_id, date)
 );
 
-CREATE TABLE public.fitness_body_progress (
+CREATE TABLE IF NOT EXISTS public.fitness_body_progress (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
     date DATE NOT NULL,
@@ -168,7 +170,7 @@ CREATE TABLE public.fitness_body_progress (
     UNIQUE(user_id, date)
 );
 
-CREATE TABLE public.fitness_polar_metrics (
+CREATE TABLE IF NOT EXISTS public.fitness_polar_metrics (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
     date DATE NOT NULL,
@@ -191,7 +193,7 @@ CREATE TABLE public.fitness_polar_metrics (
 );
 
 -- 📚 Módulo Libros y Juegos
-CREATE TABLE public.user_library (
+CREATE TABLE IF NOT EXISTS public.user_library (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
     title TEXT NOT NULL,
@@ -204,7 +206,7 @@ CREATE TABLE public.user_library (
 );
 
 -- 🗺️ Módulo Lore CRM y Farmacias
-CREATE TABLE public.lore_clients (
+CREATE TABLE IF NOT EXISTS public.lore_clients (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     nombre TEXT NOT NULL,
     tipo TEXT DEFAULT 'Farmacia',
@@ -243,6 +245,20 @@ ALTER TABLE public.fitness_polar_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lore_clients ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow public all permissions" ON public.app_permissions;
+DROP POLICY IF EXISTS "Allow public all audit_logs" ON public.audit_logs;
+DROP POLICY IF EXISTS "Allow public all expenses" ON public.expenses;
+DROP POLICY IF EXISTS "Allow public all savings_goals" ON public.savings_goals;
+DROP POLICY IF EXISTS "Allow public all category_budgets" ON public.category_budgets;
+DROP POLICY IF EXISTS "Allow public all fitness_profiles" ON public.fitness_profiles;
+DROP POLICY IF EXISTS "Allow public all fitness_workouts" ON public.fitness_workouts;
+DROP POLICY IF EXISTS "Allow public all fitness_nutrition_logs" ON public.fitness_nutrition_logs;
+DROP POLICY IF EXISTS "Allow public all fitness_body_progress" ON public.fitness_body_progress;
+DROP POLICY IF EXISTS "Allow public all fitness_polar_metrics" ON public.fitness_polar_metrics;
+DROP POLICY IF EXISTS "Allow public all user_library" ON public.user_library;
+DROP POLICY IF EXISTS "Allow public all lore_clients" ON public.lore_clients;
+
 CREATE POLICY "Allow public all profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all permissions" ON public.app_permissions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all audit_logs" ON public.audit_logs FOR ALL USING (true) WITH CHECK (true);
@@ -257,7 +273,31 @@ CREATE POLICY "Allow public all fitness_polar_metrics" ON public.fitness_polar_m
 CREATE POLICY "Allow public all user_library" ON public.user_library FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all lore_clients" ON public.lore_clients FOR ALL USING (true) WITH CHECK (true);
 
+-- Habilitar publicación Realtime en todas las tablas
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE 
+            public.profiles,
+            public.app_permissions,
+            public.audit_logs,
+            public.expenses,
+            public.savings_goals,
+            public.category_budgets,
+            public.fitness_profiles,
+            public.fitness_workouts,
+            public.fitness_nutrition_logs,
+            public.fitness_body_progress,
+            public.fitness_polar_metrics,
+            public.user_library,
+            public.lore_clients;
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
 -- Permisos finales
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- ============================================================================
