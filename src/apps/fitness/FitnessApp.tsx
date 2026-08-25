@@ -61,9 +61,9 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const loadAllFitnessData = async () => {
-    // Si es la primera vez que se carga con la nueva versión limpia, resetear datos antiguos mock
-    if (localStorage.getItem('fitness_clean_v2') !== 'true') {
-      localStorage.setItem('fitness_clean_v2', 'true');
+    // Si es la primera vez que se carga con la nueva versión limpia, resetear datos antiguos mock y polar
+    if (localStorage.getItem('fitness_clean_v3') !== 'true') {
+      localStorage.setItem('fitness_clean_v3', 'true');
       await storageService.resetFitnessData();
     }
 

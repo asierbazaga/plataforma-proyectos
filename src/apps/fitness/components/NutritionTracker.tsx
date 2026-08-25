@@ -11,11 +11,13 @@ import {
   Zap,
   Clock,
   Lightbulb,
-  ArrowUpRight
+  ArrowUpRight,
+  Camera
 } from 'lucide-react';
 import { DailyNutritionLog, FoodEntry, MealType, FitnessProfile, FitnessRecipe } from '../../../types';
 import { FITNESS_RECIPES } from '../data/fitnessRecipes';
 import { MacroRings } from './MacroRings';
+import { FoodPhotoScannerModal } from './FoodPhotoScannerModal';
 
 interface NutritionTrackerProps {
   profile: FitnessProfile;
@@ -39,9 +41,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
   const [selectedDate, setSelectedDate] = useState(currentLog.date || new Date().toISOString().split('T')[0]);
   const [activeSection, setActiveSection] = useState<'tracker' | 'assistant' | 'recipes'>('tracker');
   const [showAddModal, setShowAddModal] = useState(initialOpenModal);
+  const [showPhotoScanner, setShowPhotoScanner] = useState(false);
 
   // Form State
-  const [foodMealType, setFoodMealType] = useState<MealType>('breakfast');
+  const [foodMealType, setFoodMealType] = useState<MealType>('lunch');
   const [foodName, setFoodName] = useState('');
   const [foodCalories, setFoodCalories] = useState<number | ''>(250);
   const [foodProtein, setFoodProtein] = useState<number | ''>(25);
@@ -81,6 +84,23 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
 
     setFoodName('');
     setShowAddModal(false);
+  };
+
+  const handleApplyFromPhotoScan = (food: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    portion_size: string;
+  }) => {
+    setFoodName(food.name);
+    setFoodCalories(food.calories);
+    setFoodProtein(food.protein);
+    setFoodCarbs(food.carbs);
+    setFoodFat(food.fat);
+    setFoodPortion(food.portion_size);
+    setShowAddModal(true);
   };
 
   const mealCategories: { key: MealType; label: string; icon: string }[] = [
@@ -123,114 +143,113 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
         </div>
 
         {canEdit && (
-          <button
-            onClick={() => {
-              setFoodName('');
-              setShowAddModal(true);
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#FF6B00] hover:bg-[#FA8500] text-white text-xs font-bold rounded-2xl shadow-lg transition-all"
-          >
-            <Plus className="w-4 h-4" /> Añadir Alimento
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setShowPhotoScanner(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-[#FF6B00]/20 hover:from-amber-500/30 hover:to-[#FF6B00]/30 text-white text-xs font-bold rounded-2xl border border-[#FF6B00]/30 shadow-lg transition-all"
+            >
+              <Camera className="w-4 h-4 text-[#FF6B00]" /> Escanear con Foto (IA)
+            </button>
+
+            <button
+              onClick={() => {
+                setFoodName('');
+                setShowAddModal(true);
+              }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-[#FF6B00] hover:bg-[#FA8500] text-white text-xs font-bold rounded-2xl shadow-lg transition-all"
+            >
+              <Plus className="w-4 h-4" /> Añadir Manual
+            </button>
+          </div>
         )}
       </div>
 
       {/* 1. DIARIO */}
       {activeSection === 'tracker' && (
         <div className="space-y-6">
-          {/* Card Resumen con Anillos */}
-          <div className="p-6 sm:p-7 rounded-3xl bg-[#111622] border border-white/5 space-y-6 shadow-xl">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          {/* Header Scoreboard & Macro Rings */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 sm:p-8 rounded-3xl bg-[#111622] border border-white/5 shadow-xl">
+            {/* Concentric Rings */}
+            <div className="lg:col-span-4 flex flex-col items-center justify-center p-2">
+              <MacroRings
+                caloriePct={calPct}
+                proteinPct={proPct}
+                carbsPct={carbPct}
+                fatPct={fatPct}
+                size={190}
+              />
+            </div>
+
+            {/* Dials & Progress */}
+            <div className="lg:col-span-8 space-y-4 flex flex-col justify-center">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#FF6B00]">Consumo Diario</span>
-                <h3 className="text-2xl font-black text-white mt-0.5">{totalCalories} / {profile.target_calories} kcal</h3>
-              </div>
-              <span className="px-3.5 py-1 rounded-full bg-[#FF6B00]/15 text-[#FF6B00] text-xs font-extrabold border border-[#FF6B00]/30">
-                Restan {remainingCalories} kcal
-              </span>
-            </div>
-
-            {/* 3 Macro Cards Minimalistas */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-[#090C15] border border-white/5 space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span className="text-[#FF3B30]">Proteína</span>
-                  <span className="text-white font-mono">{totalProtein} / {profile.target_protein}g</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Balance del Día</span>
+                <div className="text-3xl font-black text-white font-mono mt-0.5">
+                  {totalCalories} <span className="text-sm font-normal text-slate-400">/ {profile.target_calories} kcal</span>
                 </div>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#FF3B30] rounded-full" style={{ width: `${proPct}%` }} />
-                </div>
-                <p className="text-[10px] text-slate-400 text-right font-medium">Quedan {remainingProtein}g</p>
+                <p className="text-xs text-amber-400 mt-0.5">Te quedan {remainingCalories} kcal para tu meta diaria.</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#090C15] border border-white/5 space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span className="text-[#38BDF8]">Carbohidratos</span>
-                  <span className="text-white font-mono">{totalCarbs} / {profile.target_carbs}g</span>
+              {/* Progress Bars */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-[#FF3B30]">Proteína</span>
+                    <span className="text-white font-mono">{totalProtein}/{profile.target_protein}g</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#FF3B30] rounded-full" style={{ width: `${proPct}%` }} />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#38BDF8] rounded-full" style={{ width: `${carbPct}%` }} />
-                </div>
-                <p className="text-[10px] text-slate-400 text-right font-medium">Quedan {remainingCarbs}g</p>
-              </div>
 
-              <div className="p-4 rounded-2xl bg-[#090C15] border border-white/5 space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span className="text-[#30D158]">Grasas</span>
-                  <span className="text-white font-mono">{totalFat} / {profile.target_fat}g</span>
+                <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-[#38BDF8]">Carbos</span>
+                    <span className="text-white font-mono">{totalCarbs}/{profile.target_carbs}g</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#38BDF8] rounded-full" style={{ width: `${carbPct}%` }} />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#30D158] rounded-full" style={{ width: `${fatPct}%` }} />
-                </div>
-                <p className="text-[10px] text-slate-400 text-right font-medium">Quedan {remainingFat}g</p>
-              </div>
-            </div>
 
-            {/* Agua */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-sky-500/5 border border-sky-500/15">
-              <div className="flex items-center gap-3">
-                <Droplet className="w-5 h-5 text-sky-400" />
-                <span className="text-xs font-bold text-white">Agua: {currentLog.water_ml} / {profile.target_water_ml} ml</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onUpdateWater(selectedDate, currentLog.water_ml + 250)}
-                  className="px-3 py-1 bg-sky-500/20 text-sky-300 text-xs font-bold rounded-xl"
-                >
-                  +250ml
-                </button>
-                <button
-                  onClick={() => onUpdateWater(selectedDate, currentLog.water_ml + 500)}
-                  className="px-3 py-1 bg-sky-500/20 text-sky-300 text-xs font-bold rounded-xl"
-                >
-                  +500ml
-                </button>
+                <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-[#30D158]">Grasas</span>
+                    <span className="text-white font-mono">{totalFat}/{profile.target_fat}g</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#30D158] rounded-full" style={{ width: `${fatPct}%` }} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Listado de Comidas */}
+          {/* Timeline de Tomas */}
           <div className="space-y-4">
             {mealCategories.map(cat => {
               const mealsInCat = currentLog.meals.filter(m => m.meal_type === cat.key);
               const catCalories = mealsInCat.reduce((acc, m) => acc + m.calories, 0);
+              const catProtein = mealsInCat.reduce((acc, m) => acc + m.protein, 0);
 
               return (
                 <div key={cat.key} className="p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-3 shadow-lg">
                   <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{cat.icon}</span>
+                      <span className="text-base">{cat.icon}</span>
                       <h4 className="font-bold text-white text-sm">{cat.label}</h4>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono font-bold text-[#FF6B00]">{catCalories} kcal</span>
+                      <span className="text-xs font-mono font-bold text-amber-400">{catCalories} kcal</span>
+                      <span className="text-xs font-mono text-slate-400">({catProtein}g P)</span>
                       {canEdit && (
                         <button
                           onClick={() => {
                             setFoodMealType(cat.key);
+                            setFoodName('');
                             setShowAddModal(true);
                           }}
-                          className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-white"
+                          className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -300,73 +319,76 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
         </div>
       )}
 
-      {/* 3. RECETAS */}
+      {/* 3. RECETARIO */}
       {activeSection === 'recipes' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {FITNESS_RECIPES.map(rec => (
             <div
               key={rec.id}
               onClick={() => setSelectedRecipe(rec)}
-              className="p-6 rounded-3xl bg-[#111622] border border-white/5 hover:border-[#FF6B00]/40 cursor-pointer transition-all space-y-3 shadow-lg"
+              className="p-6 rounded-3xl bg-[#111622] border border-white/5 hover:border-white/20 cursor-pointer space-y-4 shadow-lg transition-all"
             >
               <div className="flex justify-between items-center">
-                <span className="text-[10px] uppercase font-bold text-[#FF6B00]">{rec.category}</span>
-                <span className="text-sm font-black text-white font-mono">{rec.calories} kcal</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#FF6B00]/15 text-[#FF6B00]">
+                  {rec.category}
+                </span>
+                <span className="text-xs font-mono font-bold text-amber-400">{rec.calories} kcal</span>
               </div>
               <h4 className="font-bold text-white text-base">{rec.title}</h4>
-              <div className="flex items-center gap-3 text-xs text-slate-400">
-                <span className="text-[#FF3B30] font-bold">{rec.protein}g Proteína</span>
-                <span>•</span>
-                <span>{rec.prep_time_minutes} min</span>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs py-2 bg-[#090C15] rounded-xl border border-white/5">
+                <div>
+                  <span className="text-[10px] text-slate-500 block">PRO</span>
+                  <span className="font-bold text-[#FF3B30]">{rec.protein}g</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block">CARB</span>
+                  <span className="font-bold text-[#38BDF8]">{rec.carbs}g</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block">FAT</span>
+                  <span className="font-bold text-[#30D158]">{rec.fat}g</span>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* MODAL RECETA */}
-      {selectedRecipe && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#111622] border border-white/10 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs text-[#FF6B00] font-bold uppercase">{selectedRecipe.category}</span>
-                <h4 className="text-lg font-black text-white">{selectedRecipe.title}</h4>
-              </div>
-              <button onClick={() => setSelectedRecipe(null)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
+      {/* MODAL FOTO SCANNER */}
+      <FoodPhotoScannerModal
+        isOpen={showPhotoScanner}
+        onClose={() => setShowPhotoScanner(false)}
+        onApplyFood={handleApplyFromPhotoScan}
+      />
 
-            <div className="flex justify-around p-3 rounded-xl bg-[#090C15] text-xs font-mono text-center">
-              <div><span className="text-slate-500 block text-[10px]">CALS</span><span className="font-bold text-white">{selectedRecipe.calories}</span></div>
-              <div><span className="text-[#FF3B30] block text-[10px]">PRO</span><span className="font-bold text-[#FF3B30]">{selectedRecipe.protein}g</span></div>
-              <div><span className="text-[#38BDF8] block text-[10px]">CARB</span><span className="font-bold text-[#38BDF8]">{selectedRecipe.carbs}g</span></div>
-              <div><span className="text-[#30D158] block text-[10px]">FAT</span><span className="font-bold text-[#30D158]">{selectedRecipe.fat}g</span></div>
-            </div>
-
-            <div className="space-y-1.5 text-xs text-slate-300">
-              <strong className="text-white block">Ingredientes:</strong>
-              {selectedRecipe.ingredients.map((ing, i) => (
-                <p key={i} className="text-slate-400">• {ing}</p>
-              ))}
-            </div>
-
-            <button onClick={() => setSelectedRecipe(null)} className="w-full py-2.5 bg-white/10 text-white font-bold text-xs rounded-xl">
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ALIMENTO */}
+      {/* MODAL AÑADIR COMIDA */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#111622] border border-white/10 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
-              <h4 className="font-bold text-white text-base">Añadir Alimento</h4>
+              <h4 className="font-bold text-white text-base">Registrar Alimento</h4>
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
-            <form onSubmit={handleSaveFood} className="space-y-3.5 text-xs">
+            {/* Banner Escáner */}
+            <div
+              onClick={() => {
+                setShowAddModal(false);
+                setShowPhotoScanner(true);
+              }}
+              className="p-3 rounded-2xl bg-gradient-to-r from-[#FF6B00]/15 to-amber-500/10 border border-[#FF6B00]/30 hover:border-[#FF6B00] cursor-pointer transition-all flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5 text-xs">
+                <Camera className="w-4 h-4 text-[#FF6B00]" />
+                <div>
+                  <p className="font-bold text-white">¿No sabes los macros?</p>
+                  <p className="text-[11px] text-slate-400">Escanea la comida con una foto</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2.5 py-1 bg-[#FF6B00] text-white rounded-lg">📸 Escanear</span>
+            </div>
+
+            <form onSubmit={handleSaveFood} className="space-y-3 text-xs">
               <div>
                 <label className="text-slate-400">Toma</label>
                 <select
@@ -375,7 +397,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
                   className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
                 >
                   <option value="breakfast">Desayuno</option>
-                  <option value="lunch">Almuerzo</option>
+                  <option value="lunch">Almuerzo / Comida</option>
                   <option value="snack">Merienda</option>
                   <option value="dinner">Cena</option>
                   <option value="post_workout">Post-Entreno</option>
@@ -387,10 +409,21 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Pechuga de Pollo"
+                  placeholder="Ej. Pechuga de Pollo con Arroz"
                   value={foodName}
                   onChange={e => setFoodName(e.target.value)}
                   className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400">Ración / Cantidad</label>
+                <input
+                  type="text"
+                  placeholder="Ej. 1 plato mediano (300g)"
+                  value={foodPortion}
+                  onChange={e => setFoodPortion(e.target.value)}
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-slate-300"
                 />
               </div>
 

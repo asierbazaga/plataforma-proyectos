@@ -215,44 +215,53 @@ export const FitnessDashboard: React.FC<FitnessDashboardProps> = ({
             </div>
 
             {/* Nightly Recharge Box */}
-            <div className="p-4 rounded-2xl bg-[#090C15] border border-white/5 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-400">Recuperación Nocturna</span>
-                <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-extrabold border border-emerald-500/30">
-                  {latestPolar?.nightly_recharge_status || 'Muy Bueno'}
-                </span>
+            {latestPolar ? (
+              <div className="p-4 rounded-2xl bg-[#090C15] border border-white/5 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400">Recuperación Nocturna</span>
+                  <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-extrabold border border-emerald-500/30">
+                    {latestPolar.nightly_recharge_status}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2.5 rounded-xl bg-white/[0.03]">
+                    <span className="text-[10px] text-slate-400 block font-semibold">Carga SNA</span>
+                    <span className="text-sm font-black text-emerald-400">+{latestPolar.ans_charge}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/[0.03]">
+                    <span className="text-[10px] text-slate-400 block font-semibold">Sueño</span>
+                    <span className="text-sm font-black text-sky-400">{latestPolar.sleep_score} pts</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/[0.03]">
+                    <span className="text-[10px] text-slate-400 block font-semibold">FC Reposo</span>
+                    <span className="text-sm font-black text-rose-400">{latestPolar.resting_hr} ppm</span>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2.5 rounded-xl bg-white/[0.03]">
-                  <span className="text-[10px] text-slate-400 block font-semibold">Carga SNA</span>
-                  <span className="text-sm font-black text-emerald-400">+{latestPolar?.ans_charge || 5.8}</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.03]">
-                  <span className="text-[10px] text-slate-400 block font-semibold">Sueño</span>
-                  <span className="text-sm font-black text-sky-400">{latestPolar?.sleep_score || 88} pts</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.03]">
-                  <span className="text-[10px] text-slate-400 block font-semibold">FC Reposo</span>
-                  <span className="text-sm font-black text-rose-400">{latestPolar?.resting_hr || 48} ppm</span>
-                </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-[#090C15] border border-white/5 text-center space-y-2">
+                <p className="text-xs font-bold text-slate-300">Sin datos de Polar Grit X Pro hoy</p>
+                <p className="text-[11px] text-slate-500">
+                  Registra tu recuperación nocturna o entrenamiento para ver tu carga del sistema nervioso.
+                </p>
               </div>
-            </div>
+            )}
 
             {/* FitSpark Box */}
             <div className="p-4 rounded-2xl bg-[#FF6B00]/5 border border-[#FF6B00]/15 space-y-1.5">
               <span className="text-xs font-bold text-[#FF6B00] flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5" /> Recomendación FitSpark:
+                <Zap className="w-3.5 h-3.5" /> Orientación Diaria:
               </span>
               <p className="text-xs text-slate-300 leading-relaxed">
                 {latestPolar?.fitspark_recommendation ||
-                  'Tu recuperación ha sido excelente. El sistema neuromuscular está en condiciones óptimas para entrenar Fuerza Pesada o Hipertrofia.'}
+                  'Comienza registrando tu entrenamiento de hoy o tu pesaje para calibrar tu progresión muscular.'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-white/5">
-            <span>Training Load: <strong className="text-white font-bold">{latestPolar?.cardio_load_status || 'Productivo'}</strong></span>
-            <span>Pasos: <strong className="text-white font-bold">{latestPolar?.daily_steps?.toLocaleString() || '11.420'}</strong></span>
+            <span>Training Load: <strong className="text-white font-bold">{latestPolar ? latestPolar.cardio_load_status : 'Sin registrar'}</strong></span>
+            <span>Pasos: <strong className="text-white font-bold">{latestPolar ? `${latestPolar.daily_steps.toLocaleString()} pasos` : '0 pasos'}</strong></span>
           </div>
         </div>
       </section>
