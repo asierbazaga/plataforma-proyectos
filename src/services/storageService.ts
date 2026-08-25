@@ -24,6 +24,8 @@ const DEFAULT_PROFILES: UserProfile[] = [
     email: 'asier.bazaga@plataforma.com',
     full_name: 'Asier Bazaga',
     role: 'admin',
+    status: 'active',
+    password: 'admin',
     department: 'Dirección IT & Super Admin',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     created_at: new Date().toISOString()
@@ -33,6 +35,8 @@ const DEFAULT_PROFILES: UserProfile[] = [
     email: 'lore@plataforma.com',
     full_name: 'Lore',
     role: 'user',
+    status: 'active',
+    password: 'lore',
     department: 'Operaciones & Gestión',
     avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
     created_at: new Date().toISOString()
@@ -42,6 +46,8 @@ const DEFAULT_PROFILES: UserProfile[] = [
     email: 'invitado@plataforma.com',
     full_name: 'Invitado Demo',
     role: 'guest',
+    status: 'active',
+    password: 'demo',
     department: 'Consultoría Externa',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     created_at: new Date().toISOString()
@@ -945,6 +951,7 @@ class StorageService {
     const newProfile: UserProfile = {
       ...profile,
       id: crypto.randomUUID ? crypto.randomUUID() : `usr_${Date.now()}`,
+      status: profile.status || 'active',
       created_at: new Date().toISOString()
     };
     if (isSupabaseConfigured && supabase) {
@@ -953,8 +960,59 @@ class StorageService {
     const current = await this.getProfiles();
     const updated = [...current, newProfile];
     this.setLocal('profiles', updated);
+
+    // Inicializar permisos por defecto para las 4 aplicaciones
+    const defaultApps: import('../types').AppId[] = ['fitness', 'gastos', 'libros-juegos', 'lore'];
+    const initialPerms: AppPermission[] = defaultApps.map(appId => ({
+      user_id: newProfile.id,
+      app_id: appId,
+      can_access: newProfile.role === 'admin' ? true : appId === 'fitness' || appId === 'libros-juegos',
+      can_edit: newProfile.role === 'admin' ? true : appId === 'fitness'
+    }));
+    await this.updateUserPermissions(newProfile.id, initialPerms);
+
     this.broadcastChange();
     return newProfile;
+  }
+
+  async updateProfile(id: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
+    const current = await this.getProfiles();
+    const existingIndex = current.findIndex(p => p.id === id);
+    if (existingIndex === -1) return null;
+
+    const updatedProfile = {
+      ...current[existingIndex],
+      ...updates
+    };
+
+    const updated = [...current];
+    updated[existingIndex] = updatedProfile;
+    this.setLocal('profiles', updated);
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('profiles').update(updates).eq('id', id)).catch(() => {});
+    }
+
+    this.broadcastChange();
+    return updatedProfile;
+  }
+
+  async deleteProfile(id: string): Promise<void> {
+    const current = await this.getProfiles();
+    const updated = current.filter(p => p.id !== id);
+    this.setLocal('profiles', updated);
+
+    // Eliminar también sus permisos
+    const perms = await this.getPermissions();
+    const updatedPerms = perms.filter(p => p.user_id !== id);
+    this.setLocal('permissions', updatedPerms);
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('profiles').delete().eq('id', id)).catch(() => {});
+      withTimeout(supabase.from('app_permissions').delete().eq('user_id', id)).catch(() => {});
+    }
+
+    this.broadcastChange();
   }
 
   async updateUserPermissions(userId: string, newPerms: AppPermission[]): Promise<void> {

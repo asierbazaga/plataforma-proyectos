@@ -1,5 +1,7 @@
 export type Role = 'admin' | 'user' | 'guest';
 
+export type UserStatus = 'active' | 'pending' | 'suspended';
+
 export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore';
 
 export interface UserProfile {
@@ -7,9 +9,12 @@ export interface UserProfile {
   email: string;
   full_name: string;
   role: Role;
+  status?: UserStatus;
+  password?: string;
   department?: string;
   avatar_url?: string;
   created_at?: string;
+  last_login?: string;
 }
 
 export interface AppPermission {
