@@ -237,9 +237,9 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   };
 
   const filteredClientes = clientes.filter(c => {
-    const matchesSearch = c.nombre.toLowerCase().includes(search.toLowerCase()) ||
-                          c.direccion.toLowerCase().includes(search.toLowerCase()) ||
-                          (c.ciudad && c.ciudad.toLowerCase().includes(search.toLowerCase()));
+    const matchesSearch = (c.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
+   (c.direccion || '').toLowerCase().includes(search.toLowerCase()) ||
+   ((c.ciudad || '') && (c.ciudad || '').toLowerCase().includes(search.toLowerCase()));
     const matchesDecil = selectedDecil === 'all' || c.decil === selectedDecil;
     return matchesSearch && matchesDecil;
   });

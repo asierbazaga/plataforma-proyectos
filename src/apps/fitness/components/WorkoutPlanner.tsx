@@ -186,7 +186,7 @@ export const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({
   };
 
   const filteredExercises = EXERCISE_LIBRARY.filter(ex => {
-    const matchSearch = ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) || ex.muscle_group.toLowerCase().includes(exerciseSearch.toLowerCase());
+    const matchSearch = (ex.name || '').toLowerCase().includes(exerciseSearch.toLowerCase()) || (ex.muscle_group || '').toLowerCase().includes(exerciseSearch.toLowerCase());
     const matchMuscle = selectedMuscleFilter === 'Todos' || ex.muscle_group.includes(selectedMuscleFilter);
     return matchSearch && matchMuscle;
   });

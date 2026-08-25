@@ -65,10 +65,10 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
   const filteredCandidates = candidates.filter(c => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
-      c.fullName.toLowerCase().includes(query) ||
-      c.role.toLowerCase().includes(query) ||
-      (c.currentCompany && c.currentCompany.toLowerCase().includes(query)) ||
-      (c.parsedSkills && c.parsedSkills.some(s => s.toLowerCase().includes(query)));
+      (c.fullName || '').toLowerCase().includes(query) ||
+   (c.role || '').toLowerCase().includes(query) ||
+   (c.currentCompany && (c.currentCompany || '').toLowerCase().includes(query)) ||
+   (c.parsedSkills && c.parsedSkills.some(s => (s || '').toLowerCase().includes(query)));
 
     const matchesStatus = 
       statusFilter === 'all' ||

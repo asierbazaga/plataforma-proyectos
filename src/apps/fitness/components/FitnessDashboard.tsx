@@ -73,8 +73,8 @@ export const FitnessDashboard: React.FC<FitnessDashboardProps> = ({
     }
   };
 
-  const latestWeight = bodyProgress.length > 0 ? bodyProgress[0].weight : profile.current_weight;
-  const weightDiff = Math.abs(latestWeight - profile.target_weight).toFixed(1);
+  const latestWeight = (bodyProgress && bodyProgress.length > 0) ? (Number(bodyProgress[0].weight) || Number(profile.current_weight) || 75) : (Number(profile.current_weight) || 75);
+  const weightDiff = Math.abs(latestWeight - (Number(profile.target_weight) || 70)).toFixed(1);
 
   const recentWorkout = workouts.length > 0 ? workouts[0] : null;
 

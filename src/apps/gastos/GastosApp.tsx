@@ -406,8 +406,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     const label = `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
     const fullLabel = `${d.toLocaleString('es-ES', { month: 'long' })} ${d.getFullYear()}`;
 
-    const monthExpenses = filteredExpenses.filter(e => e.transaction_date.startsWith(key) && e.type === 'expense');
-    const monthIncomes = filteredExpenses.filter(e => e.transaction_date.startsWith(key) && e.type === 'income');
+    const monthExpenses = filteredExpenses.filter(e => String(e.transaction_date || '').startsWith(key) && e.type === 'expense');
+    const monthIncomes = filteredExpenses.filter(e => String(e.transaction_date || '').startsWith(key) && e.type === 'income');
 
     const expenseTotal = monthExpenses.reduce((acc, c) => acc + c.amount, 0);
     const incomeTotal = monthIncomes.reduce((acc, c) => acc + c.amount, 0);
@@ -812,7 +812,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           <span className="text-[10px] text-slate-500">•</span>
                           <span className="text-[10px] text-slate-400">{item.category}</span>
                           <span className="text-[10px] text-slate-500">•</span>
-                          <span className="text-[10px] text-slate-500">{item.transaction_date.slice(5)}</span>
+                          <span className="text-[10px] text-slate-500">{item.transaction_date ? String(item.transaction_date).slice(5) : ''}</span>
                         </div>
                       </div>
                     </div>
