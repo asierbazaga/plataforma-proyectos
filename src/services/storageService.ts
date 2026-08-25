@@ -21,7 +21,7 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const STORAGE_VERSION = 'v10_final_production_sync';
+const STORAGE_VERSION = 'v11_strict_cloud_sync';
 
 function generateId(prefix: string = 'id'): string {
   try {
@@ -176,12 +176,12 @@ class StorageService {
         }
       });
 
-      // Polling activo suave cada 3 segundos en primer plano
+      // Polling activo suave cada 2 segundos en primer plano
       setInterval(() => {
         if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
           this.notifySubscribers();
         }
-      }, 3000);
+      }, 2000);
     }
   }
 
@@ -488,7 +488,15 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('wallet_config').select('*').limit(1), 6000);
         if (!error && data && data.length > 0) {
-          const cfg = data[0] as WalletConfig;
+          const raw = data[0];
+          const cfg: WalletConfig = {
+            account_1_name: raw.account_1_name || 'Abanca Personal',
+            account_1_initial_balance: Number(raw.account_1_initial_balance) || 0,
+            account_2_name: raw.account_2_name || 'ING Conjunta',
+            account_2_initial_balance: Number(raw.account_2_initial_balance) || 0,
+            has_account_2: Boolean(raw.has_account_2),
+            onboarding_completed: Boolean(raw.onboarding_completed)
+          };
           this.setLocal('wallet_config', cfg);
           return cfg;
         }
@@ -520,9 +528,9 @@ class StorageService {
         await supabase.from('wallet_config').upsert({
           user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           account_1_name: updated.account_1_name,
-          account_1_initial_balance: updated.account_1_initial_balance,
+          account_1_initial_balance: Number(updated.account_1_initial_balance) || 0,
           account_2_name: updated.account_2_name,
-          account_2_initial_balance: updated.account_2_initial_balance,
+          account_2_initial_balance: Number(updated.account_2_initial_balance) || 0,
           has_account_2: updated.has_account_2,
           onboarding_completed: updated.onboarding_completed,
           updated_at: new Date().toISOString()
@@ -535,19 +543,39 @@ class StorageService {
   async getExpenses(_userId?: string): Promise<ExpenseItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 6000);
+        const { data, error } = await withTimeout(
+          supabase.from('expenses').select('*').order('transaction_date', { ascending: false }),
+          6000
+        );
         if (!error && data) {
-          this.setLocal('expenses', data as ExpenseItem[]);
-          return data as ExpenseItem[];
+          const formatted: ExpenseItem[] = (data as any[]).map(row => ({
+            id: row.id,
+            user_id: row.user_id,
+            description: String(row.description || ''),
+            amount: Number(row.amount) || 0,
+            type: row.type === 'income' ? 'income' : 'expense',
+            category: String(row.category || 'Otros'),
+            account: (row.account === 'ing' ? 'ing' : 'abanca'),
+            transaction_date: String(row.transaction_date || new Date().toISOString().split('T')[0]),
+            created_at: row.created_at
+          }));
+          this.setLocal('expenses', formatted);
+          return formatted;
         }
       } catch (e) {}
     }
-    return this.getLocal<ExpenseItem[]>('expenses', []);
+    const local = this.getLocal<any[]>('expenses', []);
+    return local.map(e => ({
+      ...e,
+      amount: Number(e.amount) || 0,
+      account: e.account === 'ing' ? 'ing' : 'abanca'
+    }));
   }
 
   async addExpense(expense: Omit<ExpenseItem, 'id'>, userId?: string): Promise<ExpenseItem> {
     const item: ExpenseItem = {
       ...expense,
+      amount: Number(expense.amount) || 0,
       user_id: userId || expense.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('exp')
     };
@@ -557,7 +585,16 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('expenses').upsert(item);
+        await supabase.from('expenses').upsert({
+          id: item.id,
+          user_id: item.user_id,
+          description: item.description,
+          amount: item.amount,
+          type: item.type,
+          category: item.category,
+          account: item.account || 'abanca',
+          transaction_date: item.transaction_date || new Date().toISOString().split('T')[0]
+        });
       } catch (e) {}
     }
     return item;
@@ -591,8 +628,19 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 6000);
         if (!error && data) {
-          this.setLocal('savings_goals', data as SavingsGoal[]);
-          return data as SavingsGoal[];
+          const list: SavingsGoal[] = (data as any[]).map(row => ({
+            id: row.id,
+            user_id: row.user_id,
+            title: row.title,
+            target_amount: Number(row.target_amount) || 0,
+            current_amount: Number(row.current_amount) || 0,
+            account: row.account || 'ing',
+            target_date: row.target_date,
+            notes: row.notes,
+            created_at: row.created_at
+          }));
+          this.setLocal('savings_goals', list);
+          return list;
         }
       } catch (e) {}
     }
@@ -602,6 +650,8 @@ class StorageService {
   async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>, userId?: string): Promise<SavingsGoal> {
     const item: SavingsGoal = {
       ...goal,
+      target_amount: Number(goal.target_amount) || 0,
+      current_amount: Number(goal.current_amount) || 0,
       user_id: userId || goal.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('goal'),
       created_at: new Date().toISOString()
@@ -612,7 +662,16 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('savings_goals').upsert(item);
+        await supabase.from('savings_goals').upsert({
+          id: item.id,
+          user_id: item.user_id,
+          title: item.title,
+          target_amount: item.target_amount,
+          current_amount: item.current_amount,
+          account: item.account,
+          target_date: item.target_date,
+          notes: item.notes
+        });
       } catch (e) {}
     }
     return item;
@@ -647,7 +706,14 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('category_budgets').select('*'), 6000);
         if (!error && data && data.length > 0) {
-          const list = (data as CategoryBudget[]).filter(b => typeof b.category === 'string' && !b.category.startsWith('__'));
+          const list: CategoryBudget[] = (data as any[])
+            .filter(b => typeof b.category === 'string' && !b.category.startsWith('__'))
+            .map(b => ({
+              category: b.category,
+              monthly_limit: Number(b.monthly_limit) || 0,
+              icon: b.icon,
+              color: b.color
+            }));
           this.setLocal('category_budgets', list);
           return list;
         }
@@ -666,7 +732,7 @@ class StorageService {
       try {
         await supabase.from('category_budgets').upsert({
           category,
-          monthly_limit: monthlyLimit,
+          monthly_limit: Number(monthlyLimit) || 0,
           updated_at: new Date().toISOString()
         }, { onConflict: 'category' });
       } catch (e) {}
@@ -681,7 +747,30 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('fitness_profiles').select('*').limit(1), 6000);
         if (!error && data && data.length > 0) {
-          const prof = data[0] as FitnessProfile;
+          const raw = data[0];
+          const prof: FitnessProfile = {
+            id: raw.id,
+            user_id: raw.user_id,
+            age: Number(raw.age) || 28,
+            gender: raw.gender || 'male',
+            height_cm: Number(raw.height_cm) || 178,
+            current_weight: Number(raw.current_weight) || 95.7,
+            target_weight: Number(raw.target_weight) || 75.0,
+            activity_level: raw.activity_level || 'moderate',
+            goal: raw.goal || 'fat_loss',
+            deficit_surplus_pct: Number(raw.deficit_surplus_pct) || -20,
+            target_calories: Number(raw.target_calories) || 2150,
+            target_protein: Number(raw.target_protein) || 165,
+            target_carbs: Number(raw.target_carbs) || 210,
+            target_fat: Number(raw.target_fat) || 65,
+            target_water_ml: Number(raw.target_water_ml) || 3000,
+            target_daily_steps: Number(raw.target_daily_steps) || 10000,
+            carb_cycling_enabled: Boolean(raw.carb_cycling_enabled),
+            training_day_carbs: raw.training_day_carbs ? Number(raw.training_day_carbs) : undefined,
+            rest_day_carbs: raw.rest_day_carbs ? Number(raw.rest_day_carbs) : undefined,
+            onboarding_completed: Boolean(raw.onboarding_completed),
+            updated_at: raw.updated_at
+          };
           this.setLocal('fitness_profile', prof);
           return prof;
         }
@@ -719,24 +808,24 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 6000);
         if (!error && data) {
-          const list = (data as any[]).map(row => ({
+          const list: FitnessWorkout[] = (data as any[]).map(row => ({
             id: row.id,
             user_id: row.user_id,
             title: row.title,
             category: row.category,
-            duration_minutes: row.duration_minutes,
-            calories_burned: row.calories_burned,
+            duration_minutes: Number(row.duration_minutes) || 0,
+            calories_burned: Number(row.calories_burned) || 0,
             workout_date: row.workout_date,
             notes: row.notes,
             exercises: row.exercises || [],
-            heart_rate_avg: row.heart_rate_avg,
-            heart_rate_max: row.heart_rate_max,
+            heart_rate_avg: row.heart_rate_avg ? Number(row.heart_rate_avg) : undefined,
+            heart_rate_max: row.heart_rate_max ? Number(row.heart_rate_max) : undefined,
             cardio_zone: row.cardio_zone,
             polar_training_load: row.polar_training_load,
-            polar_energy_carbs_pct: row.polar_energy_carbs_pct,
-            polar_energy_fat_pct: row.polar_energy_fat_pct,
-            polar_energy_protein_pct: row.polar_energy_protein_pct,
-            perceived_exertion: row.perceived_exertion
+            polar_energy_carbs_pct: row.polar_energy_carbs_pct ? Number(row.polar_energy_carbs_pct) : undefined,
+            polar_energy_fat_pct: row.polar_energy_fat_pct ? Number(row.polar_energy_fat_pct) : undefined,
+            polar_energy_protein_pct: row.polar_energy_protein_pct ? Number(row.polar_energy_protein_pct) : undefined,
+            perceived_exertion: row.perceived_exertion ? Number(row.perceived_exertion) : undefined
           }));
           this.setLocal('workouts', list);
           return list;
@@ -749,6 +838,8 @@ class StorageService {
   async addWorkout(workout: Omit<FitnessWorkout, 'id'>, userId?: string): Promise<FitnessWorkout> {
     const item: FitnessWorkout = {
       ...workout,
+      duration_minutes: Number(workout.duration_minutes) || 0,
+      calories_burned: Number(workout.calories_burned) || 0,
       user_id: userId || workout.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('wk')
     };
@@ -799,8 +890,16 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 6000);
         if (!error && data) {
-          this.setLocal('nutrition_logs', data as DailyNutritionLog[]);
-          return data as DailyNutritionLog[];
+          const list: DailyNutritionLog[] = (data as any[]).map(row => ({
+            id: row.id,
+            user_id: row.user_id,
+            date: row.date,
+            water_ml: Number(row.water_ml) || 0,
+            meals: row.meals || [],
+            notes: row.notes
+          }));
+          this.setLocal('nutrition_logs', list);
+          return list;
         }
       } catch (e) {}
     }
@@ -824,6 +923,7 @@ class StorageService {
   async saveDailyNutrition(log: DailyNutritionLog, userId?: string): Promise<void> {
     const logWithUser: DailyNutritionLog = {
       ...log,
+      water_ml: Number(log.water_ml) || 0,
       user_id: userId || log.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
     };
     const logs = this.getLocal<DailyNutritionLog[]>('nutrition_logs', []);
@@ -848,6 +948,10 @@ class StorageService {
     const log = await this.getDailyNutrition(date, userId);
     const newFood: import('../types').FoodEntry = {
       ...food,
+      calories: Number(food.calories) || 0,
+      protein: Number(food.protein) || 0,
+      carbs: Number(food.carbs) || 0,
+      fat: Number(food.fat) || 0,
       id: generateId('food')
     };
     await this.saveDailyNutrition({ ...log, meals: [...log.meals, newFood] }, userId);
@@ -860,7 +964,7 @@ class StorageService {
 
   async updateWater(date: string, amountMl: number, userId?: string): Promise<void> {
     const log = await this.getDailyNutrition(date, userId);
-    await this.saveDailyNutrition({ ...log, water_ml: Math.max(0, amountMl) }, userId);
+    await this.saveDailyNutrition({ ...log, water_ml: Math.max(0, Number(amountMl) || 0) }, userId);
   }
 
   async getBodyProgress(_userId?: string): Promise<BodyProgressEntry[]> {
@@ -868,8 +972,23 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 6000);
         if (!error && data) {
-          this.setLocal('body_progress', data as BodyProgressEntry[]);
-          return data as BodyProgressEntry[];
+          const list: BodyProgressEntry[] = (data as any[]).map(row => ({
+            id: row.id,
+            user_id: row.user_id,
+            date: row.date,
+            weight: Number(row.weight) || 0,
+            body_fat_percentage: row.body_fat_percentage ? Number(row.body_fat_percentage) : undefined,
+            waist_cm: row.waist_cm ? Number(row.waist_cm) : undefined,
+            neck_cm: row.neck_cm ? Number(row.neck_cm) : undefined,
+            chest_cm: row.chest_cm ? Number(row.chest_cm) : undefined,
+            arm_cm: row.arm_cm ? Number(row.arm_cm) : undefined,
+            thigh_cm: row.thigh_cm ? Number(row.thigh_cm) : undefined,
+            hips_cm: row.hips_cm ? Number(row.hips_cm) : undefined,
+            notes: row.notes,
+            photo_url: row.photo_url
+          }));
+          this.setLocal('body_progress', list);
+          return list;
         }
       } catch (e) {}
     }
@@ -879,6 +998,7 @@ class StorageService {
   async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>, userId?: string): Promise<BodyProgressEntry> {
     const item: BodyProgressEntry = {
       ...entry,
+      weight: Number(entry.weight) || 0,
       user_id: userId || entry.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('bp')
     };
@@ -897,7 +1017,7 @@ class StorageService {
 
   async deleteBodyProgress(id: string, _userId?: string): Promise<void> {
     const current = this.getLocal<BodyProgressEntry[]>('body_progress', []);
-    this.setLocal('body_progress', current.filter(e => e.id !== id));
+    this.setLocal('body_progress', current.filter(c => c.id !== id));
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -912,8 +1032,27 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 6000);
         if (!error && data) {
-          this.setLocal('polar_metrics', data as PolarGritMetrics[]);
-          return data as PolarGritMetrics[];
+          const list: PolarGritMetrics[] = (data as any[]).map(row => ({
+            id: row.id,
+            user_id: row.user_id,
+            date: row.date,
+            nightly_recharge_status: row.nightly_recharge_status || 'Bueno',
+            ans_charge: Number(row.ans_charge) || 0,
+            sleep_score: Number(row.sleep_score) || 80,
+            resting_hr: Number(row.resting_hr) || 55,
+            max_hr: Number(row.max_hr) || 180,
+            vo2_max_running_index: row.vo2_max_running_index ? Number(row.vo2_max_running_index) : undefined,
+            cardio_load_status: row.cardio_load_status || 'Productivo',
+            cardio_load_ratio: Number(row.cardio_load_ratio) || 1.1,
+            cardio_z1_z2_min: Number(row.cardio_z1_z2_min) || 0,
+            cardio_z3_min: Number(row.cardio_z3_min) || 0,
+            cardio_z4_z5_min: Number(row.cardio_z4_z5_min) || 0,
+            daily_steps: Number(row.daily_steps) || 10000,
+            polar_calories: Number(row.polar_calories) || 2200,
+            fitspark_recommendation: row.fitspark_recommendation
+          }));
+          this.setLocal('polar_metrics', list);
+          return list;
         }
       } catch (e) {}
     }
@@ -923,6 +1062,12 @@ class StorageService {
   async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>, userId?: string): Promise<PolarGritMetrics> {
     const item: PolarGritMetrics = {
       ...metric,
+      ans_charge: Number(metric.ans_charge) || 0,
+      sleep_score: Number(metric.sleep_score) || 0,
+      resting_hr: Number(metric.resting_hr) || 0,
+      max_hr: Number(metric.max_hr) || 0,
+      daily_steps: Number(metric.daily_steps) || 0,
+      polar_calories: Number(metric.polar_calories) || 0,
       user_id: userId || metric.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('pol')
     };
@@ -970,8 +1115,18 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('user_library').select('*').order('created_at', { ascending: false }), 6000);
         if (!error && data) {
-          this.setLocal('library', data as LibraryItem[]);
-          return data as LibraryItem[];
+          const list: LibraryItem[] = (data as any[]).map(row => ({
+            id: row.id,
+            user_id: row.user_id,
+            title: row.title,
+            media_type: row.media_type,
+            genre: row.genre,
+            status: row.status,
+            rating: Number(row.rating) || 5,
+            progress_percentage: Number(row.progress_percentage) || 0
+          }));
+          this.setLocal('library', list);
+          return list;
         }
       } catch (e) {}
     }
@@ -981,6 +1136,8 @@ class StorageService {
   async addLibraryItem(item: Omit<LibraryItem, 'id'>): Promise<LibraryItem> {
     const newItem: LibraryItem = {
       ...item,
+      rating: Number(item.rating) || 5,
+      progress_percentage: Number(item.progress_percentage) || 0,
       id: generateId('lib')
     };
     const current = this.getLocal<LibraryItem[]>('library', []);
@@ -1027,8 +1184,27 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('lore_clients').select('*'), 6000);
         if (!error && data) {
-          this.setLocal('lore_clients', data as LoreClient[]);
-          return data as LoreClient[];
+          const list: LoreClient[] = (data as any[]).map(row => ({
+            id: row.id,
+            nombre: row.nombre,
+            tipo: row.tipo || 'Farmacia',
+            contacto_nombre: row.contacto_nombre || '',
+            direccion: row.direccion || '',
+            latitud: Number(row.latitud) || 0,
+            longitud: Number(row.longitud) || 0,
+            ultima_visita_at: row.ultima_visita_at,
+            codigo: row.codigo,
+            decil: row.decil,
+            total_2025: Number(row.total_2025) || 0,
+            total_2026: Number(row.total_2026) || 0,
+            telefono: row.telefono,
+            email: row.email,
+            provincia: row.provincia,
+            ciudad: row.ciudad,
+            activo: row.activo !== false
+          }));
+          this.setLocal('lore_clients', list);
+          return list;
         }
       } catch (e) {}
     }
@@ -1081,8 +1257,34 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('lore_crm_pharmacies').select('*'), 6000);
         if (!error && data && data.length > 0) {
-          this.setLocal('lore_crm_items', data as PharmacyCRMItem[]);
-          return data as PharmacyCRMItem[];
+          const list: PharmacyCRMItem[] = (data as any[]).map(row => ({
+            id: row.id,
+            category_type: row.category_type || 'cliente',
+            provincia: row.provincia || '',
+            ciudad: row.ciudad || '',
+            farmacia_nombre: row.farmacia_nombre || '',
+            contacto: row.contacto || '',
+            telefono: row.telefono || '',
+            decil: row.decil || 'D05',
+            ventas_anuales: Number(row.ventas_anuales) || 0,
+            frecuencia_visita: row.frecuencia_visita || '15 días',
+            ultima_visita: row.ultima_visita || '',
+            proxima_accion: row.proxima_accion || '',
+            fecha_proxima_accion: row.fecha_proxima_accion || '',
+            le_interesa: row.le_interesa || '',
+            no_le_interesa: row.no_le_interesa || '',
+            marcas_competencia: row.marcas_competencia || '',
+            detalles_competencia: row.detalles_competencia || '',
+            estado_cliente: row.estado_cliente || 'Activo',
+            estado_prospeccion: row.estado_prospeccion || 'Sin contactar',
+            tendencia_compra: row.tendencia_compra || 'Estable',
+            prioridad: row.prioridad || 'Media',
+            accion_completada: Boolean(row.accion_completada),
+            notas: row.notas || '',
+            updated_at: row.updated_at
+          }));
+          this.setLocal('lore_crm_items', list);
+          return list;
         }
       } catch (e) {}
     }
@@ -1172,9 +1374,9 @@ class StorageService {
       try {
         await supabase.from('lore_goals').upsert({
           id: 'current_goals',
-          objetivo_mensual: updated.objetivoMensual,
-          venta_acumulada: updated.ventaAcumulada,
-          dias_laborables_restantes: updated.diasLaborablesRestantes,
+          objetivo_mensual: Number(updated.objetivoMensual) || 0,
+          venta_acumulada: Number(updated.ventaAcumulada) || 0,
+          dias_laborables_restantes: Number(updated.diasLaborablesRestantes) || 21,
           incentive_image: updated.incentiveImage,
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
@@ -1188,7 +1390,7 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('lore_saved_routes').select('*').order('created_at', { ascending: false }), 6000);
         if (!error && data) {
-          const list = (data as any[]).map(r => ({
+          const list: LoreSavedRoute[] = (data as any[]).map(r => ({
             id: r.id,
             name: r.name,
             date: r.date,
@@ -1212,12 +1414,13 @@ class StorageService {
         name: nameOrObj,
         date: new Date().toISOString().split('T')[0],
         clientIds: clientIds || [],
-        totalDistanceKm: totalDistanceKm || 0,
+        totalDistanceKm: Number(totalDistanceKm) || 0,
         createdAt: new Date().toISOString()
       };
     } else {
       item = {
         ...nameOrObj,
+        totalDistanceKm: Number(nameOrObj.totalDistanceKm) || 0,
         id: generateId('route'),
         createdAt: new Date().toISOString()
       };
@@ -1261,7 +1464,7 @@ class StorageService {
       try {
         const { data, error } = await withTimeout(supabase.from('interview_candidates').select('*').order('created_at', { ascending: false }), 6000);
         if (!error && data && data.length > 0) {
-          const list = (data as any[]).map(c => ({
+          const list: CandidateInterview[] = (data as any[]).map(c => ({
             id: c.id,
             user_id: c.user_id,
             fullName: c.full_name,
@@ -1272,13 +1475,13 @@ class StorageService {
             currentCompany: c.current_company,
             currentSalaryEur: c.current_salary_eur ? Number(c.current_salary_eur) : undefined,
             expectedSalaryEur: c.expected_salary_eur ? Number(c.expected_salary_eur) : undefined,
-            noticePeriodWeeks: c.notice_period_weeks,
+            noticePeriodWeeks: c.notice_period_weeks ? Number(c.notice_period_weeks) : undefined,
             englishLevel: c.english_level,
             location: c.location,
             linkedinUrl: c.linkedin_url,
             status: c.status,
             interviewDate: c.interview_date,
-            durationMinutes: c.duration_minutes,
+            durationMinutes: Number(c.duration_minutes) || 60,
             cvText: c.cv_text,
             cvFileName: c.cv_file_name,
             parsedSkills: c.parsed_skills || [],
@@ -1322,11 +1525,11 @@ class StorageService {
           phone: candidateToSave.phone,
           role: candidateToSave.role,
           seniority: candidateToSave.seniority,
-          currentCompany: candidateToSave.currentCompany,
-          currentSalaryEur: candidateToSave.currentSalaryEur,
-          expectedSalaryEur: candidateToSave.expectedSalaryEur,
-          noticePeriodWeeks: candidateToSave.noticePeriodWeeks,
-          englishLevel: candidateToSave.englishLevel,
+          current_company: candidateToSave.currentCompany,
+          current_salary_eur: candidateToSave.currentSalaryEur,
+          expected_salary_eur: candidateToSave.expectedSalaryEur,
+          notice_period_weeks: candidateToSave.noticePeriodWeeks,
+          english_level: candidateToSave.englishLevel,
           location: candidateToSave.location,
           linkedin_url: candidateToSave.linkedinUrl,
           status: candidateToSave.status,
