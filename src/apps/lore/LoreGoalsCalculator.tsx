@@ -48,28 +48,10 @@ export const LoreGoalsCalculator: React.FC = () => {
   };
 
   // Estado del Objetivo Mensual y Venta Acumulada
-  const [objetivoMensual, setObjetivoMensual] = useState<number>(() => {
-    const saved = localStorage.getItem('lore_goal_objetivo');
-    return saved ? Number(saved) : 15000;
-  });
-
-  const [ventaAcumulada, setVentaAcumulada] = useState<number>(() => {
-    const saved = localStorage.getItem('lore_goal_venta');
-    return saved ? Number(saved) : 0;
-  });
-
-  // Días laborables calculados automáticamente
-  const [diasLaborablesRestantes, setDiasLaborablesRestantes] = useState<number>(() => {
-    const saved = localStorage.getItem('lore_goal_dias');
-    return saved ? Number(saved) : calculateAutoWorkDays();
-  });
-
-  // Imagen adicional de la tabla de incentivos (soporta imagen personalizada o la oficial por defecto)
-  const [incentiveImage, setIncentiveImage] = useState<string>(() => {
-    const saved = localStorage.getItem('lore_goal_custom_image');
-    return saved || '/tabla-incentivos.png';
-  });
-
+  const [objetivoMensual, setObjetivoMensual] = useState<number>(15000);
+  const [ventaAcumulada, setVentaAcumulada] = useState<number>(0);
+  const [diasLaborablesRestantes, setDiasLaborablesRestantes] = useState<number>(calculateAutoWorkDays());
+  const [incentiveImage, setIncentiveImage] = useState<string>('/tabla-incentivos.png');
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   useEffect(() => {
@@ -177,7 +159,6 @@ export const LoreGoalsCalculator: React.FC = () => {
 
   const handleResetImage = () => {
     updateAndSaveGoals({ incentiveImage: '/tabla-incentivos.png' });
-    localStorage.removeItem('lore_goal_custom_image');
   };
 
   const handleRecalculateDays = () => {

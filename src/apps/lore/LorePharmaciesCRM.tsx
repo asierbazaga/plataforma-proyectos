@@ -328,15 +328,7 @@ export const LorePharmaciesCRM: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'clientes' | 'prospeccion' | 'pendientes'>('clientes');
 
   // Base de datos de farmacias persistente sincronizada
-  const [items, setItems] = useState<PharmacyCRMItem[]>(() => {
-    const saved = localStorage.getItem('lore_full_crm_data_v2');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return INITIAL_CRM_DATA;
-  });
+  const [items, setItems] = useState<PharmacyCRMItem[]>(INITIAL_CRM_DATA);
 
   useEffect(() => {
     storageService.getLoreCRMItems().then(data => {
