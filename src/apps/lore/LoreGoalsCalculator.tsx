@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { storageService } from '../../services/storageService';
 
 // Tabla oficial de incentivos según imagen R/O MES Drasanvi
 const INCENTIVE_SCALE: { [key: number]: number } = {
@@ -46,8 +47,6 @@ export const LoreGoalsCalculator: React.FC = () => {
     return workDays > 0 ? workDays : 1;
   };
 
-  const autoDays = useMemo(() => calculateAutoWorkDays(), []);
-
   // Estado del Objetivo Mensual y Venta Acumulada
   const [objetivoMensual, setObjetivoMensual] = useState<number>(() => {
     const saved = localStorage.getItem('lore_goal_objetivo');
@@ -61,7 +60,8 @@ export const LoreGoalsCalculator: React.FC = () => {
 
   // Días laborables calculados automáticamente
   const [diasLaborablesRestantes, setDiasLaborablesRestantes] = useState<number>(() => {
-    return calculateAutoWorkDays();
+    const saved = localStorage.getItem('lore_goal_dias');
+    return saved ? Number(saved) : calculateAutoWorkDays();
   });
 
   // Imagen adicional de la tabla de incentivos (soporta imagen personalizada o la oficial por defecto)
@@ -72,12 +72,37 @@ export const LoreGoalsCalculator: React.FC = () => {
 
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-  // Guardar en localStorage ante cualquier cambio
   useEffect(() => {
-    localStorage.setItem('lore_goal_objetivo', String(objetivoMensual));
-    localStorage.setItem('lore_goal_venta', String(ventaAcumulada));
-    localStorage.setItem('lore_goal_dias', String(diasLaborablesRestantes));
-  }, [objetivoMensual, ventaAcumulada, diasLaborablesRestantes]);
+    storageService.getLoreGoalsConfig().then(cfg => {
+      if (cfg) {
+        setObjetivoMensual(cfg.objetivoMensual);
+        setVentaAcumulada(cfg.ventaAcumulada);
+        setDiasLaborablesRestantes(cfg.diasLaborablesRestantes);
+        if (cfg.incentiveImage) setIncentiveImage(cfg.incentiveImage);
+      }
+    });
+
+    const unsubscribe = storageService.onSync(() => {
+      storageService.getLoreGoalsConfig().then(cfg => {
+        if (cfg) {
+          setObjetivoMensual(cfg.objetivoMensual);
+          setVentaAcumulada(cfg.ventaAcumulada);
+          setDiasLaborablesRestantes(cfg.diasLaborablesRestantes);
+          if (cfg.incentiveImage) setIncentiveImage(cfg.incentiveImage);
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const updateAndSaveGoals = (updates: Partial<{ objetivoMensual: number; ventaAcumulada: number; diasLaborablesRestantes: number; incentiveImage: string }>) => {
+    if (updates.objetivoMensual !== undefined) setObjetivoMensual(updates.objetivoMensual);
+    if (updates.ventaAcumulada !== undefined) setVentaAcumulada(updates.ventaAcumulada);
+    if (updates.diasLaborablesRestantes !== undefined) setDiasLaborablesRestantes(updates.diasLaborablesRestantes);
+    if (updates.incentiveImage !== undefined) setIncentiveImage(updates.incentiveImage);
+    storageService.saveLoreGoalsConfig(updates);
+  };
 
   // Cálculos de Objetivos y Ritmos
   const metaBono80 = objetivoMensual * 0.8;
@@ -143,8 +168,7 @@ export const LoreGoalsCalculator: React.FC = () => {
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
         if (base64) {
-          setIncentiveImage(base64);
-          localStorage.setItem('lore_goal_custom_image', base64);
+          updateAndSaveGoals({ incentiveImage: base64 });
         }
       };
       reader.readAsDataURL(file);
@@ -152,13 +176,13 @@ export const LoreGoalsCalculator: React.FC = () => {
   };
 
   const handleResetImage = () => {
-    setIncentiveImage('/tabla-incentivos.png');
+    updateAndSaveGoals({ incentiveImage: '/tabla-incentivos.png' });
     localStorage.removeItem('lore_goal_custom_image');
   };
 
   const handleRecalculateDays = () => {
     const calculated = calculateAutoWorkDays();
-    setDiasLaborablesRestantes(calculated);
+    updateAndSaveGoals({ diasLaborablesRestantes: calculated });
   };
 
   return (
@@ -218,7 +242,10 @@ export const LoreGoalsCalculator: React.FC = () => {
                   min="0"
                   step="100"
                   value={objetivoMensual}
-                  onChange={(e) => setObjetivoMensual(Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 0;
+                    updateAndSaveGoals({ objetivoMensual: val });
+                  }}
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
                 />
               </div>
@@ -235,7 +262,10 @@ export const LoreGoalsCalculator: React.FC = () => {
                   min="0"
                   step="10"
                   value={ventaAcumulada}
-                  onChange={(e) => setVentaAcumulada(Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 0;
+                    updateAndSaveGoals({ ventaAcumulada: val });
+                  }}
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
                 />
               </div>
@@ -263,7 +293,10 @@ export const LoreGoalsCalculator: React.FC = () => {
                   min="1"
                   max="31"
                   value={diasLaborablesRestantes}
-                  onChange={(e) => setDiasLaborablesRestantes(Math.max(1, Number(e.target.value) || 1))}
+                  onChange={(e) => {
+                    const val = Math.max(1, Number(e.target.value) || 1);
+                    updateAndSaveGoals({ diasLaborablesRestantes: val });
+                  }}
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
                 />
               </div>

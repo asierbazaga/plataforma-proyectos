@@ -26,6 +26,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { storageService } from '../services/storageService';
 import { AppId } from '../types';
 
 interface DashboardProps {
@@ -38,7 +39,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
   const isLore = currentUser?.email?.toLowerCase().includes('lore') || currentUser?.full_name?.toLowerCase().includes('lore');
   const isAsier = currentUser?.role === 'admin';
 
-  // Leer datos de objetivos de Lore si existen en local
+  // Leer datos de objetivos de Lore sincronizados
   const [loreGoal, setLoreGoal] = useState({
     objetivo: 15000,
     venta: 0,
@@ -46,12 +47,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
   });
 
   useEffect(() => {
-    const obj = localStorage.getItem('lore_goal_objetivo');
-    const ven = localStorage.getItem('lore_goal_venta');
-    const dias = localStorage.getItem('lore_goal_dias');
-    if (obj) setLoreGoal(prev => ({ ...prev, objetivo: Number(obj) }));
-    if (ven) setLoreGoal(prev => ({ ...prev, venta: Number(ven) }));
-    if (dias) setLoreGoal(prev => ({ ...prev, dias: Number(dias) }));
+    const loadGoals = () => {
+      storageService.getLoreGoalsConfig().then(cfg => {
+        if (cfg) {
+          setLoreGoal({
+            objetivo: cfg.objetivoMensual,
+            venta: cfg.ventaAcumulada,
+            dias: cfg.diasLaborablesRestantes
+          });
+        }
+      });
+    };
+
+    loadGoals();
+    const unsubscribe = storageService.onSync(loadGoals);
+    return () => unsubscribe();
   }, []);
 
   const lorePct = loreGoal.objetivo > 0 ? (loreGoal.venta / loreGoal.objetivo) * 100 : 0;

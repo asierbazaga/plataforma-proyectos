@@ -309,6 +309,45 @@ export interface LoreSavedRoute {
   createdAt: string;
 }
 
+export type PurchaseTrend = 'En crecimiento' | 'Estable' | 'Dejando de comprar' | 'Potencial de subida';
+export type ProspectStatus = 'Sin contactar' | 'Contactado' | 'Visita realizada' | 'Interesado' | 'Cliente cerrado';
+export type ClientCategory = 'cliente' | 'prospeccion';
+
+export interface PharmacyCRMItem {
+  id: string;
+  category_type: ClientCategory;
+  provincia: string;
+  ciudad: string;
+  farmacia_nombre: string;
+  contacto: string;
+  telefono: string;
+  decil: string;
+  ventas_anuales: number;
+  frecuencia_visita: string;
+  ultima_visita: string;
+  proxima_accion: string;
+  fecha_proxima_accion: string;
+  le_interesa: string;
+  no_le_interesa: string;
+  marcas_competencia: string;
+  detalles_competencia: string;
+  estado_cliente: 'Activo' | 'Inactivo' | 'Pendiente';
+  estado_prospeccion: ProspectStatus;
+  tendencia_compra: PurchaseTrend;
+  prioridad: 'Alta' | 'Media' | 'Baja';
+  accion_completada: boolean;
+  notas: string;
+  updated_at?: string;
+}
+
+export interface LoreGoalsConfig {
+  objetivoMensual: number;
+  ventaAcumulada: number;
+  diasLaborablesRestantes: number;
+  incentiveImage?: string;
+  updated_at?: string;
+}
+
 // ============================================================================
 // MECALUX TALENT & ENTREVISTAS (TEAM LEADER)
 // ============================================================================

@@ -31,6 +31,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { storageService } from '../../services/storageService';
 
 export type PurchaseTrend = 'En crecimiento' | 'Estable' | 'Dejando de comprar' | 'Potencial de subida';
 export type ProspectStatus = 'Sin contactar' | 'Contactado' | 'Visita realizada' | 'Interesado' | 'Cliente cerrado';
@@ -326,7 +327,7 @@ export const LorePharmaciesCRM: React.FC = () => {
   // Sub-secciones guiadas por el Excel
   const [activeSection, setActiveSection] = useState<'clientes' | 'prospeccion' | 'pendientes'>('clientes');
 
-  // Base de datos de farmacias persistente
+  // Base de datos de farmacias persistente sincronizada
   const [items, setItems] = useState<PharmacyCRMItem[]>(() => {
     const saved = localStorage.getItem('lore_full_crm_data_v2');
     if (saved) {
@@ -337,10 +338,24 @@ export const LorePharmaciesCRM: React.FC = () => {
     return INITIAL_CRM_DATA;
   });
 
-  // Guardar en localStorage
   useEffect(() => {
-    localStorage.setItem('lore_full_crm_data_v2', JSON.stringify(items));
-  }, [items]);
+    storageService.getLoreCRMItems().then(data => {
+      if (data && data.length > 0) setItems(data);
+    });
+
+    const unsubscribe = storageService.onSync(() => {
+      storageService.getLoreCRMItems().then(data => {
+        if (data && data.length > 0) setItems(data);
+      });
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const persistItems = (newItems: PharmacyCRMItem[]) => {
+    setItems(newItems);
+    storageService.setLoreCRMItems(newItems);
+  };
 
   // Filtros
   const [search, setSearch] = useState('');
@@ -366,7 +381,7 @@ export const LorePharmaciesCRM: React.FC = () => {
 
   // Actualización de campo directo inline
   const handleUpdateField = (id: string, field: keyof PharmacyCRMItem, value: any) => {
-    setItems(prev => prev.map(item => {
+    const updated = items.map(item => {
       if (item.id === id) {
         return {
           ...item,
@@ -375,28 +390,30 @@ export const LorePharmaciesCRM: React.FC = () => {
         };
       }
       return item;
-    }));
+    });
+    persistItems(updated);
   };
 
   // Convertir Prospección en Cliente Activo en 1 clic
   const handlePromoteToClient = (id: string) => {
-    setItems(prev => prev.map(item => {
+    const updated = items.map(item => {
       if (item.id === id) {
         return {
           ...item,
-          category_type: 'cliente',
-          estado_cliente: 'Activo',
-          estado_prospeccion: 'Cliente cerrado',
+          category_type: 'cliente' as ClientCategory,
+          estado_cliente: 'Activo' as const,
+          estado_prospeccion: 'Cliente cerrado' as ProspectStatus,
           updated_at: new Date().toISOString()
         };
       }
       return item;
-    }));
+    });
+    persistItems(updated);
   };
 
   // Alternar acción completada en Pendientes
   const handleToggleTaskDone = (id: string) => {
-    setItems(prev => prev.map(item => {
+    const updated = items.map(item => {
       if (item.id === id) {
         return {
           ...item,
@@ -405,7 +422,8 @@ export const LorePharmaciesCRM: React.FC = () => {
         };
       }
       return item;
-    }));
+    });
+    persistItems(updated);
   };
 
   // Agregar farmacia rápida de 1 línea
@@ -439,7 +457,7 @@ export const LorePharmaciesCRM: React.FC = () => {
       notas: ''
     };
 
-    setItems(prev => [newItem, ...prev]);
+    persistItems([newItem, ...items]);
 
     // Limpiar inputs rápidos
     setQuickNombre('');
@@ -451,7 +469,7 @@ export const LorePharmaciesCRM: React.FC = () => {
   // Eliminar farmacia
   const handleDelete = (id: string) => {
     if (window.confirm('¿Seguro que deseas eliminar esta farmacia?')) {
-      setItems(prev => prev.filter(item => item.id !== id));
+      persistItems(items.filter(item => item.id !== id));
     }
   };
 
@@ -466,7 +484,8 @@ export const LorePharmaciesCRM: React.FC = () => {
     e.preventDefault();
     if (!editingItem) return;
 
-    setItems(prev => prev.map(p => p.id === editingItem.id ? { ...editingItem, updated_at: new Date().toISOString() } : p));
+    const updated = items.map(p => p.id === editingItem.id ? { ...editingItem, updated_at: new Date().toISOString() } : p);
+    persistItems(updated);
     setModalOpen(false);
     setEditingItem(null);
   };
