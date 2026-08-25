@@ -127,17 +127,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
         </button>
 
         {/* Database Status Indicator */}
-        <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs">
-          <Database className="w-3.5 h-3.5 text-slate-400" />
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[10px] sm:text-xs">
+          <Database className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-slate-400" />
           {isSupabaseConfigured ? (
             <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              DB Conectada
+              <span className="hidden xs:inline">Supabase</span> Conectado
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-amber-400 font-medium" title="Modo Local Demo">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              Modo Local
+              Local
             </span>
           )}
         </div>

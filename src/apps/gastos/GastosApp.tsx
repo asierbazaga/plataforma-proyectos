@@ -210,7 +210,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     const cleanAmount = Number(String(amount).replace(',', '.'));
     if (!description.trim() || !cleanAmount || isNaN(cleanAmount) || cleanAmount <= 0) return;
 
-    await storageService.addExpense({
+    const saved = await storageService.addExpense({
       description: description.trim(),
       amount: cleanAmount,
       type,
@@ -218,6 +218,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       account: transactionAccount,
       transaction_date: new Date().toISOString().split('T')[0]
     }, currentUser?.id);
+
+    // Actualización inmediata optimista en el estado de React
+    setExpenses(prev => [saved, ...prev.filter(x => x.id !== saved.id)]);
 
     setDescription('');
     setAmount('');
@@ -228,6 +231,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Eliminar transacción individual
   const handleDeleteTransaction = async (id: string) => {
     if (confirm('¿Eliminar este movimiento?')) {
+      setExpenses(prev => prev.filter(e => e.id !== id));
       await storageService.deleteExpense(id, currentUser?.id);
       await loadData();
     }
@@ -236,6 +240,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Limpiar todos los movimientos
   const handleClearAllExpenses = async () => {
     if (confirm('¿Estás seguro de que quieres borrar todos los movimientos de tu cartera para empezar desde cero?')) {
+      setExpenses([]);
       await storageService.clearAllExpenses(currentUser?.id);
       await loadData();
     }
