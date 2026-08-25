@@ -175,10 +175,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     }, userId);
 
     // Si introduce saldo inicial en cuenta 1 y no existían movimientos
-    if (Number(setupAcc1Balance) > 0) {
+    const cleanAcc1Bal = Number(String(setupAcc1Balance).replace(',', '.'));
+    if (cleanAcc1Bal > 0) {
       await storageService.addExpense({
         description: `Saldo Inicial - ${acc1}`,
-        amount: Number(setupAcc1Balance),
+        amount: cleanAcc1Bal,
         type: 'income',
         category: 'Ahorro/Común',
         account: 'abanca',
@@ -187,10 +188,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     }
 
     // Si introduce saldo inicial en cuenta 2 y tiene activa la cuenta 2
-    if (setupHasAcc2 && Number(setupAcc2Balance) > 0) {
+    const cleanAcc2Bal = Number(String(setupAcc2Balance).replace(',', '.'));
+    if (setupHasAcc2 && cleanAcc2Bal > 0) {
       await storageService.addExpense({
         description: `Saldo Inicial - ${acc2}`,
-        amount: Number(setupAcc2Balance),
+        amount: cleanAcc2Bal,
         type: 'income',
         category: 'Ahorro/Común',
         account: 'ing',
@@ -205,11 +207,12 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Guardar nueva transacción
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description.trim() || !amount) return;
+    const cleanAmount = Number(String(amount).replace(',', '.'));
+    if (!description.trim() || !cleanAmount || isNaN(cleanAmount) || cleanAmount <= 0) return;
 
     await storageService.addExpense({
       description: description.trim(),
-      amount: Number(amount),
+      amount: cleanAmount,
       type,
       category,
       account: transactionAccount,
@@ -274,26 +277,28 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Guardar objetivo (Creación o Edición)
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!goalTitle.trim() || !goalTargetAmount) return;
+    const cleanTarget = Number(String(goalTargetAmount).replace(',', '.'));
+    const cleanCurrent = Number(String(goalCurrentAmount).replace(',', '.')) || 0;
+    if (!goalTitle.trim() || isNaN(cleanTarget) || cleanTarget <= 0) return;
 
     if (editingGoal) {
       await storageService.updateSavingsGoal(editingGoal.id, {
         title: goalTitle.trim(),
-        target_amount: Number(goalTargetAmount),
-        current_amount: Number(goalCurrentAmount) || 0,
+        target_amount: cleanTarget,
+        current_amount: cleanCurrent,
         account: goalAccount,
         target_date: goalDate || undefined,
         notes: goalNotes.trim() || undefined
-      }, currentUser?.id);
+      });
     } else {
       await storageService.addSavingsGoal({
         title: goalTitle.trim(),
-        target_amount: Number(goalTargetAmount),
-        current_amount: Number(goalCurrentAmount) || 0,
+        target_amount: cleanTarget,
+        current_amount: cleanCurrent,
         account: goalAccount,
         target_date: goalDate || undefined,
         notes: goalNotes.trim() || undefined
-      }, currentUser?.id);
+      });
     }
 
     setShowGoalModal(false);
@@ -303,12 +308,13 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
   // Aportar dinero a un objetivo existente
   const handleContribute = async (goalId: string) => {
-    if (!contributionAmount || Number(contributionAmount) === 0) return;
+    const cleanContrib = Number(String(contributionAmount).replace(',', '.'));
+    if (isNaN(cleanContrib) || cleanContrib === 0) return;
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
 
-    const newAmount = Math.max(0, goal.current_amount + Number(contributionAmount));
-    await storageService.updateSavingsGoal(goalId, { current_amount: newAmount }, currentUser?.id);
+    const newAmount = Math.max(0, goal.current_amount + cleanContrib);
+    await storageService.updateSavingsGoal(goalId, { current_amount: newAmount });
     
     setContributeGoalId(null);
     setContributionAmount('');

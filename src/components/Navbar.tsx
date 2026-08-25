@@ -1,7 +1,8 @@
 import React from 'react';
-import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, Dumbbell, DollarSign, BookOpen, BookMarked, FileText, Building } from 'lucide-react';
+import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, Dumbbell, DollarSign, BookOpen, BookMarked, FileText, Building, RotateCcw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { storageService } from '../services/storageService';
 
 interface NavbarProps {
   currentTab?: string;
@@ -146,7 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
       {currentUser && (
         <div className="flex items-center gap-3 sm:gap-4">
           {/* Current Profile Badge */}
-          <div className="flex items-center gap-3 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-2.5 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shadow-md ${
               currentUser.role === 'admin'
                 ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-indigo-500/20'
@@ -169,7 +170,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
             title="Cerrar Sesión"
             className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl border border-transparent hover:border-rose-500/20 transition-all"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       )}
