@@ -21,7 +21,7 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const PROFILES_VERSION = 'v4_full_sync_2026';
+const STORAGE_VERSION = 'v5_clean_prod_2026';
 
 const DEFAULT_PROFILES: UserProfile[] = [
   {
@@ -60,21 +60,18 @@ const DEFAULT_PROFILES: UserProfile[] = [
 ];
 
 const DEFAULT_PERMISSIONS: AppPermission[] = [
-  // Asier Bazaga: Admin Total (Módulo Entrevistas Exclusivo para Asier)
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'lore', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'entrevistas', can_access: true, can_edit: true },
 
-  // Lore: Usuario (Sin acceso al módulo de entrevistas de Asier)
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'lore', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'entrevistas', can_access: false, can_edit: false },
 
-  // Invitado: Solo lectura
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'fitness', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'gastos', can_access: false, can_edit: false },
   { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'libros-juegos', can_access: true, can_edit: false },
@@ -104,24 +101,6 @@ const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
   updated_at: new Date().toISOString()
 };
 
-const DEFAULT_WORKOUTS: FitnessWorkout[] = [];
-const DEFAULT_NUTRITION_LOGS: DailyNutritionLog[] = [];
-
-const DEFAULT_BODY_PROGRESS: BodyProgressEntry[] = [
-  {
-    id: 'bp_initial_asier',
-    user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    date: new Date().toISOString().split('T')[0],
-    weight: 95.7,
-    notes: 'Pesaje inicial del plan'
-  }
-];
-
-const DEFAULT_POLAR_METRICS: PolarGritMetrics[] = [];
-
-const DEFAULT_EXPENSES: ExpenseItem[] = [];
-const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [];
-
 const DEFAULT_CATEGORY_BUDGETS: CategoryBudget[] = [
   { category: 'Alimentación', monthly_limit: 400, icon: '🛒', color: '#10B981' },
   { category: 'Hogar / Alquiler', monthly_limit: 750, icon: '🏠', color: '#6366F1' },
@@ -133,325 +112,6 @@ const DEFAULT_CATEGORY_BUDGETS: CategoryBudget[] = [
   { category: 'Otros', monthly_limit: 100, icon: '📦', color: '#64748B' }
 ];
 
-const DEFAULT_LIBRARY: LibraryItem[] = [
-  { id: '1', title: 'Clean Code (Robert C. Martin)', media_type: 'book', genre: 'Software', status: 'in_progress', rating: 5, progress_percentage: 65 },
-  { id: '2', title: 'The Witcher 3: Wild Hunt', media_type: 'game', genre: 'RPG', status: 'completed', rating: 5, progress_percentage: 100 }
-];
-
-const DEFAULT_CLIENTS: LoreClient[] = [
-  {
-    id: 'cli-001',
-    nombre: 'Farmacia Central Gran Vía',
-    tipo: 'Farmacia VIP',
-    contacto_nombre: 'Dra. Elena Ruiz',
-    direccion: 'Gran Vía 42, Madrid',
-    latitud: 40.4203,
-    longitud: -3.7058,
-    ultima_visita_at: '2026-08-01',
-    codigo: 'FAR-001',
-    decil: 'D10',
-    total_2025: 85000,
-    total_2026: 92000,
-    telefono: '912 345 678',
-    provincia: 'Madrid',
-    ciudad: 'Madrid',
-    activo: true
-  },
-  {
-    id: 'cli-002',
-    nombre: 'Farmacia Salamanca 24h',
-    tipo: 'Farmacia VIP',
-    contacto_nombre: 'Dr. Carlos Mendoza',
-    direccion: 'Calle Serrano 88, Madrid',
-    latitud: 40.4312,
-    longitud: -3.6872,
-    ultima_visita_at: '2026-08-05',
-    codigo: 'FAR-002',
-    decil: 'D09',
-    total_2025: 72000,
-    total_2026: 78000,
-    telefono: '913 456 789',
-    provincia: 'Madrid',
-    ciudad: 'Madrid',
-    activo: true
-  },
-  {
-    id: 'cli-003',
-    nombre: 'Farmacia Gràcia Salud',
-    tipo: 'Farmacia Estándar',
-    contacto_nombre: 'Dra. Montserrat Valls',
-    direccion: 'Carrer Gran de Gràcia 54, Barcelona',
-    latitud: 41.4015,
-    longitud: 2.1558,
-    ultima_visita_at: '2026-07-28',
-    codigo: 'FAR-003',
-    decil: 'D08',
-    total_2025: 54000,
-    total_2026: 61000,
-    telefono: '932 112 233',
-    provincia: 'Barcelona',
-    ciudad: 'Barcelona',
-    activo: true
-  },
-  {
-    id: 'cli-004',
-    nombre: 'Farmacia Diagonal Forum',
-    tipo: 'Farmacia VIP',
-    contacto_nombre: 'Dr. Jordi Puig',
-    direccion: 'Avinguda Diagonal 120, Barcelona',
-    latitud: 41.4061,
-    longitud: 2.1989,
-    ultima_visita_at: '2026-08-02',
-    codigo: 'FAR-004',
-    decil: 'D10',
-    total_2025: 98000,
-    total_2026: 105000,
-    telefono: '934 556 677',
-    provincia: 'Barcelona',
-    ciudad: 'Barcelona',
-    activo: true
-  },
-  {
-    id: 'cli-005',
-    nombre: 'Farmacia Triana Tradición',
-    tipo: 'Farmacia Estándar',
-    contacto_nombre: 'Dra. Carmen Morales',
-    direccion: 'Calle San Jacinto 30, Sevilla',
-    latitud: 37.3831,
-    longitud: -6.0042,
-    ultima_visita_at: '2026-07-20',
-    codigo: 'FAR-005',
-    decil: 'D07',
-    total_2025: 41000,
-    total_2026: 44000,
-    telefono: '954 223 344',
-    provincia: 'Sevilla',
-    ciudad: 'Sevilla',
-    activo: true
-  },
-  {
-    id: 'cli-006',
-    nombre: 'Farmacia Colón Valencia',
-    tipo: 'Farmacia Estándar',
-    contacto_nombre: 'Dr. Vicente Navarro',
-    direccion: 'Calle Xàtiva 15, Valencia',
-    latitud: 39.4667,
-    longitud: -0.3770,
-    ultima_visita_at: '2026-07-15',
-    codigo: 'FAR-006',
-    decil: 'D07',
-    total_2025: 32000,
-    total_2026: 35000,
-    telefono: '963 998 877',
-    provincia: 'Valencia',
-    ciudad: 'Valencia',
-    activo: true
-  }
-];
-
-const INITIAL_CRM_DATA: PharmacyCRMItem[] = [
-  {
-    id: 'c_1',
-    category_type: 'cliente',
-    provincia: 'Asturias',
-    ciudad: 'Gijón',
-    farmacia_nombre: 'Farmacia Ateneo',
-    contacto: 'Marta',
-    telefono: '600 123 456',
-    decil: 'D05',
-    ventas_anuales: 6712.17,
-    frecuencia_visita: '15 días',
-    ultima_visita: '14/08/2026',
-    proxima_accion: 'Llamar',
-    fecha_proxima_accion: '28/08/2026',
-    le_interesa: 'Colágeno marino, Vitamina C',
-    no_le_interesa: 'Línea infantil',
-    marcas_competencia: 'Ana M. Lajusticia, Epaplus',
-    detalles_competencia: 'Expositor Epaplus en mostrador',
-    estado_cliente: 'Activo',
-    estado_prospeccion: 'Cliente cerrado',
-    tendencia_compra: 'En crecimiento',
-    prioridad: 'Alta',
-    accion_completada: false,
-    notas: 'Interesados en colágeno marino y promociones de otoño.'
-  },
-  {
-    id: 'c_2',
-    category_type: 'cliente',
-    provincia: 'Asturias',
-    ciudad: 'Gijón',
-    farmacia_nombre: 'Farmacia La Paz',
-    contacto: 'Javier',
-    telefono: '600 234 567',
-    decil: 'D03',
-    ventas_anuales: 4985.20,
-    frecuencia_visita: '15 días',
-    ultima_visita: '07/08/2026',
-    proxima_accion: 'Visita',
-    fecha_proxima_accion: '21/08/2026',
-    le_interesa: 'Sportlife, Proteínas',
-    no_le_interesa: 'Cosmética',
-    marcas_competencia: 'Aquilea',
-    detalles_competencia: 'Descuento 15% que hay que igualar',
-    estado_cliente: 'Activo',
-    estado_prospeccion: 'Cliente cerrado',
-    tendencia_compra: 'Dejando de comprar',
-    prioridad: 'Media',
-    accion_completada: false,
-    notas: 'Potencial Sportlife. Mandar muestras para reenganchar.'
-  },
-  {
-    id: 'c_3',
-    category_type: 'cliente',
-    provincia: 'Asturias',
-    ciudad: 'Avilés',
-    farmacia_nombre: 'Farmacia Avilés',
-    contacto: 'Ana',
-    telefono: '600 345 678',
-    decil: 'D04',
-    ventas_anuales: 2450.75,
-    frecuencia_visita: '15 días',
-    ultima_visita: '10/08/2026',
-    proxima_accion: 'Visita',
-    fecha_proxima_accion: '24/08/2026',
-    le_interesa: 'Magnesio, Complejos B',
-    no_le_interesa: '',
-    marcas_competencia: 'Arkopharma',
-    detalles_competencia: '',
-    estado_cliente: 'Activo',
-    estado_prospeccion: 'Cliente cerrado',
-    tendencia_compra: 'En crecimiento',
-    prioridad: 'Alta',
-    accion_completada: false,
-    notas: 'Pendiente pedido magnesio y expositor pequeño.'
-  },
-  {
-    id: 'c_4',
-    category_type: 'cliente',
-    provincia: 'Asturias',
-    ciudad: 'Oviedo',
-    farmacia_nombre: 'Farmacia El Parque',
-    contacto: 'Lucía',
-    telefono: '600 456 789',
-    decil: 'D02',
-    ventas_anuales: 3210.40,
-    frecuencia_visita: '30 días',
-    ultima_visita: '01/08/2026',
-    proxima_accion: 'Visita',
-    fecha_proxima_accion: '29/08/2026',
-    le_interesa: 'Línea natural, Fitoterapia',
-    no_le_interesa: '',
-    marcas_competencia: 'Pranarôm',
-    detalles_competencia: '',
-    estado_cliente: 'Activo',
-    estado_prospeccion: 'Cliente cerrado',
-    tendencia_compra: 'Estable',
-    prioridad: 'Media',
-    accion_completada: false,
-    notas: 'Buenas relaciones. Siempre reciben los martes por la mañana.'
-  },
-  {
-    id: 'c_5',
-    category_type: 'cliente',
-    provincia: 'Asturias',
-    ciudad: 'Gijón',
-    farmacia_nombre: 'Farmacia Gijón 2',
-    contacto: 'Marcos',
-    telefono: '600 567 890',
-    decil: 'D03',
-    ventas_anuales: 3985.60,
-    frecuencia_visita: '15 días',
-    ultima_visita: '12/08/2026',
-    proxima_accion: 'Visita',
-    fecha_proxima_accion: '22/08/2026',
-    le_interesa: 'Creatina, Sportlife',
-    no_le_interesa: '',
-    marcas_competencia: '',
-    detalles_competencia: '',
-    estado_cliente: 'Activo',
-    estado_prospeccion: 'Cliente cerrado',
-    tendencia_compra: 'Potencial de subida',
-    prioridad: 'Alta',
-    accion_completada: false,
-    notas: 'Lanzar creatina nueva. Muy buena disposición comercial.'
-  },
-  {
-    id: 'c_6',
-    category_type: 'cliente',
-    provincia: 'Asturias',
-    ciudad: 'Candás',
-    farmacia_nombre: 'Farmacia Candás',
-    contacto: 'Roberto',
-    telefono: '600 678 901',
-    decil: 'D04',
-    ventas_anuales: 2100.30,
-    frecuencia_visita: '15 días',
-    ultima_visita: '05/08/2026',
-    proxima_accion: 'Visita',
-    fecha_proxima_accion: '23/08/2026',
-    le_interesa: 'Aydrops, Oftalmología natural',
-    no_le_interesa: '',
-    marcas_competencia: '',
-    detalles_competencia: '',
-    estado_cliente: 'Activo',
-    estado_prospeccion: 'Cliente cerrado',
-    tendencia_compra: 'Estable',
-    prioridad: 'Media',
-    accion_completada: false,
-    notas: 'Interesados en Aydrops y promociones para el verano.'
-  },
-  {
-    id: 'p_1',
-    category_type: 'prospeccion',
-    provincia: 'Asturias',
-    ciudad: 'Gijón',
-    farmacia_nombre: 'Farmacia Nuevo Gijón',
-    contacto: 'Laura',
-    telefono: '600 123 456',
-    decil: 'D05',
-    ventas_anuales: 0,
-    frecuencia_visita: '15 días',
-    ultima_visita: '',
-    proxima_accion: 'Llamar',
-    fecha_proxima_accion: '23/08/2026',
-    le_interesa: 'Nutrición deportiva, Colágeno',
-    no_le_interesa: '',
-    marcas_competencia: 'Ana M. Lajusticia',
-    detalles_competencia: '',
-    estado_cliente: 'Pendiente',
-    estado_prospeccion: 'Sin contactar',
-    tendencia_compra: 'Potencial de subida',
-    prioridad: 'Alta',
-    accion_completada: false,
-    notas: 'Ubicada cerca del gimnasio principal. Gran afluencia de público deportivo.'
-  },
-  {
-    id: 'p_2',
-    category_type: 'prospeccion',
-    provincia: 'Asturias',
-    ciudad: 'Gijón',
-    farmacia_nombre: 'Farmacia La Calzada',
-    contacto: 'Marta',
-    telefono: '600 234 567',
-    decil: 'D04',
-    ventas_anuales: 0,
-    frecuencia_visita: '15 días',
-    ultima_visita: '18/08/2026',
-    proxima_accion: 'Visitar',
-    fecha_proxima_accion: '26/08/2026',
-    le_interesa: 'Línea fitoterapia y descanso',
-    no_le_interesa: '',
-    marcas_competencia: 'Aquilea',
-    detalles_competencia: '',
-    estado_cliente: 'Pendiente',
-    estado_prospeccion: 'Contactado',
-    tendencia_compra: 'Potencial de subida',
-    prioridad: 'Alta',
-    accion_completada: false,
-    notas: 'Muy interesados en condiciones de apertura y margen Drasanvi.'
-  }
-];
-
 const DEFAULT_LORE_GOALS: LoreGoalsConfig = {
   objetivoMensual: 15000,
   ventaAcumulada: 0,
@@ -459,7 +119,7 @@ const DEFAULT_LORE_GOALS: LoreGoalsConfig = {
   incentiveImage: '/tabla-incentivos.png'
 };
 
-function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 7000): Promise<T> {
+function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 6000): Promise<T> {
   return Promise.race([
     Promise.resolve(promiseLike),
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
@@ -476,9 +136,9 @@ class StorageService {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const ver = localStorage.getItem('plataforma_data_version');
-      if (ver !== PROFILES_VERSION) {
-        localStorage.setItem('plataforma_data_version', PROFILES_VERSION);
+      const ver = localStorage.getItem('plataforma_storage_version');
+      if (ver !== STORAGE_VERSION) {
+        localStorage.setItem('plataforma_storage_version', STORAGE_VERSION);
       }
 
       if ('BroadcastChannel' in window) {
@@ -513,12 +173,12 @@ class StorageService {
         if (document.visibilityState === 'visible') {
           this.syncFromCloud();
         }
-      }, 10000);
+      }, 8000);
 
       setTimeout(() => {
         this.flushOfflineQueue();
         this.syncFromCloud();
-      }, 100);
+      }, 50);
     }
   }
 
@@ -617,7 +277,6 @@ class StorageService {
     }
   }
 
-  // --- PERSISTENCIA EN LA NUBE PARA METADATOS Y OBJETOS COMPLEJOS ---
   private async saveCloudMeta(metaKey: string, value: any): Promise<void> {
     if (!isSupabaseConfigured || !supabase) return;
     try {
@@ -640,7 +299,7 @@ class StorageService {
     }
   }
 
-  // --- SERIALIZACIÓN DE WORKOUTS PARA EVITAR ERROR DE COLUMNA EN SUPABASE ---
+  // --- SERIALIZACIÓN DE WORKOUTS PARA ALTA COMPATIBILIDAD CON SUPABASE ---
   private serializeWorkoutForSupabase(w: FitnessWorkout): any {
     const metaPayload = {
       _meta: true,
@@ -664,6 +323,15 @@ class StorageService {
       duration_minutes: w.duration_minutes,
       calories_burned: w.calories_burned,
       workout_date: w.workout_date,
+      exercises: w.exercises || [],
+      heart_rate_avg: w.heart_rate_avg,
+      heart_rate_max: w.heart_rate_max,
+      cardio_zone: w.cardio_zone,
+      polar_training_load: w.polar_training_load,
+      polar_energy_carbs_pct: w.polar_energy_carbs_pct,
+      polar_energy_fat_pct: w.polar_energy_fat_pct,
+      polar_energy_protein_pct: w.polar_energy_protein_pct,
+      perceived_exertion: w.perceived_exertion,
       notes: JSON.stringify(metaPayload)
     };
   }
@@ -685,7 +353,7 @@ class StorageService {
         const parsed = JSON.parse(row.notes);
         if (parsed._meta) {
           notes = parsed.userNotes;
-          exercises = parsed.exercises || exercises;
+          exercises = (parsed.exercises && parsed.exercises.length > 0) ? parsed.exercises : exercises;
           heart_rate_avg = parsed.heart_rate_avg !== undefined ? parsed.heart_rate_avg : heart_rate_avg;
           heart_rate_max = parsed.heart_rate_max !== undefined ? parsed.heart_rate_max : heart_rate_max;
           cardio_zone = parsed.cardio_zone !== undefined ? parsed.cardio_zone : cardio_zone;
@@ -719,6 +387,9 @@ class StorageService {
     };
   }
 
+  // ==========================================================================
+  // SINCRONIZACIÓN CENTRAL DESDE LA NUBE (TODAS LAS TABLAS)
+  // ==========================================================================
   async syncFromCloud(): Promise<void> {
     if (!isSupabaseConfigured || !supabase || this.isSyncing) return;
     this.isSyncing = true;
@@ -736,20 +407,30 @@ class StorageService {
         bpRes,
         polRes,
         profilesRes,
-        permsRes
+        permsRes,
+        walletRes,
+        routesRes,
+        crmRes,
+        loreGoalsRes,
+        candRes
       ] = await Promise.allSettled([
-        withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 6000),
-        withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 6000),
-        withTimeout(supabase.from('category_budgets').select('*'), 6000),
-        withTimeout(supabase.from('lore_clients').select('*'), 6000),
-        withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 6000),
-        withTimeout(supabase.from('user_library').select('*'), 6000),
-        withTimeout(supabase.from('fitness_profiles').select('*'), 6000),
-        withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 6000),
-        withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 6000),
-        withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 6000),
-        withTimeout(supabase.from('profiles').select('*'), 6000),
-        withTimeout(supabase.from('app_permissions').select('*'), 6000)
+        withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 5000),
+        withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 5000),
+        withTimeout(supabase.from('category_budgets').select('*'), 5000),
+        withTimeout(supabase.from('lore_clients').select('*'), 5000),
+        withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 5000),
+        withTimeout(supabase.from('user_library').select('*'), 5000),
+        withTimeout(supabase.from('fitness_profiles').select('*'), 5000),
+        withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 5000),
+        withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 5000),
+        withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 5000),
+        withTimeout(supabase.from('profiles').select('*'), 5000),
+        withTimeout(supabase.from('app_permissions').select('*'), 5000),
+        withTimeout(supabase.from('wallet_config').select('*'), 5000),
+        withTimeout(supabase.from('lore_saved_routes').select('*').order('created_at', { ascending: false }), 5000),
+        withTimeout(supabase.from('lore_crm_pharmacies').select('*'), 5000),
+        withTimeout(supabase.from('lore_goals').select('*'), 5000),
+        withTimeout(supabase.from('interview_candidates').select('*').order('created_at', { ascending: false }), 5000)
       ]);
 
       const allUserIds = new Set<string>([
@@ -758,14 +439,26 @@ class StorageService {
         'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33'
       ]);
 
+      // 1. Profiles & Passwords
       if (profilesRes.status === 'fulfilled' && !profilesRes.value.error && profilesRes.value.data) {
         this.setLocal('profiles', profilesRes.value.data);
-        profilesRes.value.data.forEach((p: any) => { if (p.id) allUserIds.add(p.id); });
+        const passMap = this.getPasswordMap();
+        profilesRes.value.data.forEach((p: any) => {
+          if (p.id) allUserIds.add(p.id);
+          if (p.password) {
+            passMap[p.email.toLowerCase()] = p.password;
+            passMap[p.id] = p.password;
+          }
+        });
+        this.setLocal('user_passwords', passMap);
       }
+
+      // 2. Permissions
       if (permsRes.status === 'fulfilled' && !permsRes.value.error && permsRes.value.data) {
         this.setLocal('permissions', permsRes.value.data);
       }
 
+      // 3. Expenses
       if (expRes.status === 'fulfilled' && !expRes.value.error && expRes.value.data) {
         const expenses = expRes.value.data as ExpenseItem[];
         this.setLocal('expenses', expenses);
@@ -775,6 +468,7 @@ class StorageService {
         });
       }
 
+      // 4. Savings Goals
       if (goalsRes.status === 'fulfilled' && !goalsRes.value.error && goalsRes.value.data) {
         const goals = goalsRes.value.data as SavingsGoal[];
         this.setLocal('savings_goals', goals);
@@ -784,6 +478,7 @@ class StorageService {
         });
       }
 
+      // 5. Workouts
       if (wkRes.status === 'fulfilled' && !wkRes.value.error && wkRes.value.data) {
         const workouts = (wkRes.value.data as any[]).map(row => this.parseWorkoutFromSupabase(row));
         this.setLocal('workouts', workouts);
@@ -793,6 +488,7 @@ class StorageService {
         });
       }
 
+      // 6. Nutrition
       if (nutRes.status === 'fulfilled' && !nutRes.value.error && nutRes.value.data) {
         const logs = nutRes.value.data as DailyNutritionLog[];
         this.setLocal('nutrition_logs', logs);
@@ -802,6 +498,7 @@ class StorageService {
         });
       }
 
+      // 7. Body Progress
       if (bpRes.status === 'fulfilled' && !bpRes.value.error && bpRes.value.data) {
         const bodyProgress = bpRes.value.data as BodyProgressEntry[];
         this.setLocal('body_progress', bodyProgress);
@@ -811,6 +508,7 @@ class StorageService {
         });
       }
 
+      // 8. Polar Metrics
       if (polRes.status === 'fulfilled' && !polRes.value.error && polRes.value.data) {
         const polar = polRes.value.data as PolarGritMetrics[];
         this.setLocal('polar_metrics', polar);
@@ -820,14 +518,17 @@ class StorageService {
         });
       }
 
+      // 9. Lore Clients
       if (clientsRes.status === 'fulfilled' && !clientsRes.value.error && clientsRes.value.data) {
         this.setLocal('lore_clients', clientsRes.value.data);
       }
 
+      // 10. User Library
       if (libRes.status === 'fulfilled' && !libRes.value.error && libRes.value.data) {
         this.setLocal('library', libRes.value.data);
       }
 
+      // 11. Fitness Profiles
       if (profRes.status === 'fulfilled' && !profRes.value.error && profRes.value.data) {
         const profiles = profRes.value.data as FitnessProfile[];
         profiles.forEach(p => {
@@ -840,7 +541,89 @@ class StorageService {
         });
       }
 
-      // --- EXTRAER METADATA CLOUD SYNC DESDE CATEGORY_BUDGETS ---
+      // 12. Wallet Configs
+      if (walletRes.status === 'fulfilled' && !walletRes.value.error && walletRes.value.data) {
+        const configs = walletRes.value.data as any[];
+        configs.forEach(cfg => {
+          if (cfg.user_id) {
+            this.setLocal(this.getUserKey('wallet_config', cfg.user_id), cfg);
+          }
+        });
+      }
+
+      // 13. Lore Saved Routes
+      if (routesRes.status === 'fulfilled' && !routesRes.value.error && routesRes.value.data) {
+        const routes = (routesRes.value.data as any[]).map(r => ({
+          id: r.id,
+          name: r.name,
+          date: r.date,
+          clientIds: r.client_ids || [],
+          totalDistanceKm: Number(r.total_distance_km) || 0,
+          createdAt: r.created_at
+        }));
+        this.setLocal('lore_saved_routes', routes);
+      }
+
+      // 14. Lore CRM Pharmacies
+      if (crmRes.status === 'fulfilled' && !crmRes.value.error && crmRes.value.data && crmRes.value.data.length > 0) {
+        this.setLocal('lore_full_crm_data_v2', crmRes.value.data);
+      }
+
+      // 15. Lore Goals
+      if (loreGoalsRes.status === 'fulfilled' && !loreGoalsRes.value.error && loreGoalsRes.value.data && loreGoalsRes.value.data.length > 0) {
+        const g = loreGoalsRes.value.data[0];
+        const goalsCfg: LoreGoalsConfig = {
+          objetivoMensual: Number(g.objetivo_mensual) || 15000,
+          ventaAcumulada: Number(g.venta_acumulada) || 0,
+          diasLaborablesRestantes: Number(g.dias_laborables_restantes) || 21,
+          incentiveImage: g.incentive_image || '/tabla-incentivos.png',
+          updated_at: g.updated_at
+        };
+        this.setLocal('lore_goals_config', goalsCfg);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lore_goal_objetivo', String(goalsCfg.objetivoMensual));
+          localStorage.setItem('lore_goal_venta', String(goalsCfg.ventaAcumulada));
+          localStorage.setItem('lore_goal_dias', String(goalsCfg.diasLaborablesRestantes));
+          if (goalsCfg.incentiveImage) localStorage.setItem('lore_goal_custom_image', goalsCfg.incentiveImage);
+        }
+      }
+
+      // 16. Interview Candidates (Mecalux)
+      if (candRes.status === 'fulfilled' && !candRes.value.error && candRes.value.data && candRes.value.data.length > 0) {
+        const candidates = (candRes.value.data as any[]).map(c => ({
+          id: c.id,
+          user_id: c.user_id,
+          fullName: c.full_name,
+          email: c.email,
+          phone: c.phone,
+          role: c.role,
+          seniority: c.seniority,
+          currentCompany: c.current_company,
+          currentSalaryEur: c.current_salary_eur ? Number(c.current_salary_eur) : undefined,
+          expectedSalaryEur: c.expected_salary_eur ? Number(c.expected_salary_eur) : undefined,
+          noticePeriodWeeks: c.notice_period_weeks,
+          englishLevel: c.english_level,
+          location: c.location,
+          linkedinUrl: c.linkedin_url,
+          status: c.status,
+          interviewDate: c.interview_date,
+          durationMinutes: c.duration_minutes,
+          cvText: c.cv_text,
+          cvFileName: c.cv_file_name,
+          parsedSkills: c.parsed_skills || [],
+          evaluations: c.evaluations || {},
+          resultadoFinal: c.resultado_final || {},
+          createdAt: c.created_at,
+          updatedAt: c.updated_at
+        }));
+        this.setLocal('interview_candidates', candidates);
+        allUserIds.forEach(uid => {
+          const userCands = candidates.filter(c => c.user_id === uid);
+          if (userCands.length > 0) this.setLocal(this.getUserKey('interview_candidates', uid), userCands);
+        });
+      }
+
+      // 17. Category Budgets & Metadata Sync Fallback
       if (budRes.status === 'fulfilled' && !budRes.value.error && budRes.value.data) {
         const rows = budRes.value.data as any[];
         const standardBudgets: CategoryBudget[] = [];
@@ -854,18 +637,26 @@ class StorageService {
               if (metaKey.startsWith('wallet_')) {
                 this.setLocal(metaKey, parsed);
               } else if (metaKey === 'lore_crm_v2' || metaKey === 'lore_crm') {
-                this.setLocal('lore_full_crm_data_v2', parsed);
+                const currentCRM = this.getLocal('lore_full_crm_data_v2', []);
+                if (currentCRM.length === 0) this.setLocal('lore_full_crm_data_v2', parsed);
               } else if (metaKey === 'lore_goals') {
-                this.setLocal('lore_goals_config', parsed);
-                if (parsed.objetivoMensual && typeof window !== 'undefined') localStorage.setItem('lore_goal_objetivo', String(parsed.objetivoMensual));
-                if (parsed.ventaAcumulada !== undefined && typeof window !== 'undefined') localStorage.setItem('lore_goal_venta', String(parsed.ventaAcumulada));
-                if (parsed.diasLaborablesRestantes && typeof window !== 'undefined') localStorage.setItem('lore_goal_dias', String(parsed.diasLaborablesRestantes));
-                if (parsed.incentiveImage && typeof window !== 'undefined') localStorage.setItem('lore_goal_custom_image', parsed.incentiveImage);
+                const currentGoals = this.getLocal<LoreGoalsConfig>('lore_goals_config', DEFAULT_LORE_GOALS);
+                if (!currentGoals || currentGoals.ventaAcumulada === 0) {
+                  this.setLocal('lore_goals_config', parsed);
+                  if (parsed.objetivoMensual && typeof window !== 'undefined') localStorage.setItem('lore_goal_objetivo', String(parsed.objetivoMensual));
+                  if (parsed.ventaAcumulada !== undefined && typeof window !== 'undefined') localStorage.setItem('lore_goal_venta', String(parsed.ventaAcumulada));
+                  if (parsed.diasLaborablesRestantes && typeof window !== 'undefined') localStorage.setItem('lore_goal_dias', String(parsed.diasLaborablesRestantes));
+                  if (parsed.incentiveImage && typeof window !== 'undefined') localStorage.setItem('lore_goal_custom_image', parsed.incentiveImage);
+                }
               } else if (metaKey === 'lore_routes') {
-                this.setLocal('lore_saved_routes', parsed);
+                const currentRoutes = this.getLocal('lore_saved_routes', []);
+                if (currentRoutes.length === 0) this.setLocal('lore_saved_routes', parsed);
               } else if (metaKey.startsWith('interview_candidates')) {
-                this.setLocal(metaKey, parsed);
-                this.setLocal('interview_candidates', parsed);
+                const currentCands = this.getLocal('interview_candidates', []);
+                if (currentCands.length === 0) {
+                  this.setLocal(metaKey, parsed);
+                  this.setLocal('interview_candidates', parsed);
+                }
               } else if (metaKey === 'user_passwords') {
                 const currentMap = this.getPasswordMap();
                 this.setLocal('user_passwords', { ...currentMap, ...parsed });
@@ -1073,7 +864,7 @@ class StorageService {
 
   async getWorkouts(userId?: string): Promise<FitnessWorkout[]> {
     const key = this.getUserKey('workouts', userId);
-    return this.getLocal(key, this.getLocal('workouts', DEFAULT_WORKOUTS));
+    return this.getLocal(key, this.getLocal('workouts', []));
   }
 
   async addWorkout(workout: Omit<FitnessWorkout, 'id'>, userId?: string): Promise<FitnessWorkout> {
@@ -1083,7 +874,7 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : ('wk_' + Date.now())
     };
     const key = this.getUserKey('workouts', userId);
-    const current = this.getLocal(key, DEFAULT_WORKOUTS);
+    const current = this.getLocal<FitnessWorkout[]>(key, []);
     const updated = [item, ...current.filter(w => w.id !== item.id)];
     this.setLocal(key, updated);
     this.setLocal('workouts', updated);
@@ -1099,7 +890,7 @@ class StorageService {
 
   async deleteWorkout(id: string, userId?: string): Promise<void> {
     const key = this.getUserKey('workouts', userId);
-    const current = this.getLocal(key, DEFAULT_WORKOUTS);
+    const current = this.getLocal<FitnessWorkout[]>(key, []);
     const updated = current.filter(w => w.id !== id);
     this.setLocal(key, updated);
     this.setLocal('workouts', updated);
@@ -1114,7 +905,7 @@ class StorageService {
   // --- NUTRICIÓN & MACROS ---
   async getDailyNutritionLogs(userId?: string): Promise<DailyNutritionLog[]> {
     const key = this.getUserKey('nutrition_logs', userId);
-    return this.getLocal(key, this.getLocal('nutrition_logs', DEFAULT_NUTRITION_LOGS));
+    return this.getLocal(key, this.getLocal('nutrition_logs', []));
   }
 
   async getDailyNutrition(date: string, userId?: string): Promise<DailyNutritionLog> {
@@ -1134,7 +925,7 @@ class StorageService {
 
   async saveDailyNutrition(log: DailyNutritionLog, userId?: string): Promise<void> {
     const key = this.getUserKey('nutrition_logs', userId);
-    const logs = this.getLocal(key, DEFAULT_NUTRITION_LOGS);
+    const logs = this.getLocal<DailyNutritionLog[]>(key, []);
     const logWithUser: DailyNutritionLog = {
       ...log,
       user_id: userId || log.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
@@ -1190,7 +981,7 @@ class StorageService {
   // --- CONTROL DE PESO & MEDIDAS ---
   async getBodyProgress(userId?: string): Promise<BodyProgressEntry[]> {
     const key = this.getUserKey('body_progress', userId);
-    return this.getLocal(key, this.getLocal('body_progress', DEFAULT_BODY_PROGRESS));
+    return this.getLocal(key, this.getLocal('body_progress', []));
   }
 
   async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>, userId?: string): Promise<BodyProgressEntry> {
@@ -1200,7 +991,7 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : ('bp_' + Date.now())
     };
     const key = this.getUserKey('body_progress', userId);
-    const current = this.getLocal(key, DEFAULT_BODY_PROGRESS);
+    const current = this.getLocal<BodyProgressEntry[]>(key, []);
     const filtered = current.filter(e => e.date !== item.date);
     const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
     this.setLocal(key, updated);
@@ -1218,7 +1009,7 @@ class StorageService {
 
   async deleteBodyProgress(id: string, userId?: string): Promise<void> {
     const key = this.getUserKey('body_progress', userId);
-    const current = this.getLocal(key, DEFAULT_BODY_PROGRESS);
+    const current = this.getLocal<BodyProgressEntry[]>(key, []);
     const updated = current.filter(e => e.id !== id);
     this.setLocal(key, updated);
     this.setLocal('body_progress', updated);
@@ -1233,7 +1024,7 @@ class StorageService {
   // --- POLAR GRIT X PRO METRICS ---
   async getPolarMetrics(userId?: string): Promise<PolarGritMetrics[]> {
     const key = this.getUserKey('polar_metrics', userId);
-    return this.getLocal(key, this.getLocal('polar_metrics', DEFAULT_POLAR_METRICS));
+    return this.getLocal(key, this.getLocal('polar_metrics', []));
   }
 
   async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>, userId?: string): Promise<PolarGritMetrics> {
@@ -1243,7 +1034,7 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : ('pol_' + Date.now())
     };
     const key = this.getUserKey('polar_metrics', userId);
-    const current = this.getLocal(key, DEFAULT_POLAR_METRICS);
+    const current = this.getLocal<PolarGritMetrics[]>(key, []);
     const filtered = current.filter(m => m.date !== item.date);
     const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
     this.setLocal(key, updated);
@@ -1306,14 +1097,29 @@ class StorageService {
 
   async updateWalletConfig(updates: Partial<WalletConfig>, userId?: string): Promise<WalletConfig> {
     const current = await this.getWalletConfig(userId);
+    const effectiveUserId = userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
     const key = this.getUserKey('wallet_config', userId);
     const updated: WalletConfig = {
       ...current,
       ...updates
     };
     this.setLocal(key, updated);
-    await this.saveCloudMeta(key, updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      const row = {
+        user_id: effectiveUserId,
+        account_1_name: updated.account_1_name,
+        account_1_initial_balance: updated.account_1_initial_balance,
+        account_2_name: updated.account_2_name,
+        account_2_initial_balance: updated.account_2_initial_balance,
+        has_account_2: updated.has_account_2,
+        onboarding_completed: updated.onboarding_completed,
+        updated_at: new Date().toISOString()
+      };
+      withTimeout(supabase.from('wallet_config').upsert(row, { onConflict: 'user_id' }), 5000)
+        .catch(() => this.saveCloudMeta(key, updated));
+    }
     return updated;
   }
 
@@ -1322,7 +1128,7 @@ class StorageService {
   // ==========================================
   async getExpenses(userId?: string): Promise<ExpenseItem[]> {
     const key = this.getUserKey('expenses', userId);
-    return this.getLocal(key, this.getLocal('expenses', DEFAULT_EXPENSES));
+    return this.getLocal(key, this.getLocal('expenses', []));
   }
 
   async addExpense(expense: Omit<ExpenseItem, 'id'>, userId?: string): Promise<ExpenseItem> {
@@ -1332,7 +1138,7 @@ class StorageService {
       id: crypto.randomUUID ? crypto.randomUUID() : ('exp_' + Date.now())
     };
     const key = this.getUserKey('expenses', userId);
-    const current = this.getLocal(key, DEFAULT_EXPENSES);
+    const current = this.getLocal<ExpenseItem[]>(key, []);
     const updated = [item, ...current.filter(e => e.id !== item.id)];
     this.setLocal(key, updated);
 
@@ -1350,7 +1156,7 @@ class StorageService {
 
   async deleteExpense(id: string, userId?: string): Promise<void> {
     const key = this.getUserKey('expenses', userId);
-    const current = this.getLocal(key, DEFAULT_EXPENSES);
+    const current = this.getLocal<ExpenseItem[]>(key, []);
     const updated = current.filter(e => e.id !== id);
     this.setLocal(key, updated);
 
@@ -1390,7 +1196,7 @@ class StorageService {
   // ==========================================
   async getSavingsGoals(userId?: string): Promise<SavingsGoal[]> {
     const key = this.getUserKey('savings_goals', userId);
-    return this.getLocal(key, this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS));
+    return this.getLocal(key, this.getLocal('savings_goals', []));
   }
 
   async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>, userId?: string): Promise<SavingsGoal> {
@@ -1401,7 +1207,7 @@ class StorageService {
       created_at: new Date().toISOString()
     };
     const key = this.getUserKey('savings_goals', userId);
-    const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
+    const current = this.getLocal<SavingsGoal[]>(key, []);
     const updated = [item, ...current.filter(g => g.id !== item.id)];
     this.setLocal(key, updated);
     this.setLocal('savings_goals', updated);
@@ -1416,7 +1222,7 @@ class StorageService {
 
   async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>, userId?: string): Promise<void> {
     const key = this.getUserKey('savings_goals', userId);
-    const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
+    const current = this.getLocal<SavingsGoal[]>(key, []);
     const updated = current.map(g => g.id === id ? { ...g, ...updates } : g);
     this.setLocal(key, updated);
     this.setLocal('savings_goals', updated);
@@ -1430,7 +1236,7 @@ class StorageService {
 
   async deleteSavingsGoal(id: string, userId?: string): Promise<void> {
     const key = this.getUserKey('savings_goals', userId);
-    const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
+    const current = this.getLocal<SavingsGoal[]>(key, []);
     const updated = current.filter(g => g.id !== id);
     this.setLocal(key, updated);
     this.setLocal('savings_goals', updated);
@@ -1482,7 +1288,7 @@ class StorageService {
   // BIBLIOTECA (LIBROS & JUEGOS)
   // ==========================================
   async getLibrary(): Promise<LibraryItem[]> {
-    return this.getLocal('library', DEFAULT_LIBRARY);
+    return this.getLocal('library', []);
   }
 
   async addLibraryItem(item: Omit<LibraryItem, 'id'>): Promise<LibraryItem> {
@@ -1490,7 +1296,7 @@ class StorageService {
       ...item,
       id: crypto.randomUUID ? crypto.randomUUID() : ('lib_' + Date.now())
     };
-    const current = this.getLocal('library', DEFAULT_LIBRARY);
+    const current = this.getLocal<LibraryItem[]>('library', []);
     const updated = [newItem, ...current.filter(i => i.id !== newItem.id)];
     this.setLocal('library', updated);
     this.broadcastChange();
@@ -1503,7 +1309,7 @@ class StorageService {
   }
 
   async updateLibraryItem(id: string, updates: Partial<LibraryItem>): Promise<void> {
-    const current = this.getLocal('library', DEFAULT_LIBRARY);
+    const current = this.getLocal<LibraryItem[]>('library', []);
     const updated = current.map(item => item.id === id ? { ...item, ...updates } : item);
     this.setLocal('library', updated);
     this.broadcastChange();
@@ -1515,7 +1321,7 @@ class StorageService {
   }
 
   async deleteLibraryItem(id: string): Promise<void> {
-    const current = this.getLocal('library', DEFAULT_LIBRARY);
+    const current = this.getLocal<LibraryItem[]>('library', []);
     const updated = current.filter(item => item.id !== id);
     this.setLocal('library', updated);
     this.broadcastChange();
@@ -1530,7 +1336,7 @@ class StorageService {
   // LORE CLIENTES (FARMACIAS & MAPA)
   // ==========================================
   async getLoreClients(): Promise<LoreClient[]> {
-    return this.getLocal('lore_clients', DEFAULT_CLIENTS);
+    return this.getLocal('lore_clients', []);
   }
 
   async addLoreClient(client: Omit<LoreClient, 'id'>): Promise<LoreClient> {
@@ -1538,7 +1344,7 @@ class StorageService {
       ...client,
       id: crypto.randomUUID ? crypto.randomUUID() : ('cli-' + Date.now())
     };
-    const current = this.getLocal('lore_clients', DEFAULT_CLIENTS);
+    const current = this.getLocal<LoreClient[]>('lore_clients', []);
     const updated = [item, ...current.filter(c => c.id !== item.id)];
     this.setLocal('lore_clients', updated);
     this.broadcastChange();
@@ -1551,7 +1357,7 @@ class StorageService {
   }
 
   async updateLoreClient(id: string, updates: Partial<LoreClient>): Promise<void> {
-    const current = this.getLocal('lore_clients', DEFAULT_CLIENTS);
+    const current = this.getLocal<LoreClient[]>('lore_clients', []);
     const updated = current.map(c => c.id === id ? { ...c, ...updates } : c);
     this.setLocal('lore_clients', updated);
     this.broadcastChange();
@@ -1563,7 +1369,7 @@ class StorageService {
   }
 
   async deleteLoreClient(id: string): Promise<void> {
-    const current = this.getLocal('lore_clients', DEFAULT_CLIENTS);
+    const current = this.getLocal<LoreClient[]>('lore_clients', []);
     const updated = current.filter(c => c.id !== id);
     this.setLocal('lore_clients', updated);
     this.broadcastChange();
@@ -1578,13 +1384,19 @@ class StorageService {
   // LORE CRM FARMACIAS (SEGUIMIENTO Y PROSPECCIÓN)
   // ==========================================
   async getLoreCRMItems(): Promise<PharmacyCRMItem[]> {
-    return this.getLocal('lore_full_crm_data_v2', INITIAL_CRM_DATA);
+    return this.getLocal('lore_full_crm_data_v2', []);
   }
 
   async setLoreCRMItems(items: PharmacyCRMItem[]): Promise<void> {
     this.setLocal('lore_full_crm_data_v2', items);
-    await this.saveCloudMeta('lore_crm_v2', items);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      if (items.length > 0) {
+        withTimeout(supabase.from('lore_crm_pharmacies').upsert(items), 5000)
+          .catch(() => this.saveCloudMeta('lore_crm_v2', items));
+      }
+    }
   }
 
   async saveLoreCRMItem(item: PharmacyCRMItem): Promise<PharmacyCRMItem> {
@@ -1614,7 +1426,13 @@ class StorageService {
   async deleteLoreCRMItem(id: string): Promise<void> {
     const current = await this.getLoreCRMItems();
     const updated = current.filter(i => i.id !== id);
-    await this.setLoreCRMItems(updated);
+    this.setLocal('lore_full_crm_data_v2', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('lore_crm_pharmacies').delete().eq('id', id), 5000)
+        .catch(() => this.saveCloudMeta('lore_crm_v2', updated));
+    }
   }
 
   // ==========================================
@@ -1650,8 +1468,20 @@ class StorageService {
       localStorage.setItem('lore_goal_dias', String(updated.diasLaborablesRestantes));
       if (updated.incentiveImage) localStorage.setItem('lore_goal_custom_image', updated.incentiveImage);
     }
-    await this.saveCloudMeta('lore_goals', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      const row = {
+        id: 'current_goals',
+        objetivo_mensual: updated.objetivoMensual,
+        venta_acumulada: updated.ventaAcumulada,
+        dias_laborables_restantes: updated.diasLaborablesRestantes,
+        incentive_image: updated.incentiveImage,
+        updated_at: new Date().toISOString()
+      };
+      withTimeout(supabase.from('lore_goals').upsert(row, { onConflict: 'id' }), 5000)
+        .catch(() => this.saveCloudMeta('lore_goals', updated));
+    }
     return updated;
   }
 
@@ -1680,20 +1510,36 @@ class StorageService {
         createdAt: new Date().toISOString()
       };
     }
-    const current = this.getLocal('lore_saved_routes', []);
+    const current = this.getLocal<LoreSavedRoute[]>('lore_saved_routes', []);
     const updated = [item, ...current.filter(r => r.id !== item.id)];
     this.setLocal('lore_saved_routes', updated);
-    await this.saveCloudMeta('lore_routes', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      const row = {
+        id: item.id,
+        name: item.name,
+        date: item.date,
+        client_ids: item.clientIds,
+        total_distance_km: item.totalDistanceKm,
+        created_at: item.createdAt
+      };
+      withTimeout(supabase.from('lore_saved_routes').upsert(row), 5000)
+        .catch(() => this.saveCloudMeta('lore_routes', updated));
+    }
     return item;
   }
 
   async deleteLoreRoute(id: string): Promise<void> {
-    const current = this.getLocal('lore_saved_routes', []);
+    const current = this.getLocal<LoreSavedRoute[]>('lore_saved_routes', []);
     const updated = current.filter(r => r.id !== id);
     this.setLocal('lore_saved_routes', updated);
-    await this.saveCloudMeta('lore_routes', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('lore_saved_routes').delete().eq('id', id), 5000)
+        .catch(() => this.saveCloudMeta('lore_routes', updated));
+    }
   }
 
   // ==========================================
@@ -1724,8 +1570,38 @@ class StorageService {
 
     this.setLocal(key, updated);
     this.setLocal('interview_candidates', updated);
-    await this.saveCloudMeta(key, updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      const row = {
+        id: candidateToSave.id,
+        user_id: candidateToSave.user_id,
+        full_name: candidateToSave.fullName,
+        email: candidateToSave.email,
+        phone: candidateToSave.phone,
+        role: candidateToSave.role,
+        seniority: candidateToSave.seniority,
+        current_company: candidateToSave.currentCompany,
+        current_salary_eur: candidateToSave.currentSalaryEur,
+        expected_salary_eur: candidateToSave.expectedSalaryEur,
+        notice_period_weeks: candidateToSave.noticePeriodWeeks,
+        english_level: candidateToSave.englishLevel,
+        location: candidateToSave.location,
+        linkedin_url: candidateToSave.linkedinUrl,
+        status: candidateToSave.status,
+        interview_date: candidateToSave.interviewDate,
+        duration_minutes: candidateToSave.durationMinutes,
+        cv_text: candidateToSave.cvText,
+        cv_file_name: candidateToSave.cvFileName,
+        parsed_skills: candidateToSave.parsedSkills || [],
+        evaluations: candidateToSave.evaluations || {},
+        resultado_final: candidateToSave.resultadoFinal || {},
+        created_at: candidateToSave.createdAt,
+        updated_at: candidateToSave.updatedAt
+      };
+      withTimeout(supabase.from('interview_candidates').upsert(row), 5000)
+        .catch(() => this.saveCloudMeta(key, updated));
+    }
     return candidateToSave;
   }
 
@@ -1735,8 +1611,12 @@ class StorageService {
     const updated = current.filter(c => c.id !== id);
     this.setLocal(key, updated);
     this.setLocal('interview_candidates', updated);
-    await this.saveCloudMeta(key, updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('interview_candidates').delete().eq('id', id), 5000)
+        .catch(() => this.saveCloudMeta(key, updated));
+    }
   }
 
   // ==========================================
@@ -1755,9 +1635,8 @@ class StorageService {
     }
 
     if (isSupabaseConfigured && supabase) {
-      const { password, ...supabaseProfile } = newProfile;
-      withTimeout(supabase.from('profiles').upsert(supabaseProfile), 6000)
-        .catch(() => this.queueOfflineMutation('profiles', 'upsert', supabaseProfile));
+      withTimeout(supabase.from('profiles').upsert(newProfile), 6000)
+        .catch(() => this.queueOfflineMutation('profiles', 'upsert', newProfile));
     }
     const current = await this.getProfiles();
     const updated = [...current.filter(p => p.id !== newProfile.id), newProfile];
@@ -1800,11 +1679,8 @@ class StorageService {
     this.setLocal('profiles', updated);
 
     if (isSupabaseConfigured && supabase) {
-      const { password, ...supabaseUpdates } = updates;
-      if (Object.keys(supabaseUpdates).length > 0) {
-        withTimeout(supabase.from('profiles').update(supabaseUpdates).eq('id', id), 6000)
-          .catch(() => this.queueOfflineMutation('profiles', 'upsert', { id, ...supabaseUpdates }));
-      }
+      withTimeout(supabase.from('profiles').update(updates).eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('profiles', 'upsert', { id, ...updates }));
     }
 
     this.broadcastChange();
@@ -1852,9 +1728,23 @@ class StorageService {
       withTimeout(supabase.from('audit_logs').insert(log), 6000)
         .catch(() => this.queueOfflineMutation('audit_logs', 'upsert', log));
     }
-    const current = this.getLocal('audit_logs', []);
+    const current = this.getLocal<AuditLog[]>('audit_logs', []);
     const updated = [log, ...current.slice(0, 49)];
     this.setLocal('audit_logs', updated);
+  }
+
+  // --- BORRAR TODOS LOS DATOS LOCALES PARA RESET TOTAL ---
+  resetLocalData(): void {
+    if (typeof window === 'undefined') return;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('plataforma_') || k.startsWith('lore_'))) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    this.notifySubscribers();
   }
 }
 
