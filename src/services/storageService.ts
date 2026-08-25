@@ -104,6 +104,14 @@ const DEFAULT_BODY_PROGRESS: BodyProgressEntry[] = [];
 
 const DEFAULT_POLAR_METRICS: PolarGritMetrics[] = [];
 
+const DEFAULT_WALLET_CONFIG: import('../types').WalletConfig = {
+  account_1_name: 'Abanca Personal',
+  account_1_initial_balance: 0,
+  account_2_name: 'ING Conjunta',
+  account_2_initial_balance: 0,
+  onboarding_completed: false
+};
+
 const DEFAULT_EXPENSES: ExpenseItem[] = [];
 
 const DEFAULT_SAVINGS_GOALS: SavingsGoal[] = [];
@@ -469,29 +477,47 @@ class StorageService {
     this.broadcastChange();
   }
 
+  private getUserKey(baseKey: string, userId?: string): string {
+    if (!userId) return baseKey;
+    if (userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' || userId.includes('asier')) {
+      return baseKey;
+    }
+    return `${baseKey}_${userId}`;
+  }
+
   // ==========================================
   // FITNESS & SALUD INTEGRAL (CAMBIO FÍSICO + POLAR)
   // ==========================================
-  async getFitnessProfile(): Promise<FitnessProfile> {
-    const local = this.getLocal('fitness_profile', DEFAULT_FITNESS_PROFILE);
+  async getFitnessProfile(userId?: string): Promise<FitnessProfile> {
+    const key = this.getUserKey('fitness_profile', userId);
+    const defaultProfile: FitnessProfile = {
+      ...DEFAULT_FITNESS_PROFILE,
+      user_id: userId,
+      onboarding_completed: false
+    };
+    const local = this.getLocal(key, defaultProfile);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_profiles').select('*').limit(1), 1500).then(res => {
+      let query = supabase.from('fitness_profiles').select('*').limit(1);
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('fitness_profile', res.data[0] as FitnessProfile);
+          this.setLocal(key, res.data[0] as FitnessProfile);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async updateFitnessProfile(updates: Partial<FitnessProfile>): Promise<FitnessProfile> {
-    const current = await this.getFitnessProfile();
+  async updateFitnessProfile(updates: Partial<FitnessProfile>, userId?: string): Promise<FitnessProfile> {
+    const current = await this.getFitnessProfile(userId);
+    const key = this.getUserKey('fitness_profile', userId);
     const updated: FitnessProfile = {
       ...current,
       ...updates,
+      user_id: userId || current.user_id,
       updated_at: new Date().toISOString()
     };
-    this.setLocal('fitness_profile', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -500,26 +526,31 @@ class StorageService {
     return updated;
   }
 
-  async getWorkouts(): Promise<FitnessWorkout[]> {
-    const local = this.getLocal('workouts', DEFAULT_WORKOUTS);
+  async getWorkouts(userId?: string): Promise<FitnessWorkout[]> {
+    const key = this.getUserKey('workouts', userId);
+    const local = this.getLocal(key, DEFAULT_WORKOUTS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 1500).then(res => {
+      let query = supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('workouts', res.data as FitnessWorkout[]);
+          this.setLocal(key, res.data as FitnessWorkout[]);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async addWorkout(workout: Omit<FitnessWorkout, 'id'>): Promise<FitnessWorkout> {
+  async addWorkout(workout: Omit<FitnessWorkout, 'id'>, userId?: string): Promise<FitnessWorkout> {
     const item: FitnessWorkout = {
       ...workout,
+      user_id: userId || workout.user_id,
       id: crypto.randomUUID ? crypto.randomUUID() : `wk_${Date.now()}`
     };
-    const current = this.getLocal('workouts', DEFAULT_WORKOUTS);
+    const key = this.getUserKey('workouts', userId);
+    const current = this.getLocal(key, DEFAULT_WORKOUTS);
     const updated = [item, ...current];
-    this.setLocal('workouts', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -528,10 +559,11 @@ class StorageService {
     return item;
   }
 
-  async deleteWorkout(id: string): Promise<void> {
-    const current = this.getLocal('workouts', DEFAULT_WORKOUTS);
+  async deleteWorkout(id: string, userId?: string): Promise<void> {
+    const key = this.getUserKey('workouts', userId);
+    const current = this.getLocal(key, DEFAULT_WORKOUTS);
     const updated = current.filter(w => w.id !== id);
-    this.setLocal('workouts', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -540,26 +572,29 @@ class StorageService {
   }
 
   // --- NUTRICIÓN & MACROS ---
-  async getDailyNutritionLogs(): Promise<DailyNutritionLog[]> {
-    const local = this.getLocal('nutrition_logs', DEFAULT_NUTRITION_LOGS);
+  async getDailyNutritionLogs(userId?: string): Promise<DailyNutritionLog[]> {
+    const key = this.getUserKey('nutrition_logs', userId);
+    const local = this.getLocal(key, DEFAULT_NUTRITION_LOGS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 1500).then(res => {
+      let query = supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('nutrition_logs', res.data as DailyNutritionLog[]);
+          this.setLocal(key, res.data as DailyNutritionLog[]);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async getDailyNutrition(date: string): Promise<DailyNutritionLog> {
-    const logs = await this.getDailyNutritionLogs();
+  async getDailyNutrition(date: string, userId?: string): Promise<DailyNutritionLog> {
+    const logs = await this.getDailyNutritionLogs(userId);
     const found = logs.find(l => l.date === date);
     if (found) return found;
 
-    // Crear entrada vacía para el día
     const newLog: DailyNutritionLog = {
       id: `nut_${date}`,
+      user_id: userId,
       date,
       water_ml: 0,
       meals: []
@@ -567,8 +602,9 @@ class StorageService {
     return newLog;
   }
 
-  async saveDailyNutrition(log: DailyNutritionLog): Promise<void> {
-    const logs = this.getLocal('nutrition_logs', DEFAULT_NUTRITION_LOGS);
+  async saveDailyNutrition(log: DailyNutritionLog, userId?: string): Promise<void> {
+    const key = this.getUserKey('nutrition_logs', userId);
+    const logs = this.getLocal(key, DEFAULT_NUTRITION_LOGS);
     const existingIndex = logs.findIndex(l => l.date === log.date);
     let updated: DailyNutritionLog[];
     if (existingIndex >= 0) {
@@ -576,7 +612,7 @@ class StorageService {
     } else {
       updated = [log, ...logs];
     }
-    this.setLocal('nutrition_logs', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -584,8 +620,8 @@ class StorageService {
     }
   }
 
-  async addFoodToDate(date: string, food: Omit<import('../types').FoodEntry, 'id'>): Promise<void> {
-    const log = await this.getDailyNutrition(date);
+  async addFoodToDate(date: string, food: Omit<import('../types').FoodEntry, 'id'>, userId?: string): Promise<void> {
+    const log = await this.getDailyNutrition(date, userId);
     const newFood: import('../types').FoodEntry = {
       ...food,
       id: crypto.randomUUID ? crypto.randomUUID() : `food_${Date.now()}`
@@ -594,54 +630,57 @@ class StorageService {
       ...log,
       meals: [...log.meals, newFood]
     };
-    await this.saveDailyNutrition(updatedLog);
+    await this.saveDailyNutrition(updatedLog, userId);
   }
 
-  async removeFoodFromDate(date: string, foodId: string): Promise<void> {
-    const log = await this.getDailyNutrition(date);
+  async removeFoodFromDate(date: string, foodId: string, userId?: string): Promise<void> {
+    const log = await this.getDailyNutrition(date, userId);
     const updatedLog: DailyNutritionLog = {
       ...log,
       meals: log.meals.filter(m => m.id !== foodId)
     };
-    await this.saveDailyNutrition(updatedLog);
+    await this.saveDailyNutrition(updatedLog, userId);
   }
 
-  async updateWater(date: string, amountMl: number): Promise<void> {
-    const log = await this.getDailyNutrition(date);
+  async updateWater(date: string, amountMl: number, userId?: string): Promise<void> {
+    const log = await this.getDailyNutrition(date, userId);
     const updatedLog: DailyNutritionLog = {
       ...log,
       water_ml: Math.max(0, amountMl)
     };
-    await this.saveDailyNutrition(updatedLog);
+    await this.saveDailyNutrition(updatedLog, userId);
   }
 
   // --- CONTROL DE PESO & MEDIDAS ---
-  async getBodyProgress(): Promise<BodyProgressEntry[]> {
-    const local = this.getLocal('body_progress', DEFAULT_BODY_PROGRESS);
+  async getBodyProgress(userId?: string): Promise<BodyProgressEntry[]> {
+    const key = this.getUserKey('body_progress', userId);
+    const local = this.getLocal(key, DEFAULT_BODY_PROGRESS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 1500).then(res => {
+      let query = supabase.from('fitness_body_progress').select('*').order('date', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('body_progress', res.data as BodyProgressEntry[]);
+          this.setLocal(key, res.data as BodyProgressEntry[]);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>): Promise<BodyProgressEntry> {
+  async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>, userId?: string): Promise<BodyProgressEntry> {
     const item: BodyProgressEntry = {
       ...entry,
+      user_id: userId || entry.user_id,
       id: crypto.randomUUID ? crypto.randomUUID() : `bp_${Date.now()}`
     };
-    const current = this.getLocal('body_progress', DEFAULT_BODY_PROGRESS);
-    // Si ya existe registro de ese día, se actualiza
+    const key = this.getUserKey('body_progress', userId);
+    const current = this.getLocal(key, DEFAULT_BODY_PROGRESS);
     const filtered = current.filter(e => e.date !== item.date);
     const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
-    this.setLocal('body_progress', updated);
+    this.setLocal(key, updated);
 
-    // Actualizar también el peso actual en el perfil
-    const profile = await this.getFitnessProfile();
-    await this.updateFitnessProfile({ current_weight: item.weight });
+    // Actualizar también el peso actual en el perfil del usuario
+    await this.updateFitnessProfile({ current_weight: item.weight }, userId);
 
     this.broadcastChange();
 
@@ -651,10 +690,11 @@ class StorageService {
     return item;
   }
 
-  async deleteBodyProgress(id: string): Promise<void> {
-    const current = this.getLocal('body_progress', DEFAULT_BODY_PROGRESS);
+  async deleteBodyProgress(id: string, userId?: string): Promise<void> {
+    const key = this.getUserKey('body_progress', userId);
+    const current = this.getLocal(key, DEFAULT_BODY_PROGRESS);
     const updated = current.filter(e => e.id !== id);
-    this.setLocal('body_progress', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -663,27 +703,31 @@ class StorageService {
   }
 
   // --- POLAR GRIT X PRO METRICS ---
-  async getPolarMetrics(): Promise<PolarGritMetrics[]> {
-    const local = this.getLocal('polar_metrics', DEFAULT_POLAR_METRICS);
+  async getPolarMetrics(userId?: string): Promise<PolarGritMetrics[]> {
+    const key = this.getUserKey('polar_metrics', userId);
+    const local = this.getLocal(key, DEFAULT_POLAR_METRICS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 1500).then(res => {
+      let query = supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('polar_metrics', res.data as PolarGritMetrics[]);
+          this.setLocal(key, res.data as PolarGritMetrics[]);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>): Promise<PolarGritMetrics> {
+  async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>, userId?: string): Promise<PolarGritMetrics> {
     const item: PolarGritMetrics = {
       ...metric,
       id: crypto.randomUUID ? crypto.randomUUID() : `pol_${Date.now()}`
     };
-    const current = this.getLocal('polar_metrics', DEFAULT_POLAR_METRICS);
+    const key = this.getUserKey('polar_metrics', userId);
+    const current = this.getLocal(key, DEFAULT_POLAR_METRICS);
     const filtered = current.filter(m => m.date !== item.date);
     const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
-    this.setLocal('polar_metrics', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -692,50 +736,91 @@ class StorageService {
     return item;
   }
 
-  async resetFitnessData(): Promise<void> {
-    this.setLocal('fitness_profile', DEFAULT_FITNESS_PROFILE);
-    this.setLocal('workouts', []);
-    this.setLocal('nutrition_logs', []);
-    this.setLocal('body_progress', []);
-    this.setLocal('polar_metrics', []);
+  async resetFitnessData(userId?: string): Promise<void> {
+    const defaultProfile: FitnessProfile = {
+      ...DEFAULT_FITNESS_PROFILE,
+      user_id: userId,
+      onboarding_completed: false
+    };
+    this.setLocal(this.getUserKey('fitness_profile', userId), defaultProfile);
+    this.setLocal(this.getUserKey('workouts', userId), []);
+    this.setLocal(this.getUserKey('nutrition_logs', userId), []);
+    this.setLocal(this.getUserKey('body_progress', userId), []);
+    this.setLocal(this.getUserKey('polar_metrics', userId), []);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await Promise.allSettled([
-          withTimeout(supabase.from('fitness_profiles').delete().neq('id', '0')),
-          withTimeout(supabase.from('fitness_workouts').delete().neq('id', '0')),
-          withTimeout(supabase.from('fitness_nutrition_logs').delete().neq('id', '0')),
-          withTimeout(supabase.from('fitness_body_progress').delete().neq('id', '0')),
-          withTimeout(supabase.from('fitness_polar_metrics').delete().neq('id', '0'))
-        ]);
+        let profileDel = supabase.from('fitness_profiles').delete();
+        if (userId) profileDel = profileDel.eq('user_id', userId);
+        await profileDel;
       } catch (e) {}
     }
   }
 
   // ==========================================
+  // CONFIGURACIÓN DE CARTERA & BANCOS
+  // ==========================================
+  async getWalletConfig(userId?: string): Promise<import('../types').WalletConfig> {
+    const key = this.getUserKey('wallet_config', userId);
+    const isAsier = !userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' || userId.includes('asier');
+    const defaultVal: import('../types').WalletConfig = isAsier ? {
+      account_1_name: 'Abanca Personal',
+      account_1_initial_balance: 0,
+      account_2_name: 'ING Conjunta',
+      account_2_initial_balance: 0,
+      onboarding_completed: true
+    } : {
+      account_1_name: 'Cuenta Principal',
+      account_1_initial_balance: 0,
+      account_2_name: 'Cuenta Ahorro',
+      account_2_initial_balance: 0,
+      onboarding_completed: false
+    };
+
+    return this.getLocal(key, defaultVal);
+  }
+
+  async updateWalletConfig(updates: Partial<import('../types').WalletConfig>, userId?: string): Promise<import('../types').WalletConfig> {
+    const current = await this.getWalletConfig(userId);
+    const key = this.getUserKey('wallet_config', userId);
+    const updated: import('../types').WalletConfig = {
+      ...current,
+      ...updates
+    };
+    this.setLocal(key, updated);
+    this.broadcastChange();
+    return updated;
+  }
+
+  // ==========================================
   // GASTOS & MOVIMIENTOS
   // ==========================================
-  async getExpenses(): Promise<ExpenseItem[]> {
-    const local = this.getLocal('expenses', DEFAULT_EXPENSES);
+  async getExpenses(userId?: string): Promise<ExpenseItem[]> {
+    const key = this.getUserKey('expenses', userId);
+    const local = this.getLocal(key, DEFAULT_EXPENSES);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 1500).then(res => {
+      let query = supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data) {
-          this.setLocal('expenses', res.data as ExpenseItem[]);
+          this.setLocal(key, res.data as ExpenseItem[]);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async addExpense(expense: Omit<ExpenseItem, 'id'>): Promise<ExpenseItem> {
+  async addExpense(expense: Omit<ExpenseItem, 'id'>, userId?: string): Promise<ExpenseItem> {
     const item: ExpenseItem = {
       ...expense,
+      user_id: userId || expense.user_id,
       id: crypto.randomUUID ? crypto.randomUUID() : `exp_${Date.now()}`
     };
-    const current = this.getLocal('expenses', DEFAULT_EXPENSES);
+    const key = this.getUserKey('expenses', userId);
+    const current = this.getLocal(key, DEFAULT_EXPENSES);
     const updated = [item, ...current];
-    this.setLocal('expenses', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -744,10 +829,11 @@ class StorageService {
     return item;
   }
 
-  async deleteExpense(id: string): Promise<void> {
-    const current = this.getLocal('expenses', DEFAULT_EXPENSES);
+  async deleteExpense(id: string, userId?: string): Promise<void> {
+    const key = this.getUserKey('expenses', userId);
+    const current = this.getLocal(key, DEFAULT_EXPENSES);
     const updated = current.filter(e => e.id !== id);
-    this.setLocal('expenses', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -755,39 +841,47 @@ class StorageService {
     }
   }
 
-  async clearAllExpenses(): Promise<void> {
-    this.setLocal('expenses', []);
+  async clearAllExpenses(userId?: string): Promise<void> {
+    const key = this.getUserKey('expenses', userId);
+    this.setLocal(key, []);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').delete().neq('id', '0')).catch(() => {});
+      let query = supabase.from('expenses').delete();
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query).catch(() => {});
     }
   }
 
   // ==========================================
   // METAS DE AHORRO (SAVINGS GOALS)
   // ==========================================
-  async getSavingsGoals(): Promise<SavingsGoal[]> {
-    const local = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+  async getSavingsGoals(userId?: string): Promise<SavingsGoal[]> {
+    const key = this.getUserKey('savings_goals', userId);
+    const local = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 1500).then(res => {
+      let query = supabase.from('savings_goals').select('*').order('created_at', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('savings_goals', res.data as SavingsGoal[]);
+          this.setLocal(key, res.data as SavingsGoal[]);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>): Promise<SavingsGoal> {
+  async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>, userId?: string): Promise<SavingsGoal> {
     const item: SavingsGoal = {
       ...goal,
+      user_id: userId || goal.user_id,
       id: crypto.randomUUID ? crypto.randomUUID() : `goal_${Date.now()}`,
       created_at: new Date().toISOString()
     };
-    const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+    const key = this.getUserKey('savings_goals', userId);
+    const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     const updated = [item, ...current];
-    this.setLocal('savings_goals', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -796,10 +890,11 @@ class StorageService {
     return item;
   }
 
-  async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>): Promise<void> {
-    const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+  async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>, userId?: string): Promise<void> {
+    const key = this.getUserKey('savings_goals', userId);
+    const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     const updated = current.map(g => g.id === id ? { ...g, ...updates } : g);
-    this.setLocal('savings_goals', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -807,10 +902,11 @@ class StorageService {
     }
   }
 
-  async deleteSavingsGoal(id: string): Promise<void> {
-    const current = this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS);
+  async deleteSavingsGoal(id: string, userId?: string): Promise<void> {
+    const key = this.getUserKey('savings_goals', userId);
+    const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     const updated = current.filter(g => g.id !== id);
-    this.setLocal('savings_goals', updated);
+    this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
@@ -821,20 +917,24 @@ class StorageService {
   // ==========================================
   // PRESUPUESTOS POR CATEGORÍA
   // ==========================================
-  async getCategoryBudgets(): Promise<CategoryBudget[]> {
-    const local = this.getLocal('category_budgets', DEFAULT_CATEGORY_BUDGETS);
+  async getCategoryBudgets(userId?: string): Promise<CategoryBudget[]> {
+    const key = this.getUserKey('category_budgets', userId);
+    const local = this.getLocal(key, DEFAULT_CATEGORY_BUDGETS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('category_budgets').select('*'), 1500).then(res => {
+      let query = supabase.from('category_budgets').select('*');
+      if (userId) query = query.eq('user_id', userId);
+      withTimeout(query, 1500).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('category_budgets', res.data as CategoryBudget[]);
+          this.setLocal(key, res.data as CategoryBudget[]);
         }
       }).catch(() => {});
     }
     return local;
   }
 
-  async updateCategoryBudget(category: string, monthlyLimit: number): Promise<void> {
-    const current = await this.getCategoryBudgets();
+  async updateCategoryBudget(category: string, monthlyLimit: number, userId?: string): Promise<void> {
+    const current = await this.getCategoryBudgets(userId);
+    const key = this.getUserKey('category_budgets', userId);
     const existing = current.find(c => c.category === category);
     let updated: CategoryBudget[];
     if (existing) {
@@ -842,12 +942,13 @@ class StorageService {
     } else {
       updated = [...current, { category, monthly_limit: monthlyLimit }];
     }
-    this.setLocal('category_budgets', updated);
+    this.setLocal(key, updated);
 
     if (isSupabaseConfigured && supabase) {
       withTimeout(supabase.from('category_budgets').upsert({
         category,
         monthly_limit: monthlyLimit,
+        user_id: userId,
         updated_at: new Date().toISOString()
       })).catch(() => {});
     }

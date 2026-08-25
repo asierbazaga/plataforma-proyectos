@@ -34,7 +34,7 @@ import {
   Scale,
   Award
 } from 'lucide-react';
-import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount } from '../../types';
+import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount, WalletConfig } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -64,6 +64,22 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
   // Filtro de Cartera Activa: 'all' | 'abanca' | 'ing'
   const [selectedWallet, setSelectedWallet] = useState<'all' | WalletAccount>('all');
+
+  // Configuración de Cartera del Usuario
+  const [walletConfig, setWalletConfig] = useState<WalletConfig>({
+    account_1_name: 'Cuenta Principal',
+    account_1_initial_balance: 0,
+    account_2_name: 'Cuenta Ahorro',
+    account_2_initial_balance: 0,
+    onboarding_completed: false
+  });
+
+  // Modal de Configuración / Onboarding de Cuentas
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [setupAcc1Name, setSetupAcc1Name] = useState('');
+  const [setupAcc1Balance, setSetupAcc1Balance] = useState<number | string>('');
+  const [setupAcc2Name, setSetupAcc2Name] = useState('');
+  const [setupAcc2Balance, setSetupAcc2Balance] = useState<number | string>('');
 
   // Datos
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
@@ -98,37 +114,85 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [goalNotes, setGoalNotes] = useState('');
 
   const loadData = async () => {
-    const [list, goalsList, budgetsList] = await Promise.all([
-      storageService.getExpenses(),
-      storageService.getSavingsGoals(),
-      storageService.getCategoryBudgets()
+    const userId = currentUser?.id;
+    const [cfg, list, goalsList, budgetsList] = await Promise.all([
+      storageService.getWalletConfig(userId),
+      storageService.getExpenses(userId),
+      storageService.getSavingsGoals(userId),
+      storageService.getCategoryBudgets(userId)
     ]);
+    setWalletConfig(cfg);
     setExpenses(list);
     setGoals(goalsList);
     setBudgets(budgetsList);
+
+    // Si es un usuario nuevo y no ha configurado sus cuentas ni tiene gastos, lanzar onboarding
+    if (!cfg.onboarding_completed && list.length === 0) {
+      setSetupAcc1Name(cfg.account_1_name || 'Cuenta Principal');
+      setSetupAcc1Balance('');
+      setSetupAcc2Name(cfg.account_2_name || 'Cuenta Ahorro');
+      setSetupAcc2Balance('');
+      setShowSetupModal(true);
+    }
   };
 
   useEffect(() => {
-    // Asegurar que la pantalla siempre empiece arriba del todo al entrar
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.body.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-
-    // 1. Carga instantánea (0ms) desde memoria
     loadData();
 
-    // 2. Sincronización transparente con Supabase
-    storageService.syncFromCloud().then(() => loadData());
-
-    // 3. Suscripción instantánea a WebSockets de PostgreSQL Realtime
     const unsubscribe = storageService.onSync(() => {
       loadData();
     });
+    return () => unsubscribe();
+  }, [currentUser?.id]);
 
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  const handleOpenAccountConfig = () => {
+    setSetupAcc1Name(walletConfig.account_1_name);
+    setSetupAcc1Balance('');
+    setSetupAcc2Name(walletConfig.account_2_name);
+    setSetupAcc2Balance('');
+    setShowSetupModal(true);
+  };
+
+  const handleSaveAccountSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const userId = currentUser?.id;
+    const acc1 = setupAcc1Name.trim() || 'Cuenta Principal';
+    const acc2 = setupAcc2Name.trim() || 'Cuenta Ahorro';
+
+    await storageService.updateWalletConfig({
+      account_1_name: acc1,
+      account_2_name: acc2,
+      onboarding_completed: true
+    }, userId);
+
+    // Si introduce saldo inicial en cuenta 1 y no existían movimientos
+    if (Number(setupAcc1Balance) > 0) {
+      await storageService.addExpense({
+        description: `Saldo Inicial - ${acc1}`,
+        amount: Number(setupAcc1Balance),
+        type: 'income',
+        category: 'Ahorro/Común',
+        account: 'abanca',
+        transaction_date: new Date().toISOString().split('T')[0]
+      }, userId);
+    }
+
+    // Si introduce saldo inicial en cuenta 2 y no existían movimientos
+    if (Number(setupAcc2Balance) > 0) {
+      await storageService.addExpense({
+        description: `Saldo Inicial - ${acc2}`,
+        amount: Number(setupAcc2Balance),
+        type: 'income',
+        category: 'Ahorro/Común',
+        account: 'ing',
+        transaction_date: new Date().toISOString().split('T')[0]
+      }, userId);
+    }
+
+    setShowSetupModal(false);
+    await loadData();
+  };
 
   // Guardar nueva transacción
   const handleAddTransaction = async (e: React.FormEvent) => {
@@ -142,7 +206,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       category,
       account: transactionAccount,
       transaction_date: new Date().toISOString().split('T')[0]
-    });
+    }, currentUser?.id);
 
     setDescription('');
     setAmount('');
@@ -153,15 +217,15 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Eliminar transacción individual
   const handleDeleteTransaction = async (id: string) => {
     if (confirm('¿Eliminar este movimiento?')) {
-      await storageService.deleteExpense(id);
+      await storageService.deleteExpense(id, currentUser?.id);
       await loadData();
     }
   };
 
   // Limpiar todos los movimientos
   const handleClearAllExpenses = async () => {
-    if (confirm('¿Estás seguro de que quieres borrar todos los movimientos de la cartera para empezar desde cero?')) {
-      await storageService.clearAllExpenses();
+    if (confirm('¿Estás seguro de que quieres borrar todos los movimientos de tu cartera para empezar desde cero?')) {
+      await storageService.clearAllExpenses(currentUser?.id);
       await loadData();
     }
   };
@@ -169,7 +233,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Guardar límite de presupuesto
   const handleSaveBudgetLimit = async () => {
     if (!editingBudgetCategory || !budgetLimitInput || Number(budgetLimitInput) < 0) return;
-    await storageService.updateCategoryBudget(editingBudgetCategory, Number(budgetLimitInput));
+    await storageService.updateCategoryBudget(editingBudgetCategory, Number(budgetLimitInput), currentUser?.id);
     setEditingBudgetCategory(null);
     setBudgetLimitInput('');
     await loadData();
@@ -212,7 +276,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         account: goalAccount,
         target_date: goalDate || undefined,
         notes: goalNotes.trim() || undefined
-      });
+      }, currentUser?.id);
     } else {
       await storageService.addSavingsGoal({
         title: goalTitle.trim(),
@@ -221,7 +285,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         account: goalAccount,
         target_date: goalDate || undefined,
         notes: goalNotes.trim() || undefined
-      });
+      }, currentUser?.id);
     }
 
     setShowGoalModal(false);
@@ -236,7 +300,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     if (!goal) return;
 
     const newAmount = Math.max(0, goal.current_amount + Number(contributionAmount));
-    await storageService.updateSavingsGoal(goalId, { current_amount: newAmount });
+    await storageService.updateSavingsGoal(goalId, { current_amount: newAmount }, currentUser?.id);
     
     setContributeGoalId(null);
     setContributionAmount('');
@@ -246,7 +310,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Eliminar objetivo
   const handleDeleteGoal = async (id: string) => {
     if (confirm('¿Eliminar esta meta de ahorro?')) {
-      await storageService.deleteSavingsGoal(id);
+      await storageService.deleteSavingsGoal(id, currentUser?.id);
       await loadData();
     }
   };
@@ -383,21 +447,32 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 </span>
               </div>
               <p className="text-slate-400 text-[11px] sm:text-xs">
-                Abanca Personal • ING Conjunta • Comparativa & Metas
+                {walletConfig.account_1_name} • {walletConfig.account_2_name} • Control & Metas
               </p>
             </div>
           </div>
 
-          {canEdit && expenses.length > 0 && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleClearAllExpenses}
-              title="Borrar todos los movimientos para empezar de cero"
-              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+              onClick={handleOpenAccountConfig}
+              title="Configurar nombres de cuentas y saldos"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Vaciar Cartera</span>
+              <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Configurar Cuentas</span>
             </button>
-          )}
+
+            {canEdit && expenses.length > 0 && (
+              <button
+                onClick={handleClearAllExpenses}
+                title="Borrar todos los movimientos para empezar de cero"
+                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Vaciar Cartera</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Acciones Rápidas */}
@@ -488,7 +563,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
           }`}
         >
           <span>🏦</span>
-          <span>Abanca Personal</span>
+          <span>{walletConfig.account_1_name}</span>
         </button>
 
         <button
@@ -500,7 +575,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
           }`}
         >
           <span>🤝</span>
-          <span>ING Conjunta (Lore)</span>
+          <span>{walletConfig.account_2_name}</span>
         </button>
       </div>
 
@@ -526,11 +601,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     🏦
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Abanca Personal</h3>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_1_name}</h3>
                   </div>
                 </div>
                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                  Asier
+                  {currentUser?.full_name?.split(' ')[0] || 'Cuenta 1'}
                 </span>
               </div>
 
@@ -562,11 +637,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     🤝
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">ING Conjunta</h3>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_2_name}</h3>
                   </div>
                 </div>
                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 font-bold border border-orange-500/30">
-                  Común
+                  Ahorro / Común
                 </span>
               </div>
 
@@ -656,7 +731,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
                             isAbanca ? 'bg-indigo-500/20 text-indigo-300' : 'bg-orange-500/20 text-orange-300'
                           }`}>
-                            {isAbanca ? 'Abanca' : 'ING'}
+                            {isAbanca ? walletConfig.account_1_name : walletConfig.account_2_name}
                           </span>
                           <span className="text-[10px] text-slate-500">•</span>
                           <span className="text-[10px] text-slate-400">{item.category}</span>
@@ -690,7 +765,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             <div className="flex justify-between items-center">
               <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-400" />
-                <span>Movimientos {selectedWallet === 'abanca' ? '• Abanca Personal' : selectedWallet === 'ing' ? '• ING Conjunta' : '• Todas las Cuentas'}</span>
+                <span>Movimientos {selectedWallet === 'abanca' ? `• ${walletConfig.account_1_name}` : selectedWallet === 'ing' ? `• ${walletConfig.account_2_name}` : '• Todas las Cuentas'}</span>
               </h2>
               <span className="text-xs font-semibold text-slate-400">
                 {filteredExpenses.length} movimientos
@@ -714,7 +789,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     <tr>
                       <td colSpan={6} className="py-10 text-center text-slate-400 space-y-2">
                         <p className="text-sm font-bold text-white">✨ Cartera limpia y lista para usar</p>
-                        <p className="text-xs text-slate-500">No hay movimientos registrados. Pulsa "+ Nueva Transacción" para registrar tu primer ingreso o gasto.</p>
+                        <p className="text-xs text-slate-500">No hay movimientos registrados. Pulsa "+ Movimiento" para registrar tu primer ingreso o gasto.</p>
                       </td>
                     </tr>
                   ) : (
@@ -739,11 +814,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           <td className="py-3 px-4">
                             {isAbanca ? (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs font-bold">
-                                <span>🏦</span> Abanca Personal
+                                <span>🏦</span> {walletConfig.account_1_name}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-950/60 border border-orange-500/30 text-orange-300 text-xs font-bold">
-                                <span>🤝</span> ING Conjunta
+                                <span>🤝</span> {walletConfig.account_2_name}
                               </span>
                             )}
                           </td>
@@ -1383,7 +1458,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
-                    <span>🏦 Abanca</span>
+                    <span>🏦 {walletConfig.account_1_name}</span>
                   </button>
                   <button
                     type="button"
@@ -1394,7 +1469,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
-                    <span>🤝 ING Conjunta</span>
+                    <span>🤝 {walletConfig.account_2_name}</span>
                   </button>
                 </div>
               </div>
@@ -1569,7 +1644,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
-                    <span>🤝 ING Conjunta</span>
+                    <span>🤝 {walletConfig.account_2_name}</span>
                   </button>
                   <button
                     type="button"
@@ -1580,7 +1655,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
-                    <span>🏦 Abanca</span>
+                    <span>🏦 {walletConfig.account_1_name}</span>
                   </button>
                 </div>
               </div>
@@ -1621,6 +1696,101 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/25"
                 >
                   {editingGoal ? 'Guardar Cambios' : 'Crear Meta'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CONFIGURACIÓN / ONBOARDING DE CUENTAS & CARTERA */}
+      {/* ========================================================================= */}
+      {showSetupModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#111622] border border-white/10 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-fadeIn">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">Configura tus Cuentas y Cartera</h3>
+                <p className="text-xs text-slate-400">Personaliza los nombres y saldos de tus bancos</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveAccountSetup} className="space-y-4 text-xs">
+              {/* Cuenta 1 */}
+              <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-indigo-300 font-bold">
+                  <span>🏦 Cuenta 1 (Principal / Nómina)</span>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco / Cuenta</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. BBVA, Santander, Abanca, Nómina..."
+                    value={setupAcc1Name}
+                    onChange={e => setSetupAcc1Name(e.target.value)}
+                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={setupAcc1Balance}
+                    onChange={e => setSetupAcc1Balance(e.target.value)}
+                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Cuenta 2 */}
+              <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-orange-300 font-bold">
+                  <span>🤝 Cuenta 2 (Ahorro / Conjunta / Secundaria)</span>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco / Cuenta</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Cuenta Ahorro, Revolut, ING..."
+                    value={setupAcc2Name}
+                    onChange={e => setSetupAcc2Name(e.target.value)}
+                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={setupAcc2Balance}
+                    onChange={e => setSetupAcc2Balance(e.target.value)}
+                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setShowSetupModal(false)}
+                  className="px-4 py-2.5 text-slate-400 hover:text-white font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-black rounded-xl shadow-lg transition-all"
+                >
+                  Guardar Cuentas
                 </button>
               </div>
             </form>

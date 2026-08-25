@@ -39,7 +39,7 @@ interface FitnessAppProps {
 }
 
 export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
-  const { canEditApp } = useAuth();
+  const { canEditApp, currentUser } = useAuth();
   const canEdit = canEditApp('fitness');
 
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -61,18 +61,13 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const loadAllFitnessData = async () => {
-    // Si es la primera vez que se carga con la nueva versión limpia, resetear datos antiguos mock y polar
-    if (localStorage.getItem('fitness_clean_v3') !== 'true') {
-      localStorage.setItem('fitness_clean_v3', 'true');
-      await storageService.resetFitnessData();
-    }
-
+    const userId = currentUser?.id;
     const [prof, wks, nut, bp, pol] = await Promise.all([
-      storageService.getFitnessProfile(),
-      storageService.getWorkouts(),
-      storageService.getDailyNutrition(todayStr),
-      storageService.getBodyProgress(),
-      storageService.getPolarMetrics()
+      storageService.getFitnessProfile(userId),
+      storageService.getWorkouts(userId),
+      storageService.getDailyNutrition(todayStr, userId),
+      storageService.getBodyProgress(userId),
+      storageService.getPolarMetrics(userId)
     ]);
 
     setProfile(prof);
@@ -93,10 +88,10 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
       loadAllFitnessData();
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser?.id]);
 
   const handleSaveProfile = async (updated: Partial<FitnessProfile>) => {
-    const saved = await storageService.updateFitnessProfile(updated);
+    const saved = await storageService.updateFitnessProfile(updated, currentUser?.id);
     setProfile(saved);
   };
 
@@ -107,7 +102,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     const saved = await storageService.updateFitnessProfile({
       ...updated,
       onboarding_completed: true
-    });
+    }, currentUser?.id);
     setProfile(saved);
 
     // Si introduce peso inicial, registrar pesaje único en el historial de peso
@@ -116,15 +111,15 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
         date: todayStr,
         weight: initialWeightEntry,
         notes: 'Pesaje inicial del plan'
-      });
+      }, currentUser?.id);
     }
 
     await loadAllFitnessData();
   };
 
   const handleResetFitness = async () => {
-    if (window.confirm('¿Deseas reiniciar todos los datos de fitness y volver a realizar el test inicial?')) {
-      await storageService.resetFitnessData();
+    if (window.confirm('¿Deseas reiniciar tus datos de fitness y volver a realizar el test inicial?')) {
+      await storageService.resetFitnessData(currentUser?.id);
       await loadAllFitnessData();
       setShowAssessmentModal(true);
     }
@@ -139,47 +134,47 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     training_day_carbs?: number;
     rest_day_carbs?: number;
   }) => {
-    const saved = await storageService.updateFitnessProfile(macros);
+    const saved = await storageService.updateFitnessProfile(macros, currentUser?.id);
     setProfile(saved);
   };
 
   const handleSaveWorkout = async (workout: Omit<FitnessWorkout, 'id'>) => {
-    await storageService.addWorkout(workout);
+    await storageService.addWorkout(workout, currentUser?.id);
     await loadAllFitnessData();
   };
 
   const handleDeleteWorkout = async (id: string) => {
-    await storageService.deleteWorkout(id);
+    await storageService.deleteWorkout(id, currentUser?.id);
     await loadAllFitnessData();
   };
 
   const handleAddFood = async (date: string, food: Omit<FoodEntry, 'id'>) => {
-    await storageService.addFoodToDate(date, food);
+    await storageService.addFoodToDate(date, food, currentUser?.id);
     await loadAllFitnessData();
   };
 
   const handleRemoveFood = async (date: string, foodId: string) => {
-    await storageService.removeFoodFromDate(date, foodId);
+    await storageService.removeFoodFromDate(date, foodId, currentUser?.id);
     await loadAllFitnessData();
   };
 
   const handleUpdateWater = async (date: string, amountMl: number) => {
-    await storageService.updateWater(date, amountMl);
+    await storageService.updateWater(date, amountMl, currentUser?.id);
     await loadAllFitnessData();
   };
 
   const handleAddBodyProgress = async (entry: Omit<BodyProgressEntry, 'id'>) => {
-    await storageService.addBodyProgress(entry);
+    await storageService.addBodyProgress(entry, currentUser?.id);
     await loadAllFitnessData();
   };
 
   const handleDeleteBodyProgress = async (id: string) => {
-    await storageService.deleteBodyProgress(id);
+    await storageService.deleteBodyProgress(id, currentUser?.id);
     await loadAllFitnessData();
   };
 
   const handleSavePolarMetric = async (metric: Omit<PolarGritMetrics, 'id'>) => {
-    await storageService.savePolarMetric(metric);
+    await storageService.savePolarMetric(metric, currentUser?.id);
     await loadAllFitnessData();
   };
 
