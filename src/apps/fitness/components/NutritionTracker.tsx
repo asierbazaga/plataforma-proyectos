@@ -225,6 +225,67 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
             </div>
           </div>
 
+          {/* Tarjeta Interactiva de Hidratación & Registro de Agua */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#111622] border border-sky-500/20 shadow-lg space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-500/15 text-sky-400 flex items-center justify-center font-bold">
+                  <Droplet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Hidratación Diaria</h4>
+                  <p className="text-xs text-sky-300">
+                    {currentLog.water_ml || 0} ml de {profile.target_water_ml} ml ({Math.min(100, Math.round(((currentLog.water_ml || 0) / profile.target_water_ml) * 100))}% completado)
+                  </p>
+                </div>
+              </div>
+
+              {canEdit && (
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateWater(selectedDate, (currentLog.water_ml || 0) + 250)}
+                    className="flex-1 sm:flex-none px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-bold text-xs rounded-xl border border-sky-500/30 transition-all active:scale-95 flex items-center justify-center gap-1"
+                  >
+                    <span>💧 +250ml</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateWater(selectedDate, (currentLog.water_ml || 0) + 500)}
+                    className="flex-1 sm:flex-none px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-bold text-xs rounded-xl border border-sky-500/30 transition-all active:scale-95 flex items-center justify-center gap-1"
+                  >
+                    <span>🍾 +500ml</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateWater(selectedDate, (currentLog.water_ml || 0) + 750)}
+                    className="flex-1 sm:flex-none px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-bold text-xs rounded-xl border border-sky-500/30 transition-all active:scale-95 flex items-center justify-center gap-1"
+                  >
+                    <span>🥤 +750ml</span>
+                  </button>
+                  {(currentLog.water_ml || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateWater(selectedDate, Math.max(0, (currentLog.water_ml || 0) - 250))}
+                      title="Restar 250ml"
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 font-bold text-xs rounded-xl border border-white/5 transition-all"
+                    >
+                      -250
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Barra de Progreso de Hidratación */}
+            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-white/5">
+              <div
+                className="h-full bg-gradient-to-r from-sky-500 to-cyan-400 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round(((currentLog.water_ml || 0) / profile.target_water_ml) * 100))}%` }}
+              />
+            </div>
+          </div>
+
           {/* Timeline de Tomas */}
           <div className="space-y-4">
             {mealCategories.map(cat => {

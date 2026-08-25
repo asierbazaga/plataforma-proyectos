@@ -294,6 +294,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
               setOpenWeightModal(true);
             }}
             onOpenProfileModal={() => setShowProfileModal(true)}
+            onUpdateWater={amount => handleUpdateWater(todayStr, amount)}
           />
         )}
 

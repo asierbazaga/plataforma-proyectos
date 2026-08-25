@@ -232,8 +232,9 @@ export type WalletAccount = 'abanca' | 'ing';
 export interface WalletConfig {
   account_1_name: string;
   account_1_initial_balance: number;
-  account_2_name: string;
-  account_2_initial_balance: number;
+  account_2_name?: string;
+  account_2_initial_balance?: number;
+  has_account_2?: boolean;
   onboarding_completed: boolean;
 }
 

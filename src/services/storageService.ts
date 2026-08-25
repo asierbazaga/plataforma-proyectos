@@ -769,12 +769,14 @@ class StorageService {
       account_1_initial_balance: 0,
       account_2_name: 'ING Conjunta',
       account_2_initial_balance: 0,
+      has_account_2: true,
       onboarding_completed: true
     } : {
       account_1_name: 'Cuenta Principal',
       account_1_initial_balance: 0,
-      account_2_name: 'Cuenta Ahorro',
+      account_2_name: '',
       account_2_initial_balance: 0,
+      has_account_2: false,
       onboarding_completed: false
     };
 

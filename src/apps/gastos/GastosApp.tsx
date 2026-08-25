@@ -69,8 +69,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [walletConfig, setWalletConfig] = useState<WalletConfig>({
     account_1_name: 'Cuenta Principal',
     account_1_initial_balance: 0,
-    account_2_name: 'Cuenta Ahorro',
+    account_2_name: '',
     account_2_initial_balance: 0,
+    has_account_2: false,
     onboarding_completed: false
   });
 
@@ -78,6 +79,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupAcc1Name, setSetupAcc1Name] = useState('');
   const [setupAcc1Balance, setSetupAcc1Balance] = useState<number | string>('');
+  const [setupHasAcc2, setSetupHasAcc2] = useState(false);
   const [setupAcc2Name, setSetupAcc2Name] = useState('');
   const [setupAcc2Balance, setSetupAcc2Balance] = useState<number | string>('');
 
@@ -130,7 +132,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     if (!cfg.onboarding_completed && list.length === 0) {
       setSetupAcc1Name(cfg.account_1_name || 'Cuenta Principal');
       setSetupAcc1Balance('');
-      setSetupAcc2Name(cfg.account_2_name || 'Cuenta Ahorro');
+      setSetupHasAcc2(cfg.has_account_2 ?? false);
+      setSetupAcc2Name(cfg.account_2_name || '');
       setSetupAcc2Balance('');
       setShowSetupModal(true);
     }
@@ -147,9 +150,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   }, [currentUser?.id]);
 
   const handleOpenAccountConfig = () => {
-    setSetupAcc1Name(walletConfig.account_1_name);
+    setSetupAcc1Name(walletConfig.account_1_name || 'Cuenta Principal');
     setSetupAcc1Balance('');
-    setSetupAcc2Name(walletConfig.account_2_name);
+    setSetupHasAcc2(walletConfig.has_account_2 ?? false);
+    setSetupAcc2Name(walletConfig.account_2_name || '');
     setSetupAcc2Balance('');
     setShowSetupModal(true);
   };
@@ -158,11 +162,12 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     e.preventDefault();
     const userId = currentUser?.id;
     const acc1 = setupAcc1Name.trim() || 'Cuenta Principal';
-    const acc2 = setupAcc2Name.trim() || 'Cuenta Ahorro';
+    const acc2 = setupHasAcc2 ? (setupAcc2Name.trim() || 'Cuenta Ahorro') : '';
 
     await storageService.updateWalletConfig({
       account_1_name: acc1,
       account_2_name: acc2,
+      has_account_2: setupHasAcc2,
       onboarding_completed: true
     }, userId);
 
@@ -178,8 +183,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       }, userId);
     }
 
-    // Si introduce saldo inicial en cuenta 2 y no existían movimientos
-    if (Number(setupAcc2Balance) > 0) {
+    // Si introduce saldo inicial en cuenta 2 y tiene activa la cuenta 2
+    if (setupHasAcc2 && Number(setupAcc2Balance) > 0) {
       await storageService.addExpense({
         description: `Saldo Inicial - ${acc2}`,
         amount: Number(setupAcc2Balance),
@@ -443,11 +448,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               <div className="flex items-center gap-1.5">
                 <h1 className="text-base sm:text-xl font-black text-white tracking-tight">GASTOS & FINANZAS</h1>
                 <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Multi-Cartera & Análisis
+                  {walletConfig.has_account_2 ? 'Multi-Cartera & Metas' : 'Cartera Personal & Metas'}
                 </span>
               </div>
               <p className="text-slate-400 text-[11px] sm:text-xs">
-                {walletConfig.account_1_name} • {walletConfig.account_2_name} • Control & Metas
+                {walletConfig.account_1_name} {walletConfig.has_account_2 && walletConfig.account_2_name ? `• ${walletConfig.account_2_name}` : ''} • Control & Presupuestos
               </p>
             </div>
           </div>
@@ -455,7 +460,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleOpenAccountConfig}
-              title="Configurar nombres de cuentas y saldos"
+              title="Configurar cuentas y saldos"
               className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5"
             >
               <Sliders className="w-3.5 h-3.5 text-emerald-400" />
@@ -540,44 +545,46 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         </button>
       </div>
 
-      {/* Selector de Cartera Activa (Píldoras con scroll horizontal) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
-        <button
-          onClick={() => setSelectedWallet('all')}
-          className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-            selectedWallet === 'all'
-              ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-              : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5 text-slate-400" />
-          <span>Todas las Cuentas</span>
-        </button>
+      {/* Selector de Cartera Activa (Sólo si tiene más de 1 cuenta activada) */}
+      {walletConfig.has_account_2 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
+          <button
+            onClick={() => setSelectedWallet('all')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+              selectedWallet === 'all'
+                ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
+                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-slate-400" />
+            <span>Todas las Cuentas</span>
+          </button>
 
-        <button
-          onClick={() => setSelectedWallet('abanca')}
-          className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-            selectedWallet === 'abanca'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 border border-indigo-500'
-              : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-          }`}
-        >
-          <span>🏦</span>
-          <span>{walletConfig.account_1_name}</span>
-        </button>
+          <button
+            onClick={() => setSelectedWallet('abanca')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+              selectedWallet === 'abanca'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 border border-indigo-500'
+                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+            }`}
+          >
+            <span>🏦</span>
+            <span>{walletConfig.account_1_name}</span>
+          </button>
 
-        <button
-          onClick={() => setSelectedWallet('ing')}
-          className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-            selectedWallet === 'ing'
-              ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20 border border-orange-500'
-              : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-          }`}
-        >
-          <span>🤝</span>
-          <span>{walletConfig.account_2_name}</span>
-        </button>
-      </div>
+          <button
+            onClick={() => setSelectedWallet('ing')}
+            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+              selectedWallet === 'ing'
+                ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20 border border-orange-500'
+                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+            }`}
+          >
+            <span>🤝</span>
+            <span>{walletConfig.account_2_name}</span>
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* VISTA 1: MOVIMIENTOS & CUENTAS */}
@@ -585,115 +592,164 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {activeTab === 'movements' && (
         <div className="space-y-4 sm:space-y-6">
           {/* Tarjetas de Saldos de Carteras */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* 1. Abanca Personal */}
-            <div 
-              onClick={() => setSelectedWallet('abanca')}
-              className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all cursor-pointer relative overflow-hidden active:scale-[0.99] ${
-                selectedWallet === 'abanca'
-                  ? 'bg-gradient-to-br from-indigo-950/70 to-slate-900 border-indigo-500 shadow-xl shadow-indigo-500/15'
-                  : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
-                    🏦
+          {walletConfig.has_account_2 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* 1. Cuenta Principal */}
+              <div 
+                onClick={() => setSelectedWallet('abanca')}
+                className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all cursor-pointer relative overflow-hidden active:scale-[0.99] ${
+                  selectedWallet === 'abanca'
+                    ? 'bg-gradient-to-br from-indigo-950/70 to-slate-900 border-indigo-500 shadow-xl shadow-indigo-500/15'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
+                      🏦
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_1_name}</h3>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_1_name}</h3>
-                  </div>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                    {currentUser?.full_name?.split(' ')[0] || 'Cuenta 1'}
+                  </span>
                 </div>
-                <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                  {currentUser?.full_name?.split(' ')[0] || 'Cuenta 1'}
-                </span>
+
+                <div className="space-y-0.5">
+                  <p className="text-[11px] text-slate-400">Saldo Disponible</p>
+                  <p className={`text-xl sm:text-2xl font-black ${abancaBalance >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
+                    {abancaBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
+                  <span>Ing: <b className="text-emerald-400">+{abancaIncome.toFixed(0)}€</b></span>
+                  <span>Gas: <b className="text-rose-400">-{abancaExpense.toFixed(0)}€</b></span>
+                </div>
               </div>
 
-              <div className="space-y-0.5">
-                <p className="text-[11px] text-slate-400">Saldo Disponible</p>
-                <p className={`text-xl sm:text-2xl font-black ${abancaBalance >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
-                  {abancaBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
-                </p>
+              {/* 2. Cuenta Secundaria / Ahorro */}
+              <div 
+                onClick={() => setSelectedWallet('ing')}
+                className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all cursor-pointer relative overflow-hidden active:scale-[0.99] ${
+                  selectedWallet === 'ing'
+                    ? 'bg-gradient-to-br from-orange-950/70 to-slate-900 border-orange-500 shadow-xl shadow-orange-500/15'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-orange-600/30 text-orange-300 flex items-center justify-center font-bold text-xs border border-orange-500/30">
+                      🤝
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_2_name}</h3>
+                    </div>
+                  </div>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 font-bold border border-orange-500/30">
+                    Ahorro / Común
+                  </span>
+                </div>
+
+                <div className="space-y-0.5">
+                  <p className="text-[11px] text-slate-400">Saldo Disponible</p>
+                  <p className={`text-xl sm:text-2xl font-black ${ingBalance >= 0 ? 'text-orange-300' : 'text-rose-400'}`}>
+                    {ingBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
+                  <span>Ing: <b className="text-emerald-400">+{ingIncome.toFixed(0)}€</b></span>
+                  <span>Gas: <b className="text-rose-400">-{ingExpense.toFixed(0)}€</b></span>
+                </div>
               </div>
 
-              <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
-                <span>Ing: <b className="text-emerald-400">+{abancaIncome.toFixed(0)}€</b></span>
-                <span>Gas: <b className="text-rose-400">-{abancaExpense.toFixed(0)}€</b></span>
+              {/* 3. Patrimonio Global */}
+              <div 
+                onClick={() => setSelectedWallet('all')}
+                className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all cursor-pointer relative overflow-hidden active:scale-[0.99] ${
+                  selectedWallet === 'all'
+                    ? 'bg-gradient-to-br from-emerald-950/70 to-slate-900 border-emerald-500 shadow-xl shadow-emerald-500/15'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-600/30 text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-500/30">
+                      💰
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">Patrimonio Global</h3>
+                    </div>
+                  </div>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                    Total
+                  </span>
+                </div>
+
+                <div className="space-y-0.5">
+                  <p className="text-[11px] text-slate-400">Balance Neto Total</p>
+                  <p className={`text-xl sm:text-2xl font-black ${netBalance >= 0 ? 'text-emerald-300' : 'text-rose-400'}`}>
+                    {netBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
+                  <span>Ing: <b className="text-emerald-400">+{totalIncome.toFixed(0)}€</b></span>
+                  <span>Gas: <b className="text-rose-400">-{totalExpense.toFixed(0)}€</b></span>
+                </div>
               </div>
             </div>
-
-            {/* 2. ING Conjunta (con Lore) */}
-            <div 
-              onClick={() => setSelectedWallet('ing')}
-              className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all cursor-pointer relative overflow-hidden active:scale-[0.99] ${
-                selectedWallet === 'ing'
-                  ? 'bg-gradient-to-br from-orange-950/70 to-slate-900 border-orange-500 shadow-xl shadow-orange-500/15'
-                  : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-orange-600/30 text-orange-300 flex items-center justify-center font-bold text-xs border border-orange-500/30">
-                    🤝
+          ) : (
+            /* Vista para usuario con 1 sóla cuenta configurada */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Tarjeta Cuenta Principal */}
+              <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-950/70 to-slate-900 border border-indigo-500/40 shadow-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold text-sm border border-indigo-500/30">
+                      🏦
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">{walletConfig.account_1_name}</h3>
+                      <p className="text-[11px] text-slate-400">Cuenta Principal</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_2_name}</h3>
-                  </div>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                    Activa
+                  </span>
                 </div>
-                <span className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 font-bold border border-orange-500/30">
-                  Ahorro / Común
-                </span>
+
+                <div className="space-y-0.5">
+                  <p className="text-xs text-slate-400">Saldo Disponible</p>
+                  <p className={`text-2xl sm:text-3xl font-black ${abancaBalance >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
+                    {abancaBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center text-xs pt-3 border-t border-slate-800/80 text-slate-400">
+                  <span>Total Ingresos: <b className="text-emerald-400">+{abancaIncome.toFixed(0)}€</b></span>
+                  <span>Total Gastos: <b className="text-rose-400">-{abancaExpense.toFixed(0)}€</b></span>
+                </div>
               </div>
 
-              <div className="space-y-0.5">
-                <p className="text-[11px] text-slate-400">Saldo Disponible</p>
-                <p className={`text-xl sm:text-2xl font-black ${ingBalance >= 0 ? 'text-orange-300' : 'text-rose-400'}`}>
-                  {ingBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
-                </p>
-              </div>
-
-              <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
-                <span>Ing: <b className="text-emerald-400">+{ingIncome.toFixed(0)}€</b></span>
-                <span>Gas: <b className="text-rose-400">-{ingExpense.toFixed(0)}€</b></span>
+              {/* Botón Card: Añadir Cuenta Secundaria Opcional */}
+              <div
+                onClick={handleOpenAccountConfig}
+                className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-slate-800 hover:border-emerald-500/50 bg-slate-900/30 hover:bg-slate-900/70 transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2.5 group min-h-[140px]"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-slate-800 group-hover:bg-emerald-500/20 text-slate-400 group-hover:text-emerald-400 flex items-center justify-center font-bold transition-colors">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">+ Añadir Cuenta Secundaria</p>
+                  <p className="text-[10px] text-slate-500">Ahorro, conjunta, inversión o segundo banco (opcional)</p>
+                </div>
               </div>
             </div>
-
-            {/* 3. Patrimonio Global */}
-            <div 
-              onClick={() => setSelectedWallet('all')}
-              className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all cursor-pointer relative overflow-hidden active:scale-[0.99] ${
-                selectedWallet === 'all'
-                  ? 'bg-gradient-to-br from-emerald-950/70 to-slate-900 border-emerald-500 shadow-xl shadow-emerald-500/15'
-                  : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-600/30 text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-500/30">
-                    💰
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Patrimonio Global</h3>
-                  </div>
-                </div>
-                <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                  Total
-                </span>
-              </div>
-
-              <div className="space-y-0.5">
-                <p className="text-[11px] text-slate-400">Balance Neto Total</p>
-                <p className={`text-xl sm:text-2xl font-black ${netBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {netBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
-                </p>
-              </div>
-
-              <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
-                <span>Ing: <b className="text-emerald-400">+{totalIncome.toFixed(0)}€</b></span>
-                <span>Gas: <b className="text-rose-400">-{totalExpense.toFixed(0)}€</b></span>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* LISTA DE MOVIMIENTOS EN MÓVIL (sm:hidden) */}
           <div className="sm:hidden space-y-2.5">
@@ -1445,34 +1501,36 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </h3>
 
             <form onSubmit={handleAddTransaction} className="space-y-3 sm:space-y-4">
-              {/* Cartera / Cuenta Asignada */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cartera / Cuenta</label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setTransactionAccount('abanca')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      transactionAccount === 'abanca'
-                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                        : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}
-                  >
-                    <span>🏦 {walletConfig.account_1_name}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTransactionAccount('ing')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      transactionAccount === 'ing'
-                        ? 'bg-orange-600 text-white border-orange-500 shadow-md'
-                        : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}
-                  >
-                    <span>🤝 {walletConfig.account_2_name}</span>
-                  </button>
+              {/* Cartera / Cuenta Asignada (Sólo si tiene más de 1 cuenta) */}
+              {walletConfig.has_account_2 && (
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cartera / Cuenta</label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setTransactionAccount('abanca')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                        transactionAccount === 'abanca'
+                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      <span>🏦 {walletConfig.account_1_name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTransactionAccount('ing')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                        transactionAccount === 'ing'
+                          ? 'bg-orange-600 text-white border-orange-500 shadow-md'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      <span>🤝 {walletConfig.account_2_name}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Tipo: Gasto o Ingreso */}
               <div>
@@ -1631,34 +1689,36 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Cuenta Asignada */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cuenta Asociada</label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setGoalAccount('ing')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      goalAccount === 'ing'
-                        ? 'bg-orange-600 text-white border-orange-500 shadow-md'
-                        : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}
-                  >
-                    <span>🤝 {walletConfig.account_2_name}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGoalAccount('abanca')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      goalAccount === 'abanca'
-                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                        : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}
-                  >
-                    <span>🏦 {walletConfig.account_1_name}</span>
-                  </button>
+              {/* Cuenta Asignada (Sólo si tiene 2 cuentas) */}
+              {walletConfig.has_account_2 && (
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cuenta Asociada</label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setGoalAccount('ing')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                        goalAccount === 'ing'
+                          ? 'bg-orange-600 text-white border-orange-500 shadow-md'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      <span>🤝 {walletConfig.account_2_name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGoalAccount('abanca')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                        goalAccount === 'abanca'
+                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      <span>🏦 {walletConfig.account_1_name}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Fecha Prevista */}
               <div>
@@ -1720,17 +1780,17 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
 
             <form onSubmit={handleSaveAccountSetup} className="space-y-4 text-xs">
-              {/* Cuenta 1 */}
+              {/* Cuenta 1 Principal */}
               <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-2.5">
                 <div className="flex items-center gap-1.5 text-indigo-300 font-bold">
-                  <span>🏦 Cuenta 1 (Principal / Nómina)</span>
+                  <span>🏦 Cuenta Principal (Nómina / Banco Habitual)</span>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco / Cuenta</label>
+                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco o Cuenta</label>
                   <input
                     type="text"
                     required
-                    placeholder="Ej. BBVA, Santander, Abanca, Nómina..."
+                    placeholder="Ej. BBVA, Santander, Abanca, Mi Banco..."
                     value={setupAcc1Name}
                     onChange={e => setSetupAcc1Name(e.target.value)}
                     className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-indigo-500"
@@ -1749,34 +1809,58 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Cuenta 2 */}
-              <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-2.5">
-                <div className="flex items-center gap-1.5 text-orange-300 font-bold">
-                  <span>🤝 Cuenta 2 (Ahorro / Conjunta / Secundaria)</span>
+              {/* Toggle Opcional para Cuenta 2 */}
+              <div 
+                onClick={() => setSetupHasAcc2(!setupHasAcc2)}
+                className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 flex items-center justify-between cursor-pointer hover:border-white/15 transition-all select-none"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold">
+                    🤝
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">¿Añadir una segunda cuenta?</p>
+                    <p className="text-[10px] text-slate-400">Cuenta de ahorro, conjunta o secundaria (opcional)</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco / Cuenta</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. Cuenta Ahorro, Revolut, ING..."
-                    value={setupAcc2Name}
-                    onChange={e => setSetupAcc2Name(e.target.value)}
-                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={setupAcc2Balance}
-                    onChange={e => setSetupAcc2Balance(e.target.value)}
-                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-orange-500"
-                  />
-                </div>
+                <input
+                  type="checkbox"
+                  checked={setupHasAcc2}
+                  onChange={e => setSetupHasAcc2(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500 rounded cursor-pointer pointer-events-none"
+                />
               </div>
+
+              {/* Campos Cuenta 2 (Sólo si el usuario la activa) */}
+              {setupHasAcc2 && (
+                <div className="p-3.5 rounded-2xl bg-[#090C15] border border-orange-500/20 space-y-2.5 animate-fadeIn">
+                  <div className="flex items-center gap-1.5 text-orange-300 font-bold">
+                    <span>🤝 Cuenta 2 (Ahorro / Conjunta / Secundaria)</span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre de la 2ª Cuenta</label>
+                    <input
+                      type="text"
+                      required={setupHasAcc2}
+                      placeholder="Ej. Cuenta Ahorro, Revolut, ING..."
+                      value={setupAcc2Name}
+                      onChange={e => setSetupAcc2Name(e.target.value)}
+                      className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={setupAcc2Balance}
+                      onChange={e => setSetupAcc2Balance(e.target.value)}
+                      className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
                 <button
@@ -1790,7 +1874,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   type="submit"
                   className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-black rounded-xl shadow-lg transition-all"
                 >
-                  Guardar Cuentas
+                  Guardar Cartera
                 </button>
               </div>
             </form>

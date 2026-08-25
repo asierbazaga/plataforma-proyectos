@@ -37,6 +37,7 @@ interface FitnessDashboardProps {
   onOpenNewFoodModal: () => void;
   onOpenWeightModal: () => void;
   onOpenProfileModal: () => void;
+  onUpdateWater?: (amountMl: number) => Promise<void>;
 }
 
 export const FitnessDashboard: React.FC<FitnessDashboardProps> = ({
@@ -49,7 +50,8 @@ export const FitnessDashboard: React.FC<FitnessDashboardProps> = ({
   onOpenNewWorkoutModal,
   onOpenNewFoodModal,
   onOpenWeightModal,
-  onOpenProfileModal
+  onOpenProfileModal,
+  onUpdateWater
 }) => {
   // Macros consumidos
   const consumedCalories = todayNutrition.meals.reduce((acc, m) => acc + m.calories, 0);
@@ -58,11 +60,18 @@ export const FitnessDashboard: React.FC<FitnessDashboardProps> = ({
   const consumedFat = todayNutrition.meals.reduce((acc, m) => acc + m.fat, 0);
 
   const caloriesRemaining = Math.max(0, profile.target_calories - consumedCalories);
-  const caloriesPct = Math.round((consumedCalories / profile.target_calories) * 100) || 0;
-  const proteinPct = Math.round((consumedProtein / profile.target_protein) * 100) || 0;
-  const carbsPct = Math.round((consumedCarbs / profile.target_carbs) * 100) || 0;
-  const fatPct = Math.round((consumedFat / profile.target_fat) * 100) || 0;
+  const caloriesPct = Math.min(100, Math.round((consumedCalories / profile.target_calories) * 100)) || 0;
+  const proteinPct = Math.min(100, Math.round((consumedProtein / profile.target_protein) * 100)) || 0;
+  const carbsPct = Math.min(100, Math.round((consumedCarbs / profile.target_carbs) * 100)) || 0;
+  const fatPct = Math.min(100, Math.round((consumedFat / profile.target_fat) * 100)) || 0;
   const waterPct = Math.min(100, Math.round((todayNutrition.water_ml / profile.target_water_ml) * 100)) || 0;
+
+  const handleAddWater = async (deltaMl: number) => {
+    if (onUpdateWater) {
+      const next = Math.max(0, (todayNutrition.water_ml || 0) + deltaMl);
+      await onUpdateWater(next);
+    }
+  };
 
   const latestWeight = bodyProgress.length > 0 ? bodyProgress[0].weight : profile.current_weight;
   const weightDiff = Math.abs(latestWeight - profile.target_weight).toFixed(1);
@@ -178,23 +187,58 @@ export const FitnessDashboard: React.FC<FitnessDashboardProps> = ({
             </div>
           </div>
 
-          {/* Quick Water Pill */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-sky-500/5 border border-sky-500/15">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
-                <Droplet className="w-5 h-5" />
+          {/* Quick Water Pill con botones interactivos */}
+          <div className="p-4 rounded-2xl bg-sky-500/5 border border-sky-500/15 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
+                  <Droplet className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">Agua: {todayNutrition.water_ml || 0} ml / {profile.target_water_ml} ml</p>
+                  <p className="text-[11px] text-sky-300 font-semibold">{waterPct}% de tu objetivo diario</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-bold text-white">Agua: {todayNutrition.water_ml} ml / {profile.target_water_ml} ml</p>
-                <p className="text-[11px] text-sky-300">{waterPct}% de tu objetivo diario</p>
-              </div>
+              <button
+                onClick={() => onNavigateTab('nutrition')}
+                className="text-[11px] text-slate-400 hover:text-white font-medium"
+              >
+                Ver detalle →
+              </button>
             </div>
-            <button
-              onClick={() => onNavigateTab('nutrition')}
-              className="text-xs px-3.5 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-xl font-bold transition-colors"
-            >
-              + Beber
-            </button>
+
+            {/* Barra de progreso de agua */}
+            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-sky-400 rounded-full transition-all duration-300" style={{ width: `${waterPct}%` }} />
+            </div>
+
+            {/* Botones de acción rápida para beber agua */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleAddWater(250)}
+                className="flex-1 py-1.5 px-2.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 active:scale-95 text-sky-300 font-bold text-xs border border-sky-500/30 transition-all flex items-center justify-center gap-1"
+              >
+                <span>💧 +250 ml</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddWater(500)}
+                className="flex-1 py-1.5 px-2.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 active:scale-95 text-sky-300 font-bold text-xs border border-sky-500/30 transition-all flex items-center justify-center gap-1"
+              >
+                <span>🍾 +500 ml</span>
+              </button>
+              {(todayNutrition.water_ml || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleAddWater(-250)}
+                  title="Restar 250ml"
+                  className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 font-bold text-xs border border-white/5 transition-all"
+                >
+                  -250ml
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
