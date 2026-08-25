@@ -49,6 +49,16 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
   const [hasPolar, setHasPolar] = useState<boolean>(true);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(profile.activity_level || 'moderate');
 
+  React.useEffect(() => {
+    if (profile.current_weight) setCurrentWeight(profile.current_weight);
+    if (profile.height_cm) setHeightCm(profile.height_cm);
+    if (profile.age) setAge(profile.age);
+    if (profile.gender) setGender(profile.gender);
+    if (profile.goal) setGoal(profile.goal);
+    if (profile.target_weight) setTargetWeight(profile.target_weight);
+    if (profile.activity_level) setActivityLevel(profile.activity_level);
+  }, [profile]);
+
   if (!isOpen) return null;
 
   const numWeight = Number(currentWeight) || 75.0;

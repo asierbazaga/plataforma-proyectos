@@ -561,9 +561,9 @@ class StorageService {
   }
 
   async getProfiles(): Promise<UserProfile[]> {
-    const local = this.getProfilesSync();
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('profiles').select('*'), 1500).then(res => {
+      try {
+        const res = await withTimeout(supabase.from('profiles').select('*'), 3000);
         if (!res.error && res.data && res.data.length > 0) {
           const map = this.getPasswordMap();
           const merged = (res.data as UserProfile[]).map(p => ({
@@ -571,22 +571,24 @@ class StorageService {
             password: map[p.email.toLowerCase()] || map[p.id] || p.password || (p.role === 'admin' ? 'admin' : '123456')
           }));
           this.setLocal('profiles', merged);
+          return merged;
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getProfilesSync();
   }
 
   async getPermissions(): Promise<AppPermission[]> {
-    const local = this.getLocal('permissions', DEFAULT_PERMISSIONS);
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('app_permissions').select('*'), 1500).then(res => {
+      try {
+        const res = await withTimeout(supabase.from('app_permissions').select('*'), 3000);
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('permissions', res.data as AppPermission[]);
+          return res.data as AppPermission[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal('permissions', DEFAULT_PERMISSIONS);
   }
 
   async updatePermission(userId: string, appId: string, canAccess: boolean, canEdit: boolean): Promise<void> {
@@ -635,31 +637,35 @@ class StorageService {
       user_id: userId,
       onboarding_completed: false
     };
-    const local = this.getLocal(key, defaultProfile);
-    if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('fitness_profiles').select('*');
-      if (userId && userId !== 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' && !userId.includes('asier')) {
-        query = query.eq('user_id', userId);
-      }
-      query = query.order('updated_at', { ascending: false }).limit(1);
 
-      withTimeout(query, 5000).then(res => {
-        if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal(key, res.data[0] as FitnessProfile);
-          this.broadcastChange();
+    if (isSupabaseConfigured && supabase) {
+      try {
+        let query = supabase.from('fitness_profiles').select('*');
+        if (userId && userId !== 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' && !userId.includes('asier')) {
+          query = query.eq('user_id', userId);
         }
-      }).catch(() => {});
+        query = query.order('updated_at', { ascending: false }).limit(1);
+
+        const res = await withTimeout(query, 3000);
+        if (!res.error && res.data && res.data.length > 0) {
+          const remote = res.data[0] as FitnessProfile;
+          this.setLocal(key, remote);
+          return remote;
+        }
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, defaultProfile);
   }
 
   async updateFitnessProfile(updates: Partial<FitnessProfile>, userId?: string): Promise<FitnessProfile> {
     const current = await this.getFitnessProfile(userId);
     const key = this.getUserKey('fitness_profile', userId);
-    const updated: FitnessProfile = {
+    const effectiveUserId = userId || current.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+    const updated: FitnessProfile & { id?: string } = {
       ...current,
       ...updates,
-      user_id: userId || current.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: effectiveUserId,
+      id: (current as any).id || `prof_${effectiveUserId.slice(0, 12)}`,
       updated_at: new Date().toISOString()
     };
     this.setLocal(key, updated);
@@ -673,20 +679,20 @@ class StorageService {
 
   async getWorkouts(userId?: string): Promise<FitnessWorkout[]> {
     const key = this.getUserKey('workouts', userId);
-    const local = this.getLocal(key, DEFAULT_WORKOUTS);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},user_id.is.null`);
-      }
-      withTimeout(query, 5000).then(res => {
+      try {
+        let query = supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
+        if (userId) {
+          query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        }
+        const res = await withTimeout(query, 3000);
         if (!res.error && res.data) {
           this.setLocal(key, res.data as FitnessWorkout[]);
-          this.broadcastChange();
+          return res.data as FitnessWorkout[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_WORKOUTS);
   }
 
   async addWorkout(workout: Omit<FitnessWorkout, 'id'>, userId?: string): Promise<FitnessWorkout> {
@@ -722,20 +728,20 @@ class StorageService {
   // --- NUTRICIÓN & MACROS ---
   async getDailyNutritionLogs(userId?: string): Promise<DailyNutritionLog[]> {
     const key = this.getUserKey('nutrition_logs', userId);
-    const local = this.getLocal(key, DEFAULT_NUTRITION_LOGS);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false });
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},user_id.is.null`);
-      }
-      withTimeout(query, 5000).then(res => {
+      try {
+        let query = supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false });
+        if (userId) {
+          query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        }
+        const res = await withTimeout(query, 3000);
         if (!res.error && res.data) {
           this.setLocal(key, res.data as DailyNutritionLog[]);
-          this.broadcastChange();
+          return res.data as DailyNutritionLog[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_NUTRITION_LOGS);
   }
 
   async getDailyNutrition(date: string, userId?: string): Promise<DailyNutritionLog> {
@@ -809,20 +815,20 @@ class StorageService {
   // --- CONTROL DE PESO & MEDIDAS ---
   async getBodyProgress(userId?: string): Promise<BodyProgressEntry[]> {
     const key = this.getUserKey('body_progress', userId);
-    const local = this.getLocal(key, DEFAULT_BODY_PROGRESS);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('fitness_body_progress').select('*').order('date', { ascending: false });
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},user_id.is.null`);
-      }
-      withTimeout(query, 5000).then(res => {
+      try {
+        let query = supabase.from('fitness_body_progress').select('*').order('date', { ascending: false });
+        if (userId) {
+          query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        }
+        const res = await withTimeout(query, 3000);
         if (!res.error && res.data) {
           this.setLocal(key, res.data as BodyProgressEntry[]);
-          this.broadcastChange();
+          return res.data as BodyProgressEntry[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_BODY_PROGRESS);
   }
 
   async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>, userId?: string): Promise<BodyProgressEntry> {
@@ -863,20 +869,20 @@ class StorageService {
   // --- POLAR GRIT X PRO METRICS ---
   async getPolarMetrics(userId?: string): Promise<PolarGritMetrics[]> {
     const key = this.getUserKey('polar_metrics', userId);
-    const local = this.getLocal(key, DEFAULT_POLAR_METRICS);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false });
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},user_id.is.null`);
-      }
-      withTimeout(query, 5000).then(res => {
+      try {
+        let query = supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false });
+        if (userId) {
+          query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        }
+        const res = await withTimeout(query, 3000);
         if (!res.error && res.data) {
           this.setLocal(key, res.data as PolarGritMetrics[]);
-          this.broadcastChange();
+          return res.data as PolarGritMetrics[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_POLAR_METRICS);
   }
 
   async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>, userId?: string): Promise<PolarGritMetrics> {
@@ -962,20 +968,20 @@ class StorageService {
   // ==========================================
   async getExpenses(userId?: string): Promise<ExpenseItem[]> {
     const key = this.getUserKey('expenses', userId);
-    const local = this.getLocal(key, DEFAULT_EXPENSES);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},user_id.is.null`);
-      }
-      withTimeout(query, 5000).then(res => {
+      try {
+        let query = supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
+        if (userId) {
+          query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        }
+        const res = await withTimeout(query, 3000);
         if (!res.error && res.data) {
           this.setLocal(key, res.data as ExpenseItem[]);
-          this.broadcastChange();
+          return res.data as ExpenseItem[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_EXPENSES);
   }
 
   async addExpense(expense: Omit<ExpenseItem, 'id'>, userId?: string): Promise<ExpenseItem> {
@@ -1025,20 +1031,20 @@ class StorageService {
   // ==========================================
   async getSavingsGoals(userId?: string): Promise<SavingsGoal[]> {
     const key = this.getUserKey('savings_goals', userId);
-    const local = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('savings_goals').select('*').order('created_at', { ascending: false });
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},user_id.is.null`);
-      }
-      withTimeout(query, 5000).then(res => {
+      try {
+        let query = supabase.from('savings_goals').select('*').order('created_at', { ascending: false });
+        if (userId) {
+          query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        }
+        const res = await withTimeout(query, 3000);
         if (!res.error && res.data) {
           this.setLocal(key, res.data as SavingsGoal[]);
-          this.broadcastChange();
+          return res.data as SavingsGoal[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_SAVINGS_GOALS);
   }
 
   async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>, userId?: string): Promise<SavingsGoal> {
@@ -1089,20 +1095,20 @@ class StorageService {
   // ==========================================
   async getCategoryBudgets(userId?: string): Promise<CategoryBudget[]> {
     const key = this.getUserKey('category_budgets', userId);
-    const local = this.getLocal(key, DEFAULT_CATEGORY_BUDGETS);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('category_budgets').select('*');
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},user_id.is.null`);
-      }
-      withTimeout(query, 5000).then(res => {
+      try {
+        let query = supabase.from('category_budgets').select('*');
+        if (userId) {
+          query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        }
+        const res = await withTimeout(query, 3000);
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal(key, res.data as CategoryBudget[]);
-          this.broadcastChange();
+          return res.data as CategoryBudget[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_CATEGORY_BUDGETS);
   }
 
   async updateCategoryBudget(category: string, monthlyLimit: number, userId?: string): Promise<void> {

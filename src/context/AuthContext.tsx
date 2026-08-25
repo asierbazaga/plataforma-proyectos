@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (identifier: string, password?: string): Promise<{ success: boolean; error?: string }> => {
-    await storageService.syncFromCloud();
+    storageService.syncFromCloud().catch(() => {});
     const profiles = await storageService.getProfiles();
     const cleanId = identifier.trim().toLowerCase();
 

@@ -70,14 +70,21 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
       storageService.getPolarMetrics(userId)
     ]);
 
+    // Si hay registros de peso en el historial, asegurar que el peso actual del perfil coincida
+    if (bp && bp.length > 0 && prof) {
+      prof.current_weight = bp[0].weight;
+    }
+
     setProfile(prof);
     setWorkouts(wks);
     setTodayNutrition(nut);
     setBodyProgress(bp);
     setPolarMetrics(pol);
 
-    // Si el usuario aún no ha completado el test inicial de evaluación, lanzarlo automáticamente
-    if (prof && !prof.onboarding_completed) {
+    // Si el usuario ya completó el test o tiene historial, cerrar el modal de test
+    if (prof?.onboarding_completed || (bp && bp.length > 0)) {
+      setShowAssessmentModal(false);
+    } else if (prof && !prof.onboarding_completed) {
       setShowAssessmentModal(true);
     }
   };
