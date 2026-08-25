@@ -21,7 +21,7 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const STORAGE_VERSION = 'v11_strict_cloud_sync';
+const STORAGE_VERSION = 'v12_clean_auth_sync';
 
 function generateId(prefix: string = 'id'): string {
   try {
@@ -1566,7 +1566,7 @@ class StorageService {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && (k.startsWith('plataforma_') || k.startsWith('lore_'))) {
+      if (k && (k.startsWith('plataforma_') || k.startsWith('lore_') || k.startsWith('sb-') || k.startsWith('supabase.'))) {
         keysToRemove.push(k);
       }
     }
