@@ -22,7 +22,9 @@ import {
   Activity,
   Check,
   AlertTriangle,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppId, Role, UserProfile, UserStatus } from '../types';
@@ -68,6 +70,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   // Form state para Reset Password
   const [newPassword, setNewPassword] = useState('');
+
+  // Expandir permisos en vista móvil
+  const [expandedUserMobile, setExpandedUserMobile] = useState<string | null>(null);
 
   const appsList: { id: AppId; name: string; icon: React.FC<{ className?: string }>; color: string }[] = [
     { id: 'fitness', name: 'Fitness & Polar', icon: Dumbbell, color: 'text-[#FF6B00]' },
@@ -191,25 +196,25 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#111622] p-6 rounded-3xl border border-white/5 shadow-xl">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#111622] p-5 sm:p-6 rounded-3xl border border-white/5 shadow-xl">
+        <div className="flex items-center gap-3.5 sm:gap-4">
           {onBack && (
             <button
               onClick={onBack}
               title="Volver a la Plataforma"
-              className="p-3 rounded-2xl bg-[#090C15] hover:bg-white/10 text-slate-300 border border-white/5 transition-all flex items-center justify-center"
+              className="p-2.5 sm:p-3 rounded-2xl bg-[#090C15] hover:bg-white/10 text-slate-300 border border-white/5 transition-all flex items-center justify-center"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           )}
-          <div className="w-13 h-13 rounded-2xl bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center shadow-lg shadow-[#FF6B00]/10 flex-shrink-0">
-            <ShieldCheck className="w-7 h-7" />
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center shadow-lg shadow-[#FF6B00]/10 flex-shrink-0">
+            <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              Gestión de Usuarios & Control de Accesos
+            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              Gestión de Usuarios & Accesos
             </h1>
-            <p className="text-slate-400 text-xs mt-0.5">
+            <p className="text-slate-400 text-xs mt-0.5 hidden sm:block">
               Administra cuentas, roles, estados y permisos de lectura/escritura por aplicación.
             </p>
           </div>
@@ -225,46 +230,46 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="p-4 sm:p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Cuentas</span>
-            <Users className="w-4 h-4 text-slate-400" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Total Cuentas</span>
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
           </div>
-          <div className="text-2xl font-black text-white">{totalUsers}</div>
-          <p className="text-[11px] text-slate-500">Usuarios en el sistema</p>
+          <div className="text-xl sm:text-2xl font-black text-white">{totalUsers}</div>
+          <p className="text-[10px] sm:text-[11px] text-slate-500">Usuarios en el sistema</p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
+        <div className="p-4 sm:p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Super Admins</span>
-            <Shield className="w-4 h-4 text-indigo-400" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Super Admins</span>
+            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl font-black text-indigo-400">{adminUsers}</div>
-          <p className="text-[11px] text-slate-500">Acceso total a todo</p>
+          <div className="text-xl sm:text-2xl font-black text-indigo-400">{adminUsers}</div>
+          <p className="text-[10px] sm:text-[11px] text-slate-500">Acceso total a todo</p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
+        <div className="p-4 sm:p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Usuarios Activos</span>
-            <Activity className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Activos</span>
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl font-black text-emerald-400">{activeUsers}</div>
-          <p className="text-[11px] text-slate-500">Con sesión autorizada</p>
+          <div className="text-xl sm:text-2xl font-black text-emerald-400">{activeUsers}</div>
+          <p className="text-[10px] sm:text-[11px] text-slate-500">Sesión autorizada</p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
+        <div className="p-4 sm:p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-1">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Suspendidos</span>
-            <UserX className="w-4 h-4 text-rose-400" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Suspendidos</span>
+            <UserX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
           </div>
-          <div className="text-2xl font-black text-rose-400">{suspendedUsers}</div>
-          <p className="text-[11px] text-slate-500">Acceso revocado</p>
+          <div className="text-xl sm:text-2xl font-black text-rose-400">{suspendedUsers}</div>
+          <p className="text-[10px] sm:text-[11px] text-slate-500">Acceso bloqueado</p>
         </div>
       </div>
 
       {/* Barra de Filtros y Búsqueda */}
-      <div className="p-4 rounded-3xl bg-[#111622] border border-white/5 shadow-md flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+      <div className="p-3 sm:p-4 rounded-3xl bg-[#111622] border border-white/5 shadow-md flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -276,7 +281,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex items-center gap-2">
           <select
             value={roleFilter}
             onChange={e => setRoleFilter(e.target.value as any)}
@@ -300,8 +305,192 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Matriz de Permisos & Lista de Usuarios */}
-      <div className="p-6 rounded-3xl bg-[#111622] border border-white/5 space-y-4 shadow-xl">
+      {/* 1. VISTA MÓVIL OPTIMIZADA EN TARJETAS (Mobile Cards) */}
+      <div className="block md:hidden space-y-4">
+        <div className="flex justify-between items-center px-1">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Usuarios ({filteredProfiles.length})
+          </h2>
+          <span className="text-[10px] text-slate-500">Toca para gestionar permisos</span>
+        </div>
+
+        {filteredProfiles.map(user => {
+          const isAdmin = user.role === 'admin';
+          const isSuspended = user.status === 'suspended';
+          const isSelf = currentUser?.id === user.id;
+          const isExpanded = expandedUserMobile === user.id;
+
+          return (
+            <div
+              key={user.id}
+              className={`p-5 rounded-3xl bg-[#111622] border border-white/5 space-y-4 shadow-lg transition-all ${
+                isSuspended ? 'opacity-60' : ''
+              }`}
+            >
+              {/* Header de Usuario */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
+                    alt={user.full_name}
+                    className="w-11 h-11 rounded-2xl object-cover ring-1 ring-white/10 flex-shrink-0"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h3 className="font-bold text-white text-sm">{user.full_name}</h3>
+                      {isSelf && (
+                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#FF6B00]/20 text-[#FF6B00] font-bold">
+                          Tú
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 truncate max-w-[190px]">{user.email}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{user.department || 'General'}</p>
+                  </div>
+                </div>
+
+                {/* Status Toggle Badge */}
+                <button
+                  type="button"
+                  disabled={isSelf}
+                  onClick={() => handleStatusChange(user.id, user.status || 'active')}
+                  className={`px-3 py-1 rounded-xl font-bold text-[10px] border flex-shrink-0 ${
+                    !isSuspended
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                  }`}
+                >
+                  {!isSuspended ? 'Activo' : 'Suspendido'}
+                </button>
+              </div>
+
+              {/* Selector de Rol en Móvil */}
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#090C15] border border-white/5">
+                <span className="text-xs text-slate-400 font-medium">Rol de Usuario:</span>
+                <select
+                  value={user.role}
+                  disabled={isSelf}
+                  onChange={e => handleRoleChange(user.id, e.target.value as Role)}
+                  className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border focus:outline-none ${
+                    user.role === 'admin'
+                      ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
+                      : user.role === 'user'
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                  }`}
+                >
+                  <option value="admin" className="bg-[#090C15] text-white">Admin</option>
+                  <option value="user" className="bg-[#090C15] text-white">Usuario</option>
+                  <option value="guest" className="bg-[#090C15] text-white">Invitado</option>
+                </select>
+              </div>
+
+              {/* Botón Desplegar Permisos de Aplicaciones */}
+              <button
+                type="button"
+                onClick={() => setExpandedUserMobile(isExpanded ? null : user.id)}
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] hover:bg-white/5 border border-white/5 text-xs text-slate-300 font-bold transition-colors"
+              >
+                <span>Permisos por Aplicación (4 Apps)</span>
+                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {/* Grid de Permisos Móvil Desplegable */}
+              {isExpanded && (
+                <div className="space-y-2.5 pt-1 animate-in fade-in">
+                  {isAdmin ? (
+                    <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-center text-xs font-bold text-indigo-400 flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" /> Acceso Total Super Administrador
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {appsList.map(app => {
+                        const userPerm = permissions.find(p => p.user_id === user.id && p.app_id === app.id);
+                        const canAccess = userPerm ? userPerm.can_access : false;
+                        const canEdit = userPerm ? userPerm.can_edit : false;
+
+                        return (
+                          <div
+                            key={app.id}
+                            className="p-3 rounded-2xl bg-[#090C15] border border-white/5 flex items-center justify-between gap-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <app.icon className={`w-4 h-4 ${app.color}`} />
+                              <span className="text-xs font-bold text-white">{app.name}</span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              {/* Toggle Acceso */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAccess(user.id, app.id, canAccess, canEdit)}
+                                className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all ${
+                                  canAccess
+                                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                    : 'bg-white/5 border-white/5 text-slate-500'
+                                }`}
+                              >
+                                {canAccess ? 'Acceso SI' : 'Bloqueado'}
+                              </button>
+
+                              {/* Toggle Edición */}
+                              {canAccess && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleEdit(user.id, app.id, canAccess, canEdit)}
+                                  className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all ${
+                                    canEdit
+                                      ? 'bg-[#FF6B00]/15 text-[#FF6B00] border-[#FF6B00]/30'
+                                      : 'bg-white/5 text-slate-400 border-white/5'
+                                  }`}
+                                >
+                                  {canEdit ? 'Edición' : 'Lectura'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Barra de Acciones Móvil */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setResetPasswordUser(user)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 text-xs font-bold border border-white/5"
+                >
+                  <KeyRound className="w-3.5 h-3.5" /> Clave
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openEditModal(user)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-bold border border-white/5"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> Editar
+                </button>
+
+                {!isSelf && (
+                  <button
+                    type="button"
+                    onClick={() => setUserToDelete(user)}
+                    className="p-1.5 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 2. VISTA ESCRITORIO / TABLET EN MATRIZ (Desktop Table) */}
+      <div className="hidden md:block p-6 rounded-3xl bg-[#111622] border border-white/5 space-y-4 shadow-xl">
         <div className="flex justify-between items-center">
           <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#FF6B00]" />
@@ -540,7 +729,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   <select
                     value={addRole}
                     onChange={e => setAddRole(e.target.value as Role)}
-                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3 py-2.5 text-white font-bold focus:outline-none"
+                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none"
                   >
                     <option value="user">Usuario</option>
                     <option value="admin">Administrador</option>
@@ -633,7 +822,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                     value={editRole}
                     disabled={currentUser?.id === editingUser.id}
                     onChange={e => setEditRole(e.target.value as Role)}
-                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3 py-2.5 text-white font-bold focus:outline-none"
+                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none"
                   >
                     <option value="user">Usuario</option>
                     <option value="admin">Administrador</option>

@@ -278,26 +278,6 @@ export const Login: React.FC = () => {
                 {loading ? 'Verificando...' : 'Iniciar Sesión'} <ArrowRight className="w-4 h-4" />
               </button>
             </form>
-
-            {/* Accesos rápidos de prueba */}
-            <div className="pt-2 border-t border-white/5 space-y-2">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block text-center">Acceso Rápido por Perfil</span>
-              <div className="grid grid-cols-3 gap-1.5">
-                {allProfiles.slice(0, 3).map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      setLoginIdentifier(p.email);
-                      setLoginPassword(p.password || 'admin123');
-                    }}
-                    className="p-2 rounded-xl bg-[#070A11] hover:bg-white/5 border border-white/5 text-center text-[11px] text-slate-300 font-bold transition-all"
-                  >
-                    {p.full_name.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
