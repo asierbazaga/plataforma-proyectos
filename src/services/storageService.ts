@@ -766,11 +766,18 @@ class StorageService {
       updated_at: new Date().toISOString()
     };
     this.setLocal(key, updated);
+    if (!userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') {
+      this.setLocal('fitness_profile', updated);
+    }
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_profiles').upsert(updated, { onConflict: 'user_id' }), 6000)
-        .catch(() => this.queueOfflineMutation('fitness_profiles', 'upsert', updated, 'user_id'));
+      try {
+        const res = await withTimeout(supabase.from('fitness_profiles').upsert(updated, { onConflict: 'user_id' }), 6000);
+        if (res.error) this.queueOfflineMutation('fitness_profiles', 'upsert', updated, 'user_id');
+      } catch (e) {
+        this.queueOfflineMutation('fitness_profiles', 'upsert', updated, 'user_id');
+      }
     }
     return updated;
   }
@@ -806,8 +813,12 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').upsert(item), 6000)
-        .catch(() => this.queueOfflineMutation('fitness_workouts', 'upsert', item));
+      try {
+        const res = await withTimeout(supabase.from('fitness_workouts').upsert(item), 6000);
+        if (res.error) this.queueOfflineMutation('fitness_workouts', 'upsert', item);
+      } catch (e) {
+        this.queueOfflineMutation('fitness_workouts', 'upsert', item);
+      }
     }
     return item;
   }
@@ -820,8 +831,12 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').delete().eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('fitness_workouts', 'delete', { id }));
+      try {
+        const res = await withTimeout(supabase.from('fitness_workouts').delete().eq('id', id), 6000);
+        if (res.error) this.queueOfflineMutation('fitness_workouts', 'delete', { id });
+      } catch (e) {
+        this.queueOfflineMutation('fitness_workouts', 'delete', { id });
+      }
     }
   }
 
@@ -877,8 +892,12 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_nutrition_logs').upsert(logWithUser, { onConflict: 'user_id,date' }), 6000)
-        .catch(() => this.queueOfflineMutation('fitness_nutrition_logs', 'upsert', logWithUser, 'user_id,date'));
+      try {
+        const res = await withTimeout(supabase.from('fitness_nutrition_logs').upsert(logWithUser, { onConflict: 'user_id,date' }), 6000);
+        if (res.error) this.queueOfflineMutation('fitness_nutrition_logs', 'upsert', logWithUser, 'user_id,date');
+      } catch (e) {
+        this.queueOfflineMutation('fitness_nutrition_logs', 'upsert', logWithUser, 'user_id,date');
+      }
     }
   }
 
@@ -950,8 +969,12 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_body_progress').upsert(item, { onConflict: 'user_id,date' }), 6000)
-        .catch(() => this.queueOfflineMutation('fitness_body_progress', 'upsert', item, 'user_id,date'));
+      try {
+        const res = await withTimeout(supabase.from('fitness_body_progress').upsert(item, { onConflict: 'user_id,date' }), 6000);
+        if (res.error) this.queueOfflineMutation('fitness_body_progress', 'upsert', item, 'user_id,date');
+      } catch (e) {
+        this.queueOfflineMutation('fitness_body_progress', 'upsert', item, 'user_id,date');
+      }
     }
     return item;
   }
@@ -964,8 +987,12 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('fitness_body_progress', 'delete', { id }));
+      try {
+        const res = await withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id), 6000);
+        if (res.error) this.queueOfflineMutation('fitness_body_progress', 'delete', { id });
+      } catch (e) {
+        this.queueOfflineMutation('fitness_body_progress', 'delete', { id });
+      }
     }
   }
 
@@ -1002,8 +1029,12 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_polar_metrics').upsert(item, { onConflict: 'user_id,date' }), 6000)
-        .catch(() => this.queueOfflineMutation('fitness_polar_metrics', 'upsert', item, 'user_id,date'));
+      try {
+        const res = await withTimeout(supabase.from('fitness_polar_metrics').upsert(item, { onConflict: 'user_id,date' }), 6000);
+        if (res.error) this.queueOfflineMutation('fitness_polar_metrics', 'upsert', item, 'user_id,date');
+      } catch (e) {
+        this.queueOfflineMutation('fitness_polar_metrics', 'upsert', item, 'user_id,date');
+      }
     }
     return item;
   }
@@ -1101,8 +1132,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').upsert(item), 6000)
-        .catch(() => this.queueOfflineMutation('expenses', 'upsert', item));
+      try {
+        await withTimeout(supabase.from('expenses').upsert(item), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('expenses', 'upsert', item);
+      }
     }
     return item;
   }
@@ -1115,8 +1149,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').delete().eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('expenses', 'delete', { id }));
+      try {
+        await withTimeout(supabase.from('expenses').delete().eq('id', id), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('expenses', 'delete', { id });
+      }
     }
   }
 
@@ -1128,7 +1165,9 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('expenses').delete();
       if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 6000).catch(() => {});
+      try {
+        await withTimeout(query, 6000);
+      } catch (e) {}
     }
   }
 
@@ -1167,8 +1206,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').upsert(item), 6000)
-        .catch(() => this.queueOfflineMutation('savings_goals', 'upsert', item));
+      try {
+        await withTimeout(supabase.from('savings_goals').upsert(item), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('savings_goals', 'upsert', item);
+      }
     }
     return item;
   }
@@ -1181,8 +1223,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('savings_goals', 'upsert', { id, ...updates }));
+      try {
+        await withTimeout(supabase.from('savings_goals').update(updates).eq('id', id), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('savings_goals', 'upsert', { id, ...updates });
+      }
     }
   }
 
@@ -1194,8 +1239,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').delete().eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('savings_goals', 'delete', { id }));
+      try {
+        await withTimeout(supabase.from('savings_goals').delete().eq('id', id), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('savings_goals', 'delete', { id });
+      }
     }
   }
 
@@ -1239,8 +1287,11 @@ class StorageService {
         user_id: userId,
         updated_at: new Date().toISOString()
       };
-      withTimeout(supabase.from('category_budgets').upsert(row, { onConflict: 'category' }), 6000)
-        .catch(() => this.queueOfflineMutation('category_budgets', 'upsert', row, 'category'));
+      try {
+        await withTimeout(supabase.from('category_budgets').upsert(row, { onConflict: 'category' }), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('category_budgets', 'upsert', row, 'category');
+      }
     }
 
     this.broadcastChange();
@@ -1274,8 +1325,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').upsert(newItem), 6000)
-        .catch(() => this.queueOfflineMutation('user_library', 'upsert', newItem));
+      try {
+        await withTimeout(supabase.from('user_library').upsert(newItem), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('user_library', 'upsert', newItem);
+      }
     }
     return newItem;
   }
@@ -1287,8 +1341,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').update(updates).eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('user_library', 'upsert', { id, ...updates }));
+      try {
+        await withTimeout(supabase.from('user_library').update(updates).eq('id', id), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('user_library', 'upsert', { id, ...updates });
+      }
     }
   }
 
@@ -1299,8 +1356,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').delete().eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('user_library', 'delete', { id }));
+      try {
+        await withTimeout(supabase.from('user_library').delete().eq('id', id), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('user_library', 'delete', { id });
+      }
     }
   }
 
@@ -1332,8 +1392,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').upsert(item), 6000)
-        .catch(() => this.queueOfflineMutation('lore_clients', 'upsert', item));
+      try {
+        await withTimeout(supabase.from('lore_clients').upsert(item), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('lore_clients', 'upsert', item);
+      }
     }
     return item;
   }
@@ -1345,8 +1408,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').update(updates).eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('lore_clients', 'upsert', { id, ...updates }));
+      try {
+        await withTimeout(supabase.from('lore_clients').update(updates).eq('id', id), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('lore_clients', 'upsert', { id, ...updates });
+      }
     }
   }
 
@@ -1357,8 +1423,11 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').delete().eq('id', id), 6000)
-        .catch(() => this.queueOfflineMutation('lore_clients', 'delete', { id }));
+      try {
+        await withTimeout(supabase.from('lore_clients').delete().eq('id', id), 6000);
+      } catch (e) {
+        this.queueOfflineMutation('lore_clients', 'delete', { id });
+      }
     }
   }
 
