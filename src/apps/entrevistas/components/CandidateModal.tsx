@@ -13,10 +13,12 @@ import {
   Calendar,
   Clock,
   Layers,
-  Award
+  Award,
+  FileSpreadsheet
 } from 'lucide-react';
 import { CandidateInterview } from '../../../types';
 import { analyzeCvText, ParsedCvResult } from '../services/cvAnalysisEngine';
+import { extractTextFromPdfFile } from '../services/pdfExtractor';
 
 interface CandidateModalProps {
   isOpen: boolean;
@@ -47,6 +49,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   if (!isOpen) return null;
 
   const [cvText, setCvText] = useState(candidateToEdit?.cvText || '');
+  const [cvFileName, setCvFileName] = useState(candidateToEdit?.cvFileName || '');
   const [fullName, setFullName] = useState(candidateToEdit?.fullName || '');
   const [email, setEmail] = useState(candidateToEdit?.email || '');
   const [phone, setPhone] = useState(candidateToEdit?.phone || '');
@@ -63,41 +66,60 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   
   const [analysisResult, setAnalysisResult] = useState<ParsedCvResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
+  const applyAnalysis = (text: string) => {
+    const result = analyzeCvText(text);
+    setAnalysisResult(result);
+    if (result.fullName && (!fullName || fullName === 'Candidato Detectado')) {
+      setFullName(result.fullName);
+    }
+    if (result.email && !email) setEmail(result.email);
+    if (result.phone && !phone) setPhone(result.phone);
+    if (result.location && !location) setLocation(result.location);
+    if (result.estimatedSeniority) setSeniority(result.estimatedSeniority);
+    return result;
+  };
 
   const handleAnalyzeCv = () => {
     if (!cvText.trim()) return;
     setAnalyzing(true);
 
     setTimeout(() => {
-      const result = analyzeCvText(cvText);
-      setAnalysisResult(result);
-      if (result.fullName && (!fullName || fullName === 'Candidato Detectado')) {
-        setFullName(result.fullName);
-      }
-      if (result.email && !email) setEmail(result.email);
-      if (result.phone && !phone) setPhone(result.phone);
-      if (result.location && !location) setLocation(result.location);
-      if (result.estimatedSeniority) setSeniority(result.estimatedSeniority);
+      applyAnalysis(cvText);
       setAnalyzing(false);
-    }, 400);
+    }, 300);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setCvFileName(file.name);
+
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      setUploadingPdf(true);
+      setAnalyzing(true);
+      try {
+        const text = await extractTextFromPdfFile(file);
+        setCvText(text);
+        applyAnalysis(text);
+      } catch (err: any) {
+        alert(err.message || 'Error al procesar el archivo PDF');
+      } finally {
+        setUploadingPdf(false);
+        setAnalyzing(false);
+      }
+      return;
+    }
+
+    // Archivos de texto (.txt, .csv, etc.)
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (text) {
         setCvText(text);
-        const result = analyzeCvText(text);
-        setAnalysisResult(result);
-        if (result.fullName) setFullName(result.fullName);
-        if (result.email) setEmail(result.email);
-        if (result.phone) setPhone(result.phone);
-        if (result.location) setLocation(result.location);
-        if (result.estimatedSeniority) setSeniority(result.estimatedSeniority);
+        applyAnalysis(text);
       }
     };
     reader.readAsText(file);
@@ -178,12 +200,19 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
                   Importar o Pegar Texto del CV
                 </span>
               </div>
-              <label className="cursor-pointer text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-950/60 border border-indigo-500/30">
+              <label className="cursor-pointer text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-950/60 border border-indigo-500/30">
                 <Upload className="w-3.5 h-3.5" />
-                <span>Cargar Archivo</span>
-                <input type="file" accept=".txt,.csv,.json" onChange={handleFileUpload} className="hidden" />
+                <span>{uploadingPdf ? 'Leyendo PDF...' : cvFileName ? `📄 ${cvFileName}` : 'Cargar CV (PDF / TXT)'}</span>
+                <input type="file" accept=".pdf,.txt,.docx,.csv,.json" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
+
+            {uploadingPdf && (
+              <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-500/30 text-blue-300 text-xs flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                <span>Extrayendo texto y analizando estructura del PDF...</span>
+              </div>
+            )}
 
             <textarea
               rows={4}
