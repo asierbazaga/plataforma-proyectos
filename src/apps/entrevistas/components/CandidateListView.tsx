@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { CandidateInterview } from '../../../types';
 import { ExcelInterviewService } from '../services/excelService';
+import { CandidatePreviewModal } from './CandidatePreviewModal';
 
 interface CandidateListViewProps {
   candidates: CandidateInterview[];
@@ -43,6 +44,7 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [previewCandidate, setPreviewCandidate] = useState<CandidateInterview | null>(null);
 
   // Cálculos de métricas globales
   const totalCandidates = candidates.length;
@@ -299,6 +301,15 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
 
                   {/* Botones de Acción */}
                   <div className="flex items-center gap-2">
+                    {/* Ver Ficha & CV */}
+                    <button
+                      onClick={() => setPreviewCandidate(candidate)}
+                      className="p-2.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/30 transition-all"
+                      title="Ver Ficha y Currículum Completo"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-cyan-400" />
+                    </button>
+
                     {/* Evaluar / Iniciar Entrevista */}
                     <button
                       onClick={() => onSelectCandidate(candidate, 'interview')}
@@ -346,6 +357,18 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
           })}
         </div>
       )}
+
+      {/* Modal de Vista Preliminar de Candidato y CV */}
+      <CandidatePreviewModal
+        isOpen={Boolean(previewCandidate)}
+        candidate={previewCandidate}
+        onClose={() => setPreviewCandidate(null)}
+        onStartInterview={previewCandidate ? () => {
+          const c = previewCandidate;
+          setPreviewCandidate(null);
+          onSelectCandidate(c, 'interview');
+        } : undefined}
+      />
     </div>
   );
 };

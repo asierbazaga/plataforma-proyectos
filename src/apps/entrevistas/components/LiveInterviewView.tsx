@@ -21,6 +21,7 @@ import {
 import { CandidateInterview, MecaluxCompetencySection, MecaluxEvaluationLevel } from '../../../types';
 import { MECALUX_RUBRICS, EVALUATION_LEVELS } from '../services/mecaluxRubrics';
 import { ExcelInterviewService } from '../services/excelService';
+import { CandidatePreviewModal } from './CandidatePreviewModal';
 
 interface LiveInterviewViewProps {
   candidate: CandidateInterview;
@@ -40,6 +41,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [expandedRubrics, setExpandedRubrics] = useState<Record<string, boolean>>({});
   const [autoSaveToast, setAutoSaveToast] = useState<boolean>(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
 
   // Temporizador de entrevista
   useEffect(() => {
@@ -226,6 +228,16 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
                 {candidate.resultadoFinal.puntuacionGlobal}%
               </span>
             </div>
+
+            {/* Ver Ficha & CV del Candidato */}
+            <button
+              onClick={() => setIsPreviewOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all shadow-sm"
+              title="Abrir ficha completa y texto del currículum"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-cyan-400" />
+              <span>Ver Ficha & CV</span>
+            </button>
 
             {/* Descargar Excel Nativo */}
             <button
@@ -525,6 +537,13 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Modal de Vista Preliminar y Consulta del CV */}
+      <CandidatePreviewModal
+        isOpen={isPreviewOpen}
+        candidate={candidate}
+        onClose={() => setIsPreviewOpen(false)}
+      />
     </div>
   );
 };
