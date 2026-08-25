@@ -728,29 +728,9 @@ class StorageService {
     const defaultProfile: FitnessProfile = {
       ...DEFAULT_FITNESS_PROFILE,
       user_id: userId,
-      onboarding_completed: false,
-      current_weight: 75.0
+      onboarding_completed: true,
+      current_weight: 95.7
     };
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('fitness_profiles').select('*');
-        if (userId) {
-          query = query.eq('user_id', userId);
-        }
-        query = query.order('updated_at', { ascending: false }).limit(1);
-
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data && res.data.length > 0) {
-          const remote = res.data[0] as FitnessProfile;
-          this.setLocal(key, remote);
-          if (!userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') {
-            this.setLocal('fitness_profile', remote);
-          }
-          return remote;
-        }
-      } catch (e) {}
-    }
     return this.getLocal(key, this.getLocal('fitness_profile', defaultProfile));
   }
 
@@ -766,38 +746,19 @@ class StorageService {
       updated_at: new Date().toISOString()
     };
     this.setLocal(key, updated);
-    if (!userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') {
-      this.setLocal('fitness_profile', updated);
-    }
+    this.setLocal('fitness_profile', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_profiles').upsert(updated, { onConflict: 'user_id' }), 6000);
-        if (res.error) this.queueOfflineMutation('fitness_profiles', 'upsert', updated, 'user_id');
-      } catch (e) {
-        this.queueOfflineMutation('fitness_profiles', 'upsert', updated, 'user_id');
-      }
+      withTimeout(supabase.from('fitness_profiles').upsert(updated, { onConflict: 'user_id' }), 5000)
+        .catch(() => this.queueOfflineMutation('fitness_profiles', 'upsert', updated, 'user_id'));
     }
     return updated;
   }
 
   async getWorkouts(userId?: string): Promise<FitnessWorkout[]> {
     const key = this.getUserKey('workouts', userId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
-        if (userId) {
-          query = query.or(`user_id.eq.${userId},user_id.is.null`);
-        }
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data) {
-          this.setLocal(key, res.data as FitnessWorkout[]);
-          return res.data as FitnessWorkout[];
-        }
-      } catch (e) {}
-    }
-    return this.getLocal(key, DEFAULT_WORKOUTS);
+    return this.getLocal(key, this.getLocal('workouts', DEFAULT_WORKOUTS));
   }
 
   async addWorkout(workout: Omit<FitnessWorkout, 'id'>, userId?: string): Promise<FitnessWorkout> {
@@ -810,15 +771,12 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_WORKOUTS);
     const updated = [item, ...current];
     this.setLocal(key, updated);
+    this.setLocal('workouts', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_workouts').upsert(item), 6000);
-        if (res.error) this.queueOfflineMutation('fitness_workouts', 'upsert', item);
-      } catch (e) {
-        this.queueOfflineMutation('fitness_workouts', 'upsert', item);
-      }
+      withTimeout(supabase.from('fitness_workouts').upsert(item), 5000)
+        .catch(() => this.queueOfflineMutation('fitness_workouts', 'upsert', item));
     }
     return item;
   }
@@ -828,35 +786,19 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_WORKOUTS);
     const updated = current.filter(w => w.id !== id);
     this.setLocal(key, updated);
+    this.setLocal('workouts', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_workouts').delete().eq('id', id), 6000);
-        if (res.error) this.queueOfflineMutation('fitness_workouts', 'delete', { id });
-      } catch (e) {
-        this.queueOfflineMutation('fitness_workouts', 'delete', { id });
-      }
+      withTimeout(supabase.from('fitness_workouts').delete().eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('fitness_workouts', 'delete', { id }));
     }
   }
 
   // --- NUTRICIÓN & MACROS ---
   async getDailyNutritionLogs(userId?: string): Promise<DailyNutritionLog[]> {
     const key = this.getUserKey('nutrition_logs', userId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false });
-        if (userId) {
-          query = query.or(`user_id.eq.${userId},user_id.is.null`);
-        }
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data) {
-          this.setLocal(key, res.data as DailyNutritionLog[]);
-          return res.data as DailyNutritionLog[];
-        }
-      } catch (e) {}
-    }
-    return this.getLocal(key, DEFAULT_NUTRITION_LOGS);
+    return this.getLocal(key, this.getLocal('nutrition_logs', DEFAULT_NUTRITION_LOGS));
   }
 
   async getDailyNutrition(date: string, userId?: string): Promise<DailyNutritionLog> {
@@ -889,15 +831,12 @@ class StorageService {
       updated = [logWithUser, ...logs];
     }
     this.setLocal(key, updated);
+    this.setLocal('nutrition_logs', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_nutrition_logs').upsert(logWithUser, { onConflict: 'user_id,date' }), 6000);
-        if (res.error) this.queueOfflineMutation('fitness_nutrition_logs', 'upsert', logWithUser, 'user_id,date');
-      } catch (e) {
-        this.queueOfflineMutation('fitness_nutrition_logs', 'upsert', logWithUser, 'user_id,date');
-      }
+      withTimeout(supabase.from('fitness_nutrition_logs').upsert(logWithUser, { onConflict: 'user_id,date' }), 5000)
+        .catch(() => this.queueOfflineMutation('fitness_nutrition_logs', 'upsert', logWithUser, 'user_id,date'));
     }
   }
 
@@ -935,20 +874,7 @@ class StorageService {
   // --- CONTROL DE PESO & MEDIDAS ---
   async getBodyProgress(userId?: string): Promise<BodyProgressEntry[]> {
     const key = this.getUserKey('body_progress', userId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('fitness_body_progress').select('*').order('date', { ascending: false });
-        if (userId) {
-          query = query.or(`user_id.eq.${userId},user_id.is.null`);
-        }
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data) {
-          this.setLocal(key, res.data as BodyProgressEntry[]);
-          return res.data as BodyProgressEntry[];
-        }
-      } catch (e) {}
-    }
-    return this.getLocal(key, DEFAULT_BODY_PROGRESS);
+    return this.getLocal(key, this.getLocal('body_progress', DEFAULT_BODY_PROGRESS));
   }
 
   async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>, userId?: string): Promise<BodyProgressEntry> {
@@ -962,6 +888,7 @@ class StorageService {
     const filtered = current.filter(e => e.date !== item.date);
     const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
     this.setLocal(key, updated);
+    this.setLocal('body_progress', updated);
 
     // Actualizar también el peso actual en el perfil del usuario
     await this.updateFitnessProfile({ current_weight: item.weight }, userId);
@@ -969,12 +896,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_body_progress').upsert(item, { onConflict: 'user_id,date' }), 6000);
-        if (res.error) this.queueOfflineMutation('fitness_body_progress', 'upsert', item, 'user_id,date');
-      } catch (e) {
-        this.queueOfflineMutation('fitness_body_progress', 'upsert', item, 'user_id,date');
-      }
+      withTimeout(supabase.from('fitness_body_progress').upsert(item, { onConflict: 'user_id,date' }), 5000)
+        .catch(() => this.queueOfflineMutation('fitness_body_progress', 'upsert', item, 'user_id,date'));
     }
     return item;
   }
@@ -984,35 +907,19 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_BODY_PROGRESS);
     const updated = current.filter(e => e.id !== id);
     this.setLocal(key, updated);
+    this.setLocal('body_progress', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id), 6000);
-        if (res.error) this.queueOfflineMutation('fitness_body_progress', 'delete', { id });
-      } catch (e) {
-        this.queueOfflineMutation('fitness_body_progress', 'delete', { id });
-      }
+      withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('fitness_body_progress', 'delete', { id }));
     }
   }
 
   // --- POLAR GRIT X PRO METRICS ---
   async getPolarMetrics(userId?: string): Promise<PolarGritMetrics[]> {
     const key = this.getUserKey('polar_metrics', userId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false });
-        if (userId) {
-          query = query.or(`user_id.eq.${userId},user_id.is.null`);
-        }
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data) {
-          this.setLocal(key, res.data as PolarGritMetrics[]);
-          return res.data as PolarGritMetrics[];
-        }
-      } catch (e) {}
-    }
-    return this.getLocal(key, DEFAULT_POLAR_METRICS);
+    return this.getLocal(key, this.getLocal('polar_metrics', DEFAULT_POLAR_METRICS));
   }
 
   async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>, userId?: string): Promise<PolarGritMetrics> {
@@ -1026,15 +933,12 @@ class StorageService {
     const filtered = current.filter(m => m.date !== item.date);
     const updated = [item, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
     this.setLocal(key, updated);
+    this.setLocal('polar_metrics', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('fitness_polar_metrics').upsert(item, { onConflict: 'user_id,date' }), 6000);
-        if (res.error) this.queueOfflineMutation('fitness_polar_metrics', 'upsert', item, 'user_id,date');
-      } catch (e) {
-        this.queueOfflineMutation('fitness_polar_metrics', 'upsert', item, 'user_id,date');
-      }
+      withTimeout(supabase.from('fitness_polar_metrics').upsert(item, { onConflict: 'user_id,date' }), 5000)
+        .catch(() => this.queueOfflineMutation('fitness_polar_metrics', 'upsert', item, 'user_id,date'));
     }
     return item;
   }
@@ -1103,20 +1007,7 @@ class StorageService {
   // ==========================================
   async getExpenses(userId?: string): Promise<ExpenseItem[]> {
     const key = this.getUserKey('expenses', userId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
-        if (userId) {
-          query = query.or(`user_id.eq.${userId},user_id.is.null`);
-        }
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data) {
-          this.setLocal(key, res.data as ExpenseItem[]);
-          return res.data as ExpenseItem[];
-        }
-      } catch (e) {}
-    }
-    return this.getLocal(key, DEFAULT_EXPENSES);
+    return this.getLocal(key, this.getLocal('expenses', DEFAULT_EXPENSES));
   }
 
   async addExpense(expense: Omit<ExpenseItem, 'id'>, userId?: string): Promise<ExpenseItem> {
@@ -1129,14 +1020,12 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_EXPENSES);
     const updated = [item, ...current];
     this.setLocal(key, updated);
+    this.setLocal('expenses', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('expenses').upsert(item), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('expenses', 'upsert', item);
-      }
+      withTimeout(supabase.from('expenses').upsert(item), 5000)
+        .catch(() => this.queueOfflineMutation('expenses', 'upsert', item));
     }
     return item;
   }
@@ -1146,28 +1035,25 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_EXPENSES);
     const updated = current.filter(e => e.id !== id);
     this.setLocal(key, updated);
+    this.setLocal('expenses', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('expenses').delete().eq('id', id), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('expenses', 'delete', { id });
-      }
+      withTimeout(supabase.from('expenses').delete().eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('expenses', 'delete', { id }));
     }
   }
 
   async clearAllExpenses(userId?: string): Promise<void> {
     const key = this.getUserKey('expenses', userId);
     this.setLocal(key, []);
+    this.setLocal('expenses', []);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('expenses').delete();
       if (userId) query = query.eq('user_id', userId);
-      try {
-        await withTimeout(query, 6000);
-      } catch (e) {}
+      withTimeout(query, 5000).catch(() => {});
     }
   }
 
@@ -1176,20 +1062,7 @@ class StorageService {
   // ==========================================
   async getSavingsGoals(userId?: string): Promise<SavingsGoal[]> {
     const key = this.getUserKey('savings_goals', userId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('savings_goals').select('*').order('created_at', { ascending: false });
-        if (userId) {
-          query = query.or(`user_id.eq.${userId},user_id.is.null`);
-        }
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data) {
-          this.setLocal(key, res.data as SavingsGoal[]);
-          return res.data as SavingsGoal[];
-        }
-      } catch (e) {}
-    }
-    return this.getLocal(key, DEFAULT_SAVINGS_GOALS);
+    return this.getLocal(key, this.getLocal('savings_goals', DEFAULT_SAVINGS_GOALS));
   }
 
   async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>, userId?: string): Promise<SavingsGoal> {
@@ -1203,14 +1076,12 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     const updated = [item, ...current];
     this.setLocal(key, updated);
+    this.setLocal('savings_goals', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('savings_goals').upsert(item), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('savings_goals', 'upsert', item);
-      }
+      withTimeout(supabase.from('savings_goals').upsert(item), 5000)
+        .catch(() => this.queueOfflineMutation('savings_goals', 'upsert', item));
     }
     return item;
   }
@@ -1220,14 +1091,12 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     const updated = current.map(g => g.id === id ? { ...g, ...updates } : g);
     this.setLocal(key, updated);
+    this.setLocal('savings_goals', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('savings_goals').update(updates).eq('id', id), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('savings_goals', 'upsert', { id, ...updates });
-      }
+      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('savings_goals', 'upsert', { id, ...updates }));
     }
   }
 
@@ -1236,14 +1105,12 @@ class StorageService {
     const current = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     const updated = current.filter(g => g.id !== id);
     this.setLocal(key, updated);
+    this.setLocal('savings_goals', updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('savings_goals').delete().eq('id', id), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('savings_goals', 'delete', { id });
-      }
+      withTimeout(supabase.from('savings_goals').delete().eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('savings_goals', 'delete', { id }));
     }
   }
 
@@ -1252,19 +1119,6 @@ class StorageService {
   // ==========================================
   async getCategoryBudgets(userId?: string): Promise<CategoryBudget[]> {
     const key = this.getUserKey('category_budgets', userId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        let query = supabase.from('category_budgets').select('*');
-        if (userId) {
-          query = query.or(`user_id.eq.${userId},user_id.is.null`);
-        }
-        const res = await withTimeout(query, 3000);
-        if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal(key, res.data as CategoryBudget[]);
-          return res.data as CategoryBudget[];
-        }
-      } catch (e) {}
-    }
     return this.getLocal(key, DEFAULT_CATEGORY_BUDGETS);
   }
 
@@ -1279,6 +1133,7 @@ class StorageService {
       updated = [...current, { category, monthly_limit: monthlyLimit }];
     }
     this.setLocal(key, updated);
+    this.setLocal('category_budgets', updated);
 
     if (isSupabaseConfigured && supabase) {
       const row = {
@@ -1287,11 +1142,8 @@ class StorageService {
         user_id: userId,
         updated_at: new Date().toISOString()
       };
-      try {
-        await withTimeout(supabase.from('category_budgets').upsert(row, { onConflict: 'category' }), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('category_budgets', 'upsert', row, 'category');
-      }
+      withTimeout(supabase.from('category_budgets').upsert(row, { onConflict: 'category' }), 5000)
+        .catch(() => this.queueOfflineMutation('category_budgets', 'upsert', row, 'category'));
     }
 
     this.broadcastChange();
@@ -1301,17 +1153,7 @@ class StorageService {
   // BIBLIOTECA (LIBROS & JUEGOS)
   // ==========================================
   async getLibrary(): Promise<LibraryItem[]> {
-    const key = 'library';
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('user_library').select('*'), 3000);
-        if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal(key, res.data as LibraryItem[]);
-          return res.data as LibraryItem[];
-        }
-      } catch (e) {}
-    }
-    return this.getLocal(key, DEFAULT_LIBRARY);
+    return this.getLocal('library', DEFAULT_LIBRARY);
   }
 
   async addLibraryItem(item: Omit<LibraryItem, 'id'>): Promise<LibraryItem> {
@@ -1325,11 +1167,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('user_library').upsert(newItem), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('user_library', 'upsert', newItem);
-      }
+      withTimeout(supabase.from('user_library').upsert(newItem), 5000)
+        .catch(() => this.queueOfflineMutation('user_library', 'upsert', newItem));
     }
     return newItem;
   }
@@ -1341,11 +1180,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('user_library').update(updates).eq('id', id), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('user_library', 'upsert', { id, ...updates });
-      }
+      withTimeout(supabase.from('user_library').update(updates).eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('user_library', 'upsert', { id, ...updates }));
     }
   }
 
@@ -1356,11 +1192,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('user_library').delete().eq('id', id), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('user_library', 'delete', { id });
-      }
+      withTimeout(supabase.from('user_library').delete().eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('user_library', 'delete', { id }));
     }
   }
 
@@ -1368,17 +1201,7 @@ class StorageService {
   // LORE CLIENTES (FARMACIAS & RUTAS)
   // ==========================================
   async getLoreClients(): Promise<LoreClient[]> {
-    const local = this.getLocal('lore_clients', DEFAULT_CLIENTS);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('lore_clients').select('*'), 3000);
-        if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('lore_clients', res.data as LoreClient[]);
-          return res.data as LoreClient[];
-        }
-      } catch (e) {}
-    }
-    return local;
+    return this.getLocal('lore_clients', DEFAULT_CLIENTS);
   }
 
   async addLoreClient(client: Omit<LoreClient, 'id'>): Promise<LoreClient> {
@@ -1392,11 +1215,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('lore_clients').upsert(item), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('lore_clients', 'upsert', item);
-      }
+      withTimeout(supabase.from('lore_clients').upsert(item), 5000)
+        .catch(() => this.queueOfflineMutation('lore_clients', 'upsert', item));
     }
     return item;
   }
@@ -1408,11 +1228,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('lore_clients').update(updates).eq('id', id), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('lore_clients', 'upsert', { id, ...updates });
-      }
+      withTimeout(supabase.from('lore_clients').update(updates).eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('lore_clients', 'upsert', { id, ...updates }));
     }
   }
 
@@ -1423,11 +1240,8 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        await withTimeout(supabase.from('lore_clients').delete().eq('id', id), 6000);
-      } catch (e) {
-        this.queueOfflineMutation('lore_clients', 'delete', { id });
-      }
+      withTimeout(supabase.from('lore_clients').delete().eq('id', id), 5000)
+        .catch(() => this.queueOfflineMutation('lore_clients', 'delete', { id }));
     }
   }
 
