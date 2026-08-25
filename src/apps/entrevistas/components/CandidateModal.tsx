@@ -28,16 +28,17 @@ interface CandidateModalProps {
 }
 
 const PREDEFINED_ROLES = [
+  'Técnico de Nivel 1 (Soporte & Helpdesk Mecalux)',
+  'Técnico de Nivel 1 (Implantación & Puesta en Marcha SGA)',
+  'Consultor SGA / WMS (Easy WMS Mecalux)',
   'Software Engineer Backend (.NET / C# / SGA)',
   'Software Engineer Backend (Java / Spring)',
   'Software Engineer Frontend (React / Angular / TS)',
   'Full Stack Software Engineer',
-  'Consultor SGA / WMS (Easy WMS Mecalux)',
   'Ingeniero de Automatización, Robótica & PLC (Siemens / TIA Portal)',
   'QA Automation & Quality Engineer',
   'DevOps & Cloud Systems Engineer (Azure / AWS)',
-  'Project Manager / Scrum Master Intralogística',
-  'Technical Support & Helpdesk 24/7'
+  'Project Manager / Scrum Master Intralogística'
 ];
 
 export const CandidateModal: React.FC<CandidateModalProps> = ({
@@ -56,7 +57,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   const [location, setLocation] = useState(candidateToEdit?.location || '');
   const [role, setRole] = useState(candidateToEdit?.role || PREDEFINED_ROLES[0]);
   const [customRole, setCustomRole] = useState('');
-  const [seniority, setSeniority] = useState<CandidateInterview['seniority']>(candidateToEdit?.seniority || 'Senior');
+  const [seniority, setSeniority] = useState<CandidateInterview['seniority']>(candidateToEdit?.seniority || 'Junior');
   const [currentCompany, setCurrentCompany] = useState(candidateToEdit?.currentCompany || '');
   const [currentSalaryEur, setCurrentSalaryEur] = useState<number | undefined>(candidateToEdit?.currentSalaryEur);
   const [expectedSalaryEur, setExpectedSalaryEur] = useState<number | undefined>(candidateToEdit?.expectedSalaryEur);
@@ -71,12 +72,19 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   const applyAnalysis = (text: string) => {
     const result = analyzeCvText(text);
     setAnalysisResult(result);
-    if (result.fullName && (!fullName || fullName === 'Candidato Detectado')) {
+    if (result.fullName && result.fullName !== 'Candidato Detectado') {
       setFullName(result.fullName);
     }
-    if (result.email && !email) setEmail(result.email);
-    if (result.phone && !phone) setPhone(result.phone);
-    if (result.location && !location) setLocation(result.location);
+    if (result.email) setEmail(result.email);
+    if (result.phone) setPhone(result.phone);
+    if (result.location && result.location !== 'No especificada') {
+      setLocation(result.location);
+    }
+    if (result.currentCompany && result.currentCompany !== 'No especificada') {
+      setCurrentCompany(`${result.currentCompany}${result.currentPosition && result.currentPosition !== 'Técnico de Soporte' ? ` (${result.currentPosition})` : ''}`);
+    } else if (result.currentPosition && result.currentPosition !== 'Técnico de Soporte') {
+      setCurrentCompany(result.currentPosition);
+    }
     if (result.estimatedSeniority) setSeniority(result.estimatedSeniority);
     return result;
   };
@@ -340,50 +348,50 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
               />
             </div>
 
-            {/* Empresa Actual */}
+            {/* Empresa / Puesto Actual */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">Empresa Actual / Origen</label>
+              <label className="text-xs font-bold text-slate-300">Empresa / Puesto Actual</label>
               <input
                 type="text"
                 value={currentCompany}
                 onChange={(e) => setCurrentCompany(e.target.value)}
-                placeholder="Ej. Indra, Accenture, Consultora..."
+                placeholder="Ej. Indra (Técnico de Soporte)"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
               />
             </div>
 
-            {/* Ubicación */}
+            {/* Ubicación / Residencia */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">Ubicación / Residencia</label>
+              <label className="text-xs font-bold text-slate-300">Residencia / Ubicación</label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Gijón / Barcelona / Remoto..."
+                placeholder="Ej. Gijón, Asturias / Barcelona..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
               />
             </div>
 
-            {/* Salario Actual (€) */}
+            {/* Salario Actual (€) - Opcional */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">Salario Actual Bruto (€)</label>
+              <label className="text-xs font-bold text-slate-300">Salario Actual (€) <span className="text-slate-500 font-normal">(Opcional)</span></label>
               <input
                 type="number"
                 value={currentSalaryEur || ''}
                 onChange={(e) => setCurrentSalaryEur(Number(e.target.value) || undefined)}
-                placeholder="Ej. 35000"
+                placeholder="Ej. 24000"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
               />
             </div>
 
-            {/* Salario Pretendido (€) */}
+            {/* Salario Pretendido (€) - Opcional */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">Salario Pretendido (€)</label>
+              <label className="text-xs font-bold text-slate-300">Salario Pretendido (€) <span className="text-slate-500 font-normal">(Opcional)</span></label>
               <input
                 type="number"
                 value={expectedSalaryEur || ''}
                 onChange={(e) => setExpectedSalaryEur(Number(e.target.value) || undefined)}
-                placeholder="Ej. 42000"
+                placeholder="Ej. 28000"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
               />
             </div>
