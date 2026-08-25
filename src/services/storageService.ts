@@ -83,21 +83,21 @@ const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
   age: 28,
   gender: 'male',
   height_cm: 178,
-  current_weight: 75.0,
-  target_weight: 70.0,
+  current_weight: 95.7,
+  target_weight: 75.0,
   activity_level: 'moderate',
   goal: 'fat_loss',
   deficit_surplus_pct: -20,
-  target_calories: 2000,
-  target_protein: 160,
-  target_carbs: 190,
+  target_calories: 2150,
+  target_protein: 165,
+  target_carbs: 210,
   target_fat: 65,
-  target_water_ml: 2800,
+  target_water_ml: 3000,
   target_daily_steps: 10000,
   carb_cycling_enabled: false,
   training_day_carbs: 220,
   rest_day_carbs: 150,
-  onboarding_completed: false,
+  onboarding_completed: true,
   updated_at: new Date().toISOString()
 };
 
@@ -105,7 +105,15 @@ const DEFAULT_WORKOUTS: FitnessWorkout[] = [];
 
 const DEFAULT_NUTRITION_LOGS: DailyNutritionLog[] = [];
 
-const DEFAULT_BODY_PROGRESS: BodyProgressEntry[] = [];
+const DEFAULT_BODY_PROGRESS: BodyProgressEntry[] = [
+  {
+    id: 'bp_initial_asier',
+    user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    date: new Date().toISOString().split('T')[0],
+    weight: 95.7,
+    notes: 'Pesaje inicial del plan'
+  }
+];
 
 const DEFAULT_POLAR_METRICS: PolarGritMetrics[] = [];
 
@@ -706,11 +714,13 @@ class StorageService {
   // FITNESS & SALUD INTEGRAL (CAMBIO FÍSICO + POLAR)
   // ==========================================
   async getFitnessProfile(userId?: string): Promise<FitnessProfile> {
+    const isAsier = !userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' || userId.includes('asier');
     const key = this.getUserKey('fitness_profile', userId);
     const defaultProfile: FitnessProfile = {
       ...DEFAULT_FITNESS_PROFILE,
       user_id: userId,
-      onboarding_completed: false
+      onboarding_completed: isAsier ? true : false,
+      current_weight: isAsier ? 95.7 : 75.0
     };
 
     if (isSupabaseConfigured && supabase) {
@@ -724,6 +734,12 @@ class StorageService {
         const res = await withTimeout(query, 3000);
         if (!res.error && res.data && res.data.length > 0) {
           const remote = res.data[0] as FitnessProfile;
+          if (isAsier) {
+            remote.onboarding_completed = true;
+            if (!remote.current_weight || remote.current_weight < 80) {
+              remote.current_weight = 95.7;
+            }
+          }
           this.setLocal(key, remote);
           return remote;
         }

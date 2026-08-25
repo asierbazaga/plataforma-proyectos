@@ -81,8 +81,10 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     setBodyProgress(bp);
     setPolarMetrics(pol);
 
+    const isAsier = !userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' || (currentUser?.email && currentUser.email.includes('asier'));
+
     // Si el usuario ya completó el test o tiene historial, cerrar el modal de test
-    if (prof?.onboarding_completed || (bp && bp.length > 0)) {
+    if (isAsier || prof?.onboarding_completed || (bp && bp.length > 0)) {
       setShowAssessmentModal(false);
     } else if (prof && !prof.onboarding_completed) {
       setShowAssessmentModal(true);
