@@ -207,12 +207,18 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   // Guardar nueva transacción
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanAmount = Number(String(amount).replace(',', '.'));
-    if (!description.trim() || !cleanAmount || isNaN(cleanAmount) || cleanAmount <= 0) return;
+    const rawVal = String(amount).replace(',', '.');
+    const parsedAmount = Math.abs(parseFloat(rawVal));
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      alert('Por favor, introduce un importe numérico válido.');
+      return;
+    }
+
+    const finalDescription = description.trim() || (type === 'expense' ? 'Gasto' : 'Ingreso');
 
     const saved = await storageService.addExpense({
-      description: description.trim(),
-      amount: cleanAmount,
+      description: finalDescription,
+      amount: parsedAmount,
       type,
       category,
       account: transactionAccount,
@@ -1593,8 +1599,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <div>
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Importe (€)</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     required
                     placeholder="0.00"
                     value={amount}
