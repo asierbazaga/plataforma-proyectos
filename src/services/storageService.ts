@@ -265,6 +265,8 @@ function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 6000): Promise
 
 type SyncCallback = () => void;
 
+const CURRENT_STORAGE_VERSION = 'v5_clean_unified_sync_2026';
+
 class StorageService {
   private syncCallbacks: Set<SyncCallback> = new Set();
   private broadcastChannel: BroadcastChannel | null = null;
@@ -272,10 +274,21 @@ class StorageService {
   private isSyncing: boolean = false;
 
   constructor() {
-    // 0. Limpieza única de objetivos de prueba para empezar de cero limpio
-    if (typeof window !== 'undefined' && !localStorage.getItem('plataforma_goals_reset_clean_v2')) {
-      localStorage.setItem('plataforma_savings_goals', JSON.stringify([]));
-      localStorage.setItem('plataforma_goals_reset_clean_v2', 'true');
+    // 0. Auto-purgado y sincronización limpia para garantizar coincidencia al 100% entre móvil y PC
+    if (typeof window !== 'undefined') {
+      const currentVer = localStorage.getItem('plataforma_system_version');
+      if (currentVer !== CURRENT_STORAGE_VERSION) {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('plataforma_')) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem('plataforma_system_version', CURRENT_STORAGE_VERSION);
+        localStorage.setItem('plataforma_active_email', 'asier.bazaga@plataforma.com');
+      }
     }
 
     // 1. BroadcastChannel entre pestañas locales del mismo navegador
