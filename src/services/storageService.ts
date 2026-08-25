@@ -265,7 +265,7 @@ function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 6000): Promise
 
 type SyncCallback = () => void;
 
-const CURRENT_STORAGE_VERSION = 'v5_clean_unified_sync_2026';
+const CURRENT_STORAGE_VERSION = 'v6_clean_full_sync_2026';
 
 class StorageService {
   private syncCallbacks: Set<SyncCallback> = new Set();
@@ -274,14 +274,13 @@ class StorageService {
   private isSyncing: boolean = false;
 
   constructor() {
-    // 0. Auto-purgado y sincronización limpia para garantizar coincidencia al 100% entre móvil y PC
     if (typeof window !== 'undefined') {
       const currentVer = localStorage.getItem('plataforma_system_version');
       if (currentVer !== CURRENT_STORAGE_VERSION) {
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k && k.startsWith('plataforma_')) {
+          if (k && k.startsWith('plataforma_') && !k.includes('biometrics')) {
             keysToRemove.push(k);
           }
         }
@@ -291,7 +290,6 @@ class StorageService {
       }
     }
 
-    // 1. BroadcastChannel entre pestañas locales del mismo navegador
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         this.broadcastChannel = new BroadcastChannel('plataforma_sync_channel');
@@ -301,10 +299,8 @@ class StorageService {
       } catch (e) {}
     }
 
-    // 2. Supabase Realtime (WebSockets) para sincronizar Móvil <-> Web en milisegundos
     this.initRealtimeChannel();
 
-    // 3. Listener en reconexión, foco de ventana, desbloqueo de móvil y timer de refresco
     if (typeof window !== 'undefined') {
       window.addEventListener('focus', () => {
         this.initRealtimeChannel();
@@ -323,19 +319,17 @@ class StorageService {
         }
       });
 
-      // Sincronización continua de fondo cada 20 segundos
       setInterval(() => {
         if (document.visibilityState === 'visible') {
           this.flushOfflineQueue();
           this.syncFromCloud();
         }
-      }, 20000);
+      }, 15000);
 
-      // Sincronización inicial inmediata
       setTimeout(() => {
         this.flushOfflineQueue();
         this.syncFromCloud();
-      }, 100);
+      }, 50);
     }
   }
 
@@ -356,56 +350,53 @@ class StorageService {
     } catch (e) {}
   }
 
-  // --- COLA OFFLINE Y AUTO-RECUPERACIÓN ---
   private queueOfflineMutation(table: string, action: 'upsert' | 'delete', data: any, conflictTarget?: string) {
     if (typeof window === 'undefined') return;
-    try {
-      const raw = localStorage.getItem('plataforma_offline_queue') || '[]';
-      const queue = JSON.parse(raw);
-      queue.push({
-        id: `mut_${Date.now()}_${Math.random()}`,
-        table,
-        action,
-        data,
-        conflictTarget,
-        timestamp: Date.now()
-      });
-      localStorage.setItem('plataforma_offline_queue', JSON.stringify(queue.slice(-100)));
-    } catch (e) {}
+    const queue = this.getLocal<Array<{ id: string; table: string; action: 'upsert' | 'delete'; data: any; conflictTarget?: string; timestamp: number }>>('offline_mutation_queue', []);
+    queue.push({
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      table,
+      action,
+      data,
+      conflictTarget,
+      timestamp: Date.now()
+    });
+    this.setLocal('offline_mutation_queue', queue);
   }
 
   async flushOfflineQueue(): Promise<void> {
     if (!isSupabaseConfigured || !supabase || typeof window === 'undefined') return;
-    try {
-      const raw = localStorage.getItem('plataforma_offline_queue');
-      if (!raw) return;
-      const queue = JSON.parse(raw);
-      if (!Array.isArray(queue) || queue.length === 0) return;
+    const queue = this.getLocal<Array<{ id: string; table: string; action: 'upsert' | 'delete'; data: any; conflictTarget?: string; timestamp: number }>>('offline_mutation_queue', []);
+    if (queue.length === 0) return;
 
-      const remaining: any[] = [];
-      for (const item of queue) {
-        try {
-          if (item.action === 'upsert') {
-            const opts = item.conflictTarget ? { onConflict: item.conflictTarget } : undefined;
-            const res = await withTimeout(supabase.from(item.table).upsert(item.data, opts), 4000);
-            if (res.error) remaining.push(item);
-          } else if (item.action === 'delete') {
-            const res = await withTimeout(supabase.from(item.table).delete().eq('id', item.data.id), 4000);
-            if (res.error) remaining.push(item);
-          }
-        } catch (e) {
-          remaining.push(item);
+    const remaining = [];
+    for (const item of queue) {
+      try {
+        if (item.action === 'upsert') {
+          const opts = item.conflictTarget ? { onConflict: item.conflictTarget } : undefined;
+          const { error } = await supabase.from(item.table).upsert(item.data, opts);
+          if (error) remaining.push(item);
+        } else if (item.action === 'delete') {
+          const key = item.data.id ? 'id' : Object.keys(item.data)[0];
+          const { error } = await supabase.from(item.table).delete().eq(key, item.data[key]);
+          if (error) remaining.push(item);
         }
+      } catch (e) {
+        remaining.push(item);
       }
-      localStorage.setItem('plataforma_offline_queue', JSON.stringify(remaining));
-    } catch (e) {}
+    }
+    this.setLocal('offline_mutation_queue', remaining);
   }
 
-  // Suscribirse a cambios en tiempo real
-  onSync(cb: SyncCallback): () => void {
-    this.syncCallbacks.add(cb);
+  private getUserKey(baseKey: string, userId?: string): string {
+    if (!userId) return baseKey;
+    return `${baseKey}_${userId}`;
+  }
+
+  onSync(callback: SyncCallback): () => void {
+    this.syncCallbacks.add(callback);
     return () => {
-      this.syncCallbacks.delete(cb);
+      this.syncCallbacks.delete(callback);
     };
   }
 
@@ -413,19 +404,20 @@ class StorageService {
     this.syncCallbacks.forEach(cb => {
       try {
         cb();
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error in sync callback:', e);
+      }
     });
   }
 
-  // Difundir cambio a todos los dispositivos móviles y web
   private broadcastChange() {
     this.notifySubscribers();
     if (this.broadcastChannel) {
       try {
-        this.broadcastChannel.postMessage({ timestamp: Date.now() });
+        this.broadcastChannel.postMessage({ type: 'SYNC_UPDATE', timestamp: Date.now() });
       } catch (e) {}
     }
-    if (this.realtimeChannel) {
+    if (isSupabaseConfigured && supabase && this.realtimeChannel) {
       try {
         this.realtimeChannel.send({
           type: 'broadcast',
@@ -436,7 +428,6 @@ class StorageService {
     }
   }
 
-  // Sincronizar todos los módulos automáticamente desde Supabase a LocalStorage en paralelo
   async syncFromCloud(): Promise<void> {
     if (!isSupabaseConfigured || !supabase || this.isSyncing) return;
     this.isSyncing = true;
@@ -457,73 +448,87 @@ class StorageService {
         withTimeout(supabase.from('app_permissions').select('*'), 5000)
       ]);
 
-      if (profilesRes.status === 'fulfilled' && !profilesRes.value.error && profilesRes.value.data && profilesRes.value.data.length > 0) {
-        this.setLocal('profiles', profilesRes.value.data);
-      }
-      if (permsRes.status === 'fulfilled' && !permsRes.value.error && permsRes.value.data && permsRes.value.data.length > 0) {
-        this.setLocal('permissions', permsRes.value.data);
-      }
+      const allUserIds = new Set<string>([
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+        'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33'
+      ]);
 
-      if (goalsRes.status === 'fulfilled' && !goalsRes.value.error && goalsRes.value.data) {
-        const goals = goalsRes.value.data as SavingsGoal[];
-        this.setLocal('savings_goals', goals);
-        const byUser = new Map<string, SavingsGoal[]>();
-        goals.forEach(g => {
-          if (g.user_id) {
-            const list = byUser.get(g.user_id) || [];
-            list.push(g);
-            byUser.set(g.user_id, list);
-          }
-        });
-        byUser.forEach((list, uid) => {
-          this.setLocal(this.getUserKey('savings_goals', uid), list);
-        });
+      if (profilesRes.status === 'fulfilled' && !profilesRes.value.error && profilesRes.value.data) {
+        this.setLocal('profiles', profilesRes.value.data);
+        profilesRes.value.data.forEach((p: any) => { if (p.id) allUserIds.add(p.id); });
+      }
+      if (permsRes.status === 'fulfilled' && !permsRes.value.error && permsRes.value.data) {
+        this.setLocal('permissions', permsRes.value.data);
       }
 
       if (expRes.status === 'fulfilled' && !expRes.value.error && expRes.value.data) {
         const expenses = expRes.value.data as ExpenseItem[];
         this.setLocal('expenses', expenses);
-        const byUser = new Map<string, ExpenseItem[]>();
-        expenses.forEach(e => {
-          if (e.user_id) {
-            const list = byUser.get(e.user_id) || [];
-            list.push(e);
-            byUser.set(e.user_id, list);
-          }
-        });
-        byUser.forEach((list, uid) => {
-          this.setLocal(this.getUserKey('expenses', uid), list);
+        allUserIds.forEach(uid => {
+          const userExp = expenses.filter(e => e.user_id === uid);
+          this.setLocal(this.getUserKey('expenses', uid), userExp);
         });
       }
 
-      if (budRes.status === 'fulfilled' && !budRes.value.error && budRes.value.data && budRes.value.data.length > 0) {
-        this.setLocal('category_budgets', budRes.value.data);
-      }
-      if (clientsRes.status === 'fulfilled' && !clientsRes.value.error && clientsRes.value.data) {
-        this.setLocal('lore_clients', clientsRes.value.data);
+      if (goalsRes.status === 'fulfilled' && !goalsRes.value.error && goalsRes.value.data) {
+        const goals = goalsRes.value.data as SavingsGoal[];
+        this.setLocal('savings_goals', goals);
+        allUserIds.forEach(uid => {
+          const userGoals = goals.filter(g => g.user_id === uid);
+          this.setLocal(this.getUserKey('savings_goals', uid), userGoals);
+        });
       }
 
       if (wkRes.status === 'fulfilled' && !wkRes.value.error && wkRes.value.data) {
         const workouts = wkRes.value.data as FitnessWorkout[];
         this.setLocal('workouts', workouts);
-        const byUser = new Map<string, FitnessWorkout[]>();
-        workouts.forEach(w => {
-          if (w.user_id) {
-            const list = byUser.get(w.user_id) || [];
-            list.push(w);
-            byUser.set(w.user_id, list);
-          }
+        allUserIds.forEach(uid => {
+          const userWk = workouts.filter(w => w.user_id === uid);
+          this.setLocal(this.getUserKey('workouts', uid), userWk);
         });
-        byUser.forEach((list, uid) => {
-          this.setLocal(this.getUserKey('workouts', uid), list);
+      }
+
+      if (nutRes.status === 'fulfilled' && !nutRes.value.error && nutRes.value.data) {
+        const logs = nutRes.value.data as DailyNutritionLog[];
+        this.setLocal('nutrition_logs', logs);
+        allUserIds.forEach(uid => {
+          const userLogs = logs.filter(l => l.user_id === uid);
+          this.setLocal(this.getUserKey('nutrition_logs', uid), userLogs);
         });
+      }
+
+      if (bpRes.status === 'fulfilled' && !bpRes.value.error && bpRes.value.data) {
+        const bodyProgress = bpRes.value.data as BodyProgressEntry[];
+        this.setLocal('body_progress', bodyProgress);
+        allUserIds.forEach(uid => {
+          const userBp = bodyProgress.filter(b => b.user_id === uid);
+          this.setLocal(this.getUserKey('body_progress', uid), userBp);
+        });
+      }
+
+      if (polRes.status === 'fulfilled' && !polRes.value.error && polRes.value.data) {
+        const polar = polRes.value.data as PolarGritMetrics[];
+        this.setLocal('polar_metrics', polar);
+        allUserIds.forEach(uid => {
+          const userPol = polar.filter(p => p.user_id === uid);
+          this.setLocal(this.getUserKey('polar_metrics', uid), userPol);
+        });
+      }
+
+      if (budRes.status === 'fulfilled' && !budRes.value.error && budRes.value.data) {
+        this.setLocal('category_budgets', budRes.value.data);
+      }
+
+      if (clientsRes.status === 'fulfilled' && !clientsRes.value.error && clientsRes.value.data) {
+        this.setLocal('lore_clients', clientsRes.value.data);
       }
 
       if (libRes.status === 'fulfilled' && !libRes.value.error && libRes.value.data) {
         this.setLocal('library', libRes.value.data);
       }
 
-      if (profRes.status === 'fulfilled' && !profRes.value.error && profRes.value.data && profRes.value.data.length > 0) {
+      if (profRes.status === 'fulfilled' && !profRes.value.error && profRes.value.data) {
         const profiles = profRes.value.data as FitnessProfile[];
         profiles.forEach(p => {
           if (p.user_id) {
@@ -532,54 +537,6 @@ class StorageService {
           if (!p.user_id || p.user_id === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') {
             this.setLocal('fitness_profile', p);
           }
-        });
-      }
-
-      if (nutRes.status === 'fulfilled' && !nutRes.value.error && nutRes.value.data) {
-        const logs = nutRes.value.data as DailyNutritionLog[];
-        this.setLocal('nutrition_logs', logs);
-        const byUser = new Map<string, DailyNutritionLog[]>();
-        logs.forEach(n => {
-          if (n.user_id) {
-            const list = byUser.get(n.user_id) || [];
-            list.push(n);
-            byUser.set(n.user_id, list);
-          }
-        });
-        byUser.forEach((list, uid) => {
-          this.setLocal(this.getUserKey('nutrition_logs', uid), list);
-        });
-      }
-
-      if (bpRes.status === 'fulfilled' && !bpRes.value.error && bpRes.value.data) {
-        const bodyProgress = bpRes.value.data as BodyProgressEntry[];
-        this.setLocal('body_progress', bodyProgress);
-        const byUser = new Map<string, BodyProgressEntry[]>();
-        bodyProgress.forEach(b => {
-          if (b.user_id) {
-            const list = byUser.get(b.user_id) || [];
-            list.push(b);
-            byUser.set(b.user_id, list);
-          }
-        });
-        byUser.forEach((list, uid) => {
-          this.setLocal(this.getUserKey('body_progress', uid), list);
-        });
-      }
-
-      if (polRes.status === 'fulfilled' && !polRes.value.error && polRes.value.data) {
-        const polar = polRes.value.data as PolarGritMetrics[];
-        this.setLocal('polar_metrics', polar);
-        const byUser = new Map<string, PolarGritMetrics[]>();
-        polar.forEach(p => {
-          if (p.user_id) {
-            const list = byUser.get(p.user_id) || [];
-            list.push(p);
-            byUser.set(p.user_id, list);
-          }
-        });
-        byUser.forEach((list, uid) => {
-          this.setLocal(this.getUserKey('polar_metrics', uid), list);
         });
       }
 
@@ -713,11 +670,6 @@ class StorageService {
     }
 
     this.broadcastChange();
-  }
-
-  private getUserKey(baseKey: string, userId?: string): string {
-    if (!userId) return baseKey;
-    return `${baseKey}_${userId}`;
   }
 
   // ==========================================
