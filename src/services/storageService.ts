@@ -21,7 +21,16 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const STORAGE_VERSION = 'v8_unified_global_sync';
+const STORAGE_VERSION = 'v9_bulletproof_live_sync';
+
+function generateId(prefix: string = 'id'): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch (e) {}
+  return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+}
 
 const DEFAULT_PROFILES: UserProfile[] = [
   {
@@ -119,7 +128,7 @@ const DEFAULT_LORE_GOALS: LoreGoalsConfig = {
   incentiveImage: '/tabla-incentivos.png'
 };
 
-function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 8000): Promise<T> {
+function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 7000): Promise<T> {
   return Promise.race([
     Promise.resolve(promiseLike),
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
@@ -152,7 +161,10 @@ class StorageService {
 
       this.initRealtimeChannel();
 
-      window.addEventListener('focus', () => this.notifySubscribers());
+      window.addEventListener('focus', () => {
+        this.initRealtimeChannel();
+        this.notifySubscribers();
+      });
       window.addEventListener('online', () => {
         this.initRealtimeChannel();
         this.notifySubscribers();
@@ -163,6 +175,13 @@ class StorageService {
           this.notifySubscribers();
         }
       });
+
+      // Polling activo suave cada 3 segundos en primer plano
+      setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          this.notifySubscribers();
+        }
+      }, 3000);
     }
   }
 
@@ -172,7 +191,7 @@ class StorageService {
       if (this.realtimeChannel) {
         try { supabase.removeChannel(this.realtimeChannel); } catch (e) {}
       }
-      this.realtimeChannel = supabase.channel('plataforma-realtime-room')
+      this.realtimeChannel = supabase.channel('plataforma-realtime-global')
         .on('postgres_changes', { event: '*', schema: 'public' }, () => {
           this.notifySubscribers();
         })
@@ -328,13 +347,15 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('app_permissions').upsert({
-        user_id: userId,
-        app_id: appId,
-        can_access: canAccess,
-        can_edit: canEdit,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id,app_id' });
+      try {
+        await supabase.from('app_permissions').upsert({
+          user_id: userId,
+          app_id: appId,
+          can_access: canAccess,
+          can_edit: canEdit,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,app_id' });
+      } catch (e) {}
     }
   }
 
@@ -347,13 +368,15 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       for (const p of newPerms) {
-        await supabase.from('app_permissions').upsert({
-          user_id: p.user_id,
-          app_id: p.app_id,
-          can_access: p.can_access,
-          can_edit: p.can_edit,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id,app_id' });
+        try {
+          await supabase.from('app_permissions').upsert({
+            user_id: p.user_id,
+            app_id: p.app_id,
+            can_access: p.can_access,
+            can_edit: p.can_edit,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,app_id' });
+        } catch (e) {}
       }
     }
   }
@@ -361,7 +384,7 @@ class StorageService {
   async createProfile(profile: Omit<UserProfile, 'id'>): Promise<UserProfile> {
     const newProfile: UserProfile = {
       ...profile,
-      id: crypto.randomUUID ? crypto.randomUUID() : ('usr_' + Date.now()),
+      id: generateId('usr'),
       created_at: new Date().toISOString()
     };
 
@@ -374,7 +397,9 @@ class StorageService {
     this.setLocal('profiles', [...current, newProfile]);
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('profiles').upsert(newProfile);
+      try {
+        await supabase.from('profiles').upsert(newProfile);
+      } catch (e) {}
     }
 
     const defaultApps: import('../types').AppId[] = ['fitness', 'gastos', 'libros-juegos', 'lore', 'entrevistas'];
@@ -408,7 +433,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('profiles').update(updates).eq('id', id);
+      try {
+        await supabase.from('profiles').update(updates).eq('id', id);
+      } catch (e) {}
     }
     return updatedProfile;
   }
@@ -419,8 +446,10 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('profiles').delete().eq('id', id);
-      await supabase.from('app_permissions').delete().eq('user_id', id);
+      try {
+        await supabase.from('profiles').delete().eq('id', id);
+        await supabase.from('app_permissions').delete().eq('user_id', id);
+      } catch (e) {}
     }
   }
 
@@ -436,14 +465,16 @@ class StorageService {
 
   async logAction(userEmail: string, action: string, details?: string): Promise<void> {
     const log: AuditLog = {
-      id: crypto.randomUUID ? crypto.randomUUID() : ('log_' + Date.now()),
+      id: generateId('log'),
       user_email: userEmail,
       action,
       details,
       created_at: new Date().toISOString()
     };
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('audit_logs').insert(log);
+      try {
+        await supabase.from('audit_logs').insert(log);
+      } catch (e) {}
     }
     const current = this.getLocal<AuditLog[]>('audit_logs', []);
     this.setLocal('audit_logs', [log, ...current.slice(0, 49)]);
@@ -485,16 +516,18 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('wallet_config').upsert({
-        user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        account_1_name: updated.account_1_name,
-        account_1_initial_balance: updated.account_1_initial_balance,
-        account_2_name: updated.account_2_name,
-        account_2_initial_balance: updated.account_2_initial_balance,
-        has_account_2: updated.has_account_2,
-        onboarding_completed: updated.onboarding_completed,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
+      try {
+        await supabase.from('wallet_config').upsert({
+          user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          account_1_name: updated.account_1_name,
+          account_1_initial_balance: updated.account_1_initial_balance,
+          account_2_name: updated.account_2_name,
+          account_2_initial_balance: updated.account_2_initial_balance,
+          has_account_2: updated.has_account_2,
+          onboarding_completed: updated.onboarding_completed,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      } catch (e) {}
     }
     return updated;
   }
@@ -516,14 +549,16 @@ class StorageService {
     const item: ExpenseItem = {
       ...expense,
       user_id: userId || expense.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      id: crypto.randomUUID ? crypto.randomUUID() : ('exp_' + Date.now())
+      id: generateId('exp')
     };
     const current = this.getLocal<ExpenseItem[]>('expenses', []);
     this.setLocal('expenses', [item, ...current.filter(e => e.id !== item.id)]);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('expenses').upsert(item);
+      try {
+        await supabase.from('expenses').upsert(item);
+      } catch (e) {}
     }
     return item;
   }
@@ -534,7 +569,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('expenses').delete().eq('id', id);
+      try {
+        await supabase.from('expenses').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -543,7 +580,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('expenses').delete().neq('id', '___non_existent___');
+      try {
+        await supabase.from('expenses').delete().neq('id', '___non_existent___');
+      } catch (e) {}
     }
   }
 
@@ -564,7 +603,7 @@ class StorageService {
     const item: SavingsGoal = {
       ...goal,
       user_id: userId || goal.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      id: crypto.randomUUID ? crypto.randomUUID() : ('goal_' + Date.now()),
+      id: generateId('goal'),
       created_at: new Date().toISOString()
     };
     const current = this.getLocal<SavingsGoal[]>('savings_goals', []);
@@ -572,7 +611,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('savings_goals').upsert(item);
+      try {
+        await supabase.from('savings_goals').upsert(item);
+      } catch (e) {}
     }
     return item;
   }
@@ -583,7 +624,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('savings_goals').update(updates).eq('id', id);
+      try {
+        await supabase.from('savings_goals').update(updates).eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -593,7 +636,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('savings_goals').delete().eq('id', id);
+      try {
+        await supabase.from('savings_goals').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -618,11 +663,13 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('category_budgets').upsert({
-        category,
-        monthly_limit: monthlyLimit,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'category' });
+      try {
+        await supabase.from('category_budgets').upsert({
+          category,
+          monthly_limit: monthlyLimit,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'category' });
+      } catch (e) {}
     }
   }
 
@@ -660,7 +707,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_profiles').upsert(updated, { onConflict: 'user_id' });
+      try {
+        await supabase.from('fitness_profiles').upsert(updated, { onConflict: 'user_id' });
+      } catch (e) {}
     }
     return updated;
   }
@@ -701,32 +750,34 @@ class StorageService {
     const item: FitnessWorkout = {
       ...workout,
       user_id: userId || workout.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      id: crypto.randomUUID ? crypto.randomUUID() : ('wk_' + Date.now())
+      id: generateId('wk')
     };
     const current = this.getLocal<FitnessWorkout[]>('workouts', []);
     this.setLocal('workouts', [item, ...current.filter(w => w.id !== item.id)]);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_workouts').upsert({
-        id: item.id,
-        user_id: item.user_id,
-        title: item.title,
-        category: item.category,
-        duration_minutes: item.duration_minutes,
-        calories_burned: item.calories_burned,
-        workout_date: item.workout_date,
-        exercises: item.exercises || [],
-        heart_rate_avg: item.heart_rate_avg,
-        heart_rate_max: item.heart_rate_max,
-        cardio_zone: item.cardio_zone,
-        polar_training_load: item.polar_training_load,
-        polar_energy_carbs_pct: item.polar_energy_carbs_pct,
-        polar_energy_fat_pct: item.polar_energy_fat_pct,
-        polar_energy_protein_pct: item.polar_energy_protein_pct,
-        perceived_exertion: item.perceived_exertion,
-        notes: item.notes || ''
-      });
+      try {
+        await supabase.from('fitness_workouts').upsert({
+          id: item.id,
+          user_id: item.user_id,
+          title: item.title,
+          category: item.category,
+          duration_minutes: item.duration_minutes,
+          calories_burned: item.calories_burned,
+          workout_date: item.workout_date,
+          exercises: item.exercises || [],
+          heart_rate_avg: item.heart_rate_avg,
+          heart_rate_max: item.heart_rate_max,
+          cardio_zone: item.cardio_zone,
+          polar_training_load: item.polar_training_load,
+          polar_energy_carbs_pct: item.polar_energy_carbs_pct,
+          polar_energy_fat_pct: item.polar_energy_fat_pct,
+          polar_energy_protein_pct: item.polar_energy_protein_pct,
+          perceived_exertion: item.perceived_exertion,
+          notes: item.notes || ''
+        });
+      } catch (e) {}
     }
     return item;
   }
@@ -737,7 +788,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_workouts').delete().eq('id', id);
+      try {
+        await supabase.from('fitness_workouts').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -785,7 +838,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_nutrition_logs').upsert(logWithUser, { onConflict: 'user_id,date' });
+      try {
+        await supabase.from('fitness_nutrition_logs').upsert(logWithUser, { onConflict: 'user_id,date' });
+      } catch (e) {}
     }
   }
 
@@ -793,7 +848,7 @@ class StorageService {
     const log = await this.getDailyNutrition(date, userId);
     const newFood: import('../types').FoodEntry = {
       ...food,
-      id: crypto.randomUUID ? crypto.randomUUID() : ('food_' + Date.now())
+      id: generateId('food')
     };
     await this.saveDailyNutrition({ ...log, meals: [...log.meals, newFood] }, userId);
   }
@@ -825,7 +880,7 @@ class StorageService {
     const item: BodyProgressEntry = {
       ...entry,
       user_id: userId || entry.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      id: crypto.randomUUID ? crypto.randomUUID() : ('bp_' + Date.now())
+      id: generateId('bp')
     };
     const current = this.getLocal<BodyProgressEntry[]>('body_progress', []);
     this.setLocal('body_progress', [item, ...current.filter(e => e.date !== item.date)]);
@@ -833,7 +888,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_body_progress').upsert(item, { onConflict: 'user_id,date' });
+      try {
+        await supabase.from('fitness_body_progress').upsert(item, { onConflict: 'user_id,date' });
+      } catch (e) {}
     }
     return item;
   }
@@ -844,7 +901,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_body_progress').delete().eq('id', id);
+      try {
+        await supabase.from('fitness_body_progress').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -865,14 +924,16 @@ class StorageService {
     const item: PolarGritMetrics = {
       ...metric,
       user_id: userId || metric.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      id: crypto.randomUUID ? crypto.randomUUID() : ('pol_' + Date.now())
+      id: generateId('pol')
     };
     const current = this.getLocal<PolarGritMetrics[]>('polar_metrics', []);
     this.setLocal('polar_metrics', [item, ...current.filter(m => m.date !== item.date)]);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_polar_metrics').upsert(item, { onConflict: 'user_id,date' });
+      try {
+        await supabase.from('fitness_polar_metrics').upsert(item, { onConflict: 'user_id,date' });
+      } catch (e) {}
     }
     return item;
   }
@@ -891,11 +952,13 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('fitness_profiles').delete().neq('id', '___non_existent___');
-      await supabase.from('fitness_workouts').delete().neq('id', '___non_existent___');
-      await supabase.from('fitness_nutrition_logs').delete().neq('id', '___non_existent___');
-      await supabase.from('fitness_body_progress').delete().neq('id', '___non_existent___');
-      await supabase.from('fitness_polar_metrics').delete().neq('id', '___non_existent___');
+      try {
+        await supabase.from('fitness_profiles').delete().neq('id', '___non_existent___');
+        await supabase.from('fitness_workouts').delete().neq('id', '___non_existent___');
+        await supabase.from('fitness_nutrition_logs').delete().neq('id', '___non_existent___');
+        await supabase.from('fitness_body_progress').delete().neq('id', '___non_existent___');
+        await supabase.from('fitness_polar_metrics').delete().neq('id', '___non_existent___');
+      } catch (e) {}
     }
   }
 
@@ -918,14 +981,16 @@ class StorageService {
   async addLibraryItem(item: Omit<LibraryItem, 'id'>): Promise<LibraryItem> {
     const newItem: LibraryItem = {
       ...item,
-      id: crypto.randomUUID ? crypto.randomUUID() : ('lib_' + Date.now())
+      id: generateId('lib')
     };
     const current = this.getLocal<LibraryItem[]>('library', []);
     this.setLocal('library', [newItem, ...current.filter(i => i.id !== newItem.id)]);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('user_library').upsert(newItem);
+      try {
+        await supabase.from('user_library').upsert(newItem);
+      } catch (e) {}
     }
     return newItem;
   }
@@ -936,7 +1001,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('user_library').update(updates).eq('id', id);
+      try {
+        await supabase.from('user_library').update(updates).eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -946,7 +1013,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('user_library').delete().eq('id', id);
+      try {
+        await supabase.from('user_library').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -969,14 +1038,16 @@ class StorageService {
   async addLoreClient(client: Omit<LoreClient, 'id'>): Promise<LoreClient> {
     const item: LoreClient = {
       ...client,
-      id: crypto.randomUUID ? crypto.randomUUID() : ('cli-' + Date.now())
+      id: generateId('cli')
     };
     const current = this.getLocal<LoreClient[]>('lore_clients', []);
     this.setLocal('lore_clients', [item, ...current.filter(c => c.id !== item.id)]);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_clients').upsert(item);
+      try {
+        await supabase.from('lore_clients').upsert(item);
+      } catch (e) {}
     }
     return item;
   }
@@ -987,7 +1058,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_clients').update(updates).eq('id', id);
+      try {
+        await supabase.from('lore_clients').update(updates).eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -997,7 +1070,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_clients').delete().eq('id', id);
+      try {
+        await supabase.from('lore_clients').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -1019,7 +1094,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase && items.length > 0) {
-      await supabase.from('lore_crm_pharmacies').upsert(items);
+      try {
+        await supabase.from('lore_crm_pharmacies').upsert(items);
+      } catch (e) {}
     }
   }
 
@@ -1054,7 +1131,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_crm_pharmacies').delete().eq('id', id);
+      try {
+        await supabase.from('lore_crm_pharmacies').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -1090,14 +1169,16 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_goals').upsert({
-        id: 'current_goals',
-        objetivo_mensual: updated.objetivoMensual,
-        venta_acumulada: updated.ventaAcumulada,
-        dias_laborables_restantes: updated.diasLaborablesRestantes,
-        incentive_image: updated.incentiveImage,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
+      try {
+        await supabase.from('lore_goals').upsert({
+          id: 'current_goals',
+          objetivo_mensual: updated.objetivoMensual,
+          venta_acumulada: updated.ventaAcumulada,
+          dias_laborables_restantes: updated.diasLaborablesRestantes,
+          incentive_image: updated.incentiveImage,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch (e) {}
     }
     return updated;
   }
@@ -1127,7 +1208,7 @@ class StorageService {
     let item: LoreSavedRoute;
     if (typeof nameOrObj === 'string') {
       item = {
-        id: crypto.randomUUID ? crypto.randomUUID() : ('route_' + Date.now()),
+        id: generateId('route'),
         name: nameOrObj,
         date: new Date().toISOString().split('T')[0],
         clientIds: clientIds || [],
@@ -1137,7 +1218,7 @@ class StorageService {
     } else {
       item = {
         ...nameOrObj,
-        id: crypto.randomUUID ? crypto.randomUUID() : ('route_' + Date.now()),
+        id: generateId('route'),
         createdAt: new Date().toISOString()
       };
     }
@@ -1146,14 +1227,16 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_saved_routes').upsert({
-        id: item.id,
-        name: item.name,
-        date: item.date,
-        client_ids: item.clientIds,
-        total_distance_km: item.totalDistanceKm,
-        created_at: item.createdAt
-      });
+      try {
+        await supabase.from('lore_saved_routes').upsert({
+          id: item.id,
+          name: item.name,
+          date: item.date,
+          client_ids: item.clientIds,
+          total_distance_km: item.totalDistanceKm,
+          created_at: item.createdAt
+        });
+      } catch (e) {}
     }
     return item;
   }
@@ -1164,7 +1247,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('lore_saved_routes').delete().eq('id', id);
+      try {
+        await supabase.from('lore_saved_routes').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
@@ -1228,32 +1313,34 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('interview_candidates').upsert({
-        id: candidateToSave.id,
-        user_id: candidateToSave.user_id,
-        full_name: candidateToSave.fullName,
-        email: candidateToSave.email,
-        phone: candidateToSave.phone,
-        role: candidateToSave.role,
-        seniority: candidateToSave.seniority,
-        current_company: candidateToSave.currentCompany,
-        current_salary_eur: candidateToSave.currentSalaryEur,
-        expected_salary_eur: candidateToSave.expectedSalaryEur,
-        notice_period_weeks: candidateToSave.noticePeriodWeeks,
-        english_level: candidateToSave.englishLevel,
-        location: candidateToSave.location,
-        linkedin_url: candidateToSave.linkedinUrl,
-        status: candidateToSave.status,
-        interview_date: candidateToSave.interviewDate,
-        duration_minutes: candidateToSave.durationMinutes,
-        cv_text: candidateToSave.cvText,
-        cv_file_name: candidateToSave.cvFileName,
-        parsed_skills: candidateToSave.parsedSkills || [],
-        evaluations: candidateToSave.evaluations || {},
-        resultado_final: candidateToSave.resultadoFinal || {},
-        created_at: candidateToSave.createdAt,
-        updated_at: candidateToSave.updatedAt
-      });
+      try {
+        await supabase.from('interview_candidates').upsert({
+          id: candidateToSave.id,
+          user_id: candidateToSave.user_id,
+          full_name: candidateToSave.fullName,
+          email: candidateToSave.email,
+          phone: candidateToSave.phone,
+          role: candidateToSave.role,
+          seniority: candidateToSave.seniority,
+          currentCompany: candidateToSave.currentCompany,
+          currentSalaryEur: candidateToSave.currentSalaryEur,
+          expectedSalaryEur: candidateToSave.expectedSalaryEur,
+          noticePeriodWeeks: candidateToSave.noticePeriodWeeks,
+          englishLevel: candidateToSave.englishLevel,
+          location: candidateToSave.location,
+          linkedin_url: candidateToSave.linkedinUrl,
+          status: candidateToSave.status,
+          interview_date: candidateToSave.interviewDate,
+          duration_minutes: candidateToSave.durationMinutes,
+          cv_text: candidateToSave.cvText,
+          cv_file_name: candidateToSave.cvFileName,
+          parsed_skills: candidateToSave.parsedSkills || [],
+          evaluations: candidateToSave.evaluations || {},
+          resultado_final: candidateToSave.resultadoFinal || {},
+          created_at: candidateToSave.createdAt,
+          updated_at: candidateToSave.updatedAt
+        });
+      } catch (e) {}
     }
     return candidateToSave;
   }
@@ -1264,7 +1351,9 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('interview_candidates').delete().eq('id', id);
+      try {
+        await supabase.from('interview_candidates').delete().eq('id', id);
+      } catch (e) {}
     }
   }
 
