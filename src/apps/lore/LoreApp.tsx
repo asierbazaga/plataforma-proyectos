@@ -61,12 +61,22 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     loadData();
+    storageService.syncFromCloud().then(() => {
+      loadData();
+    });
+
+    const unsubscribe = storageService.onSync(() => {
+      loadData();
+    });
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         () => {}
       );
     }
+
+    return () => unsubscribe();
   }, []);
 
   // Inicializar mapa de Leaflet dinámicamente

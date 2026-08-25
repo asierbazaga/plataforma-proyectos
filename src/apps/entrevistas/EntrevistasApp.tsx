@@ -54,6 +54,10 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     loadCandidates();
+    storageService.syncFromCloud().then(() => {
+      loadCandidates();
+    });
+
     const unsub = storageService.onSync(() => {
       loadCandidates();
     });

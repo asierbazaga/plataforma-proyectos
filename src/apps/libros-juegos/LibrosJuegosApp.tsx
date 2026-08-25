@@ -30,6 +30,14 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     loadData();
+    storageService.syncFromCloud().then(() => {
+      loadData();
+    });
+
+    const unsubscribe = storageService.onSync(() => {
+      loadData();
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleAdd = async (e: React.FormEvent) => {

@@ -248,7 +248,7 @@ const DEFAULT_CLIENTS: LoreClient[] = [
   }
 ];
 
-function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 2500): Promise<T> {
+function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number = 6000): Promise<T> {
   return Promise.race([
     Promise.resolve(promiseLike),
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
@@ -302,6 +302,10 @@ class StorageService {
           this.syncFromCloud();
         }
       });
+      // Sincronización inicial inmediata
+      setTimeout(() => {
+        this.syncFromCloud();
+      }, 100);
     }
   }
 
@@ -345,48 +349,145 @@ class StorageService {
     if (!isSupabaseConfigured || !supabase) return;
 
     try {
-      const [goalsRes, expRes, budRes, clientsRes, wkRes, libRes, profRes, nutRes, bpRes, polRes] = await Promise.allSettled([
-        withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 1500),
-        withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 1500),
-        withTimeout(supabase.from('category_budgets').select('*'), 1500),
-        withTimeout(supabase.from('lore_clients').select('*'), 1500),
-        withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 1500),
-        withTimeout(supabase.from('user_library').select('*'), 1500),
-        withTimeout(supabase.from('fitness_profiles').select('*').limit(1), 1500),
-        withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 1500),
-        withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 1500),
-        withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 1500)
+      const [goalsRes, expRes, budRes, clientsRes, wkRes, libRes, profRes, nutRes, bpRes, polRes, profilesRes, permsRes] = await Promise.allSettled([
+        withTimeout(supabase.from('savings_goals').select('*').order('created_at', { ascending: false }), 5000),
+        withTimeout(supabase.from('expenses').select('*').order('transaction_date', { ascending: false }), 5000),
+        withTimeout(supabase.from('category_budgets').select('*'), 5000),
+        withTimeout(supabase.from('lore_clients').select('*'), 5000),
+        withTimeout(supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false }), 5000),
+        withTimeout(supabase.from('user_library').select('*'), 5000),
+        withTimeout(supabase.from('fitness_profiles').select('*'), 5000),
+        withTimeout(supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false }), 5000),
+        withTimeout(supabase.from('fitness_body_progress').select('*').order('date', { ascending: false }), 5000),
+        withTimeout(supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false }), 5000),
+        withTimeout(supabase.from('profiles').select('*'), 5000),
+        withTimeout(supabase.from('app_permissions').select('*'), 5000)
       ]);
 
+      if (profilesRes.status === 'fulfilled' && !profilesRes.value.error && profilesRes.value.data && profilesRes.value.data.length > 0) {
+        this.setLocal('profiles', profilesRes.value.data);
+      }
+      if (permsRes.status === 'fulfilled' && !permsRes.value.error && permsRes.value.data && permsRes.value.data.length > 0) {
+        this.setLocal('permissions', permsRes.value.data);
+      }
+
       if (goalsRes.status === 'fulfilled' && !goalsRes.value.error && goalsRes.value.data) {
-        this.setLocal('savings_goals', goalsRes.value.data);
+        const goals = goalsRes.value.data as SavingsGoal[];
+        this.setLocal('savings_goals', goals);
+        const byUser = new Map<string, SavingsGoal[]>();
+        goals.forEach(g => {
+          if (g.user_id) {
+            const list = byUser.get(g.user_id) || [];
+            list.push(g);
+            byUser.set(g.user_id, list);
+          }
+        });
+        byUser.forEach((list, uid) => {
+          this.setLocal(this.getUserKey('savings_goals', uid), list);
+        });
       }
+
       if (expRes.status === 'fulfilled' && !expRes.value.error && expRes.value.data) {
-        this.setLocal('expenses', expRes.value.data);
+        const expenses = expRes.value.data as ExpenseItem[];
+        this.setLocal('expenses', expenses);
+        const byUser = new Map<string, ExpenseItem[]>();
+        expenses.forEach(e => {
+          if (e.user_id) {
+            const list = byUser.get(e.user_id) || [];
+            list.push(e);
+            byUser.set(e.user_id, list);
+          }
+        });
+        byUser.forEach((list, uid) => {
+          this.setLocal(this.getUserKey('expenses', uid), list);
+        });
       }
-      if (budRes.status === 'fulfilled' && !budRes.value.error && budRes.value.data) {
+
+      if (budRes.status === 'fulfilled' && !budRes.value.error && budRes.value.data && budRes.value.data.length > 0) {
         this.setLocal('category_budgets', budRes.value.data);
       }
       if (clientsRes.status === 'fulfilled' && !clientsRes.value.error && clientsRes.value.data) {
         this.setLocal('lore_clients', clientsRes.value.data);
       }
+
       if (wkRes.status === 'fulfilled' && !wkRes.value.error && wkRes.value.data) {
-        this.setLocal('workouts', wkRes.value.data);
+        const workouts = wkRes.value.data as FitnessWorkout[];
+        this.setLocal('workouts', workouts);
+        const byUser = new Map<string, FitnessWorkout[]>();
+        workouts.forEach(w => {
+          if (w.user_id) {
+            const list = byUser.get(w.user_id) || [];
+            list.push(w);
+            byUser.set(w.user_id, list);
+          }
+        });
+        byUser.forEach((list, uid) => {
+          this.setLocal(this.getUserKey('workouts', uid), list);
+        });
       }
+
       if (libRes.status === 'fulfilled' && !libRes.value.error && libRes.value.data) {
         this.setLocal('library', libRes.value.data);
       }
+
       if (profRes.status === 'fulfilled' && !profRes.value.error && profRes.value.data && profRes.value.data.length > 0) {
-        this.setLocal('fitness_profile', profRes.value.data[0]);
+        const profiles = profRes.value.data as FitnessProfile[];
+        profiles.forEach(p => {
+          if (p.user_id) {
+            this.setLocal(this.getUserKey('fitness_profile', p.user_id), p);
+          }
+          if (!p.user_id || p.user_id === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') {
+            this.setLocal('fitness_profile', p);
+          }
+        });
       }
+
       if (nutRes.status === 'fulfilled' && !nutRes.value.error && nutRes.value.data) {
-        this.setLocal('nutrition_logs', nutRes.value.data);
+        const logs = nutRes.value.data as DailyNutritionLog[];
+        this.setLocal('nutrition_logs', logs);
+        const byUser = new Map<string, DailyNutritionLog[]>();
+        logs.forEach(n => {
+          if (n.user_id) {
+            const list = byUser.get(n.user_id) || [];
+            list.push(n);
+            byUser.set(n.user_id, list);
+          }
+        });
+        byUser.forEach((list, uid) => {
+          this.setLocal(this.getUserKey('nutrition_logs', uid), list);
+        });
       }
+
       if (bpRes.status === 'fulfilled' && !bpRes.value.error && bpRes.value.data) {
-        this.setLocal('body_progress', bpRes.value.data);
+        const bodyProgress = bpRes.value.data as BodyProgressEntry[];
+        this.setLocal('body_progress', bodyProgress);
+        const byUser = new Map<string, BodyProgressEntry[]>();
+        bodyProgress.forEach(b => {
+          if (b.user_id) {
+            const list = byUser.get(b.user_id) || [];
+            list.push(b);
+            byUser.set(b.user_id, list);
+          }
+        });
+        byUser.forEach((list, uid) => {
+          this.setLocal(this.getUserKey('body_progress', uid), list);
+        });
       }
+
       if (polRes.status === 'fulfilled' && !polRes.value.error && polRes.value.data) {
-        this.setLocal('polar_metrics', polRes.value.data);
+        const polar = polRes.value.data as PolarGritMetrics[];
+        this.setLocal('polar_metrics', polar);
+        const byUser = new Map<string, PolarGritMetrics[]>();
+        polar.forEach(p => {
+          if (p.user_id) {
+            const list = byUser.get(p.user_id) || [];
+            list.push(p);
+            byUser.set(p.user_id, list);
+          }
+        });
+        byUser.forEach((list, uid) => {
+          this.setLocal(this.getUserKey('polar_metrics', uid), list);
+        });
       }
 
       this.notifySubscribers();
@@ -536,11 +637,16 @@ class StorageService {
     };
     const local = this.getLocal(key, defaultProfile);
     if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('fitness_profiles').select('*').limit(1);
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
+      let query = supabase.from('fitness_profiles').select('*');
+      if (userId && userId !== 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' && !userId.includes('asier')) {
+        query = query.eq('user_id', userId);
+      }
+      query = query.order('updated_at', { ascending: false }).limit(1);
+
+      withTimeout(query, 5000).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal(key, res.data[0] as FitnessProfile);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -553,14 +659,14 @@ class StorageService {
     const updated: FitnessProfile = {
       ...current,
       ...updates,
-      user_id: userId || current.user_id,
+      user_id: userId || current.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       updated_at: new Date().toISOString()
     };
     this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_profiles').upsert(updated)).catch(() => {});
+      withTimeout(supabase.from('fitness_profiles').upsert(updated), 6000).catch(() => {});
     }
     return updated;
   }
@@ -570,10 +676,13 @@ class StorageService {
     const local = this.getLocal(key, DEFAULT_WORKOUTS);
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
-        if (!res.error && res.data && res.data.length > 0) {
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      }
+      withTimeout(query, 5000).then(res => {
+        if (!res.error && res.data) {
           this.setLocal(key, res.data as FitnessWorkout[]);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -583,7 +692,7 @@ class StorageService {
   async addWorkout(workout: Omit<FitnessWorkout, 'id'>, userId?: string): Promise<FitnessWorkout> {
     const item: FitnessWorkout = {
       ...workout,
-      user_id: userId || workout.user_id,
+      user_id: userId || workout.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: crypto.randomUUID ? crypto.randomUUID() : `wk_${Date.now()}`
     };
     const key = this.getUserKey('workouts', userId);
@@ -593,7 +702,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').insert(item)).catch(() => {});
+      withTimeout(supabase.from('fitness_workouts').upsert(item), 6000).catch(() => {});
     }
     return item;
   }
@@ -606,7 +715,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_workouts').delete().eq('id', id)).catch(() => {});
+      withTimeout(supabase.from('fitness_workouts').delete().eq('id', id), 6000).catch(() => {});
     }
   }
 
@@ -616,10 +725,13 @@ class StorageService {
     const local = this.getLocal(key, DEFAULT_NUTRITION_LOGS);
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
-        if (!res.error && res.data && res.data.length > 0) {
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      }
+      withTimeout(query, 5000).then(res => {
+        if (!res.error && res.data) {
           this.setLocal(key, res.data as DailyNutritionLog[]);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -632,8 +744,8 @@ class StorageService {
     if (found) return found;
 
     const newLog: DailyNutritionLog = {
-      id: `nut_${date}`,
-      user_id: userId,
+      id: `nut_${(userId || 'asier').slice(0, 8)}_${date}`,
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       date,
       water_ml: 0,
       meals: []
@@ -644,18 +756,22 @@ class StorageService {
   async saveDailyNutrition(log: DailyNutritionLog, userId?: string): Promise<void> {
     const key = this.getUserKey('nutrition_logs', userId);
     const logs = this.getLocal(key, DEFAULT_NUTRITION_LOGS);
+    const logWithUser: DailyNutritionLog = {
+      ...log,
+      user_id: userId || log.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+    };
     const existingIndex = logs.findIndex(l => l.date === log.date);
     let updated: DailyNutritionLog[];
     if (existingIndex >= 0) {
-      updated = logs.map((l, i) => i === existingIndex ? log : l);
+      updated = logs.map((l, i) => i === existingIndex ? logWithUser : l);
     } else {
-      updated = [log, ...logs];
+      updated = [logWithUser, ...logs];
     }
     this.setLocal(key, updated);
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_nutrition_logs').upsert(log)).catch(() => {});
+      withTimeout(supabase.from('fitness_nutrition_logs').upsert(logWithUser), 6000).catch(() => {});
     }
   }
 
@@ -696,10 +812,13 @@ class StorageService {
     const local = this.getLocal(key, DEFAULT_BODY_PROGRESS);
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('fitness_body_progress').select('*').order('date', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
-        if (!res.error && res.data && res.data.length > 0) {
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      }
+      withTimeout(query, 5000).then(res => {
+        if (!res.error && res.data) {
           this.setLocal(key, res.data as BodyProgressEntry[]);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -709,7 +828,7 @@ class StorageService {
   async addBodyProgress(entry: Omit<BodyProgressEntry, 'id'>, userId?: string): Promise<BodyProgressEntry> {
     const item: BodyProgressEntry = {
       ...entry,
-      user_id: userId || entry.user_id,
+      user_id: userId || entry.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: crypto.randomUUID ? crypto.randomUUID() : `bp_${Date.now()}`
     };
     const key = this.getUserKey('body_progress', userId);
@@ -724,7 +843,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_body_progress').upsert(item)).catch(() => {});
+      withTimeout(supabase.from('fitness_body_progress').upsert(item), 6000).catch(() => {});
     }
     return item;
   }
@@ -737,7 +856,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id)).catch(() => {});
+      withTimeout(supabase.from('fitness_body_progress').delete().eq('id', id), 6000).catch(() => {});
     }
   }
 
@@ -747,10 +866,13 @@ class StorageService {
     const local = this.getLocal(key, DEFAULT_POLAR_METRICS);
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
-        if (!res.error && res.data && res.data.length > 0) {
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      }
+      withTimeout(query, 5000).then(res => {
+        if (!res.error && res.data) {
           this.setLocal(key, res.data as PolarGritMetrics[]);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -760,6 +882,7 @@ class StorageService {
   async savePolarMetric(metric: Omit<PolarGritMetrics, 'id'>, userId?: string): Promise<PolarGritMetrics> {
     const item: PolarGritMetrics = {
       ...metric,
+      user_id: userId || metric.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: crypto.randomUUID ? crypto.randomUUID() : `pol_${Date.now()}`
     };
     const key = this.getUserKey('polar_metrics', userId);
@@ -770,7 +893,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('fitness_polar_metrics').upsert(item)).catch(() => {});
+      withTimeout(supabase.from('fitness_polar_metrics').upsert(item), 6000).catch(() => {});
     }
     return item;
   }
@@ -842,10 +965,13 @@ class StorageService {
     const local = this.getLocal(key, DEFAULT_EXPENSES);
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('expenses').select('*').order('transaction_date', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      }
+      withTimeout(query, 5000).then(res => {
         if (!res.error && res.data) {
           this.setLocal(key, res.data as ExpenseItem[]);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -855,7 +981,7 @@ class StorageService {
   async addExpense(expense: Omit<ExpenseItem, 'id'>, userId?: string): Promise<ExpenseItem> {
     const item: ExpenseItem = {
       ...expense,
-      user_id: userId || expense.user_id,
+      user_id: userId || expense.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: crypto.randomUUID ? crypto.randomUUID() : `exp_${Date.now()}`
     };
     const key = this.getUserKey('expenses', userId);
@@ -865,7 +991,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').insert(item)).catch(() => {});
+      withTimeout(supabase.from('expenses').upsert(item), 6000).catch(() => {});
     }
     return item;
   }
@@ -878,7 +1004,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('expenses').delete().eq('id', id)).catch(() => {});
+      withTimeout(supabase.from('expenses').delete().eq('id', id), 6000).catch(() => {});
     }
   }
 
@@ -890,7 +1016,7 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('expenses').delete();
       if (userId) query = query.eq('user_id', userId);
-      withTimeout(query).catch(() => {});
+      withTimeout(query, 6000).catch(() => {});
     }
   }
 
@@ -902,10 +1028,13 @@ class StorageService {
     const local = this.getLocal(key, DEFAULT_SAVINGS_GOALS);
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('savings_goals').select('*').order('created_at', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
-        if (!res.error && res.data && res.data.length > 0) {
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      }
+      withTimeout(query, 5000).then(res => {
+        if (!res.error && res.data) {
           this.setLocal(key, res.data as SavingsGoal[]);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -915,7 +1044,7 @@ class StorageService {
   async addSavingsGoal(goal: Omit<SavingsGoal, 'id'>, userId?: string): Promise<SavingsGoal> {
     const item: SavingsGoal = {
       ...goal,
-      user_id: userId || goal.user_id,
+      user_id: userId || goal.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: crypto.randomUUID ? crypto.randomUUID() : `goal_${Date.now()}`,
       created_at: new Date().toISOString()
     };
@@ -926,7 +1055,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').insert(item)).catch(() => {});
+      withTimeout(supabase.from('savings_goals').upsert(item), 6000).catch(() => {});
     }
     return item;
   }
@@ -939,7 +1068,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id)).catch(() => {});
+      withTimeout(supabase.from('savings_goals').update(updates).eq('id', id), 6000).catch(() => {});
     }
   }
 
@@ -951,7 +1080,7 @@ class StorageService {
     this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('savings_goals').delete().eq('id', id)).catch(() => {});
+      withTimeout(supabase.from('savings_goals').delete().eq('id', id), 6000).catch(() => {});
     }
   }
 
@@ -963,10 +1092,13 @@ class StorageService {
     const local = this.getLocal(key, DEFAULT_CATEGORY_BUDGETS);
     if (isSupabaseConfigured && supabase) {
       let query = supabase.from('category_budgets').select('*');
-      if (userId) query = query.eq('user_id', userId);
-      withTimeout(query, 1500).then(res => {
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      }
+      withTimeout(query, 5000).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal(key, res.data as CategoryBudget[]);
+          this.broadcastChange();
         }
       }).catch(() => {});
     }
@@ -1001,16 +1133,16 @@ class StorageService {
   // BIBLIOTECA (LIBROS & JUEGOS)
   // ==========================================
   async getLibrary(): Promise<LibraryItem[]> {
+    const local = this.getLocal('library', DEFAULT_LIBRARY);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('user_library').select('*'));
-        if (!res.error && res.data) {
+      withTimeout(supabase.from('user_library').select('*'), 5000).then(res => {
+        if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('library', res.data as LibraryItem[]);
-          return res.data as LibraryItem[];
+          this.broadcastChange();
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('library', DEFAULT_LIBRARY);
+    return local;
   }
 
   async addLibraryItem(item: Omit<LibraryItem, 'id'>): Promise<LibraryItem> {
@@ -1018,40 +1150,42 @@ class StorageService {
       ...item,
       id: crypto.randomUUID ? crypto.randomUUID() : `lib_${Date.now()}`
     };
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').insert(newItem)).catch(() => {});
-    }
     const current = this.getLocal('library', DEFAULT_LIBRARY);
     const updated = [newItem, ...current];
     this.setLocal('library', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('user_library').upsert(newItem), 6000).catch(() => {});
+    }
     return newItem;
   }
 
   async updateLibraryItem(id: string, updates: Partial<LibraryItem>): Promise<void> {
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').update(updates).eq('id', id)).catch(() => {});
-    }
     const current = this.getLocal('library', DEFAULT_LIBRARY);
     const updated = current.map(item => item.id === id ? { ...item, ...updates } : item);
     this.setLocal('library', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('user_library').update(updates).eq('id', id), 6000).catch(() => {});
+    }
   }
 
   // ==========================================
   // LORE CLIENTES (FARMACIAS & RUTAS)
   // ==========================================
   async getLoreClients(): Promise<LoreClient[]> {
+    const local = this.getLocal('lore_clients', DEFAULT_CLIENTS);
     if (isSupabaseConfigured && supabase) {
-      try {
-        const res = await withTimeout(supabase.from('lore_clients').select('*'));
+      withTimeout(supabase.from('lore_clients').select('*'), 5000).then(res => {
         if (!res.error && res.data && res.data.length > 0) {
           this.setLocal('lore_clients', res.data as LoreClient[]);
-          return res.data as LoreClient[];
+          this.broadcastChange();
         }
-      } catch (e) {}
+      }).catch(() => {});
     }
-    return this.getLocal('lore_clients', DEFAULT_CLIENTS);
+    return local;
   }
 
   async addLoreClient(client: Omit<LoreClient, 'id'>): Promise<LoreClient> {
@@ -1059,34 +1193,37 @@ class StorageService {
       ...client,
       id: crypto.randomUUID ? crypto.randomUUID() : `cli-${Date.now()}`
     };
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').insert(item)).catch(() => {});
-    }
     const current = this.getLocal('lore_clients', DEFAULT_CLIENTS);
     const updated = [item, ...current];
     this.setLocal('lore_clients', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('lore_clients').upsert(item), 6000).catch(() => {});
+    }
     return item;
   }
 
   async updateLoreClient(id: string, updates: Partial<LoreClient>): Promise<void> {
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').update(updates).eq('id', id)).catch(() => {});
-    }
     const current = this.getLocal('lore_clients', DEFAULT_CLIENTS);
     const updated = current.map(c => c.id === id ? { ...c, ...updates } : c);
     this.setLocal('lore_clients', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('lore_clients').update(updates).eq('id', id), 6000).catch(() => {});
+    }
   }
 
   async deleteLoreClient(id: string): Promise<void> {
-    if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('lore_clients').delete().eq('id', id)).catch(() => {});
-    }
     const current = this.getLocal('lore_clients', DEFAULT_CLIENTS);
     const updated = current.filter(c => c.id !== id);
     this.setLocal('lore_clients', updated);
     this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('lore_clients').delete().eq('id', id), 6000).catch(() => {});
+    }
   }
 
   async createProfile(profile: Omit<UserProfile, 'id'>): Promise<UserProfile> {

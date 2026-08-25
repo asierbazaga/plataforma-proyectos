@@ -54,6 +54,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     refreshData();
+    storageService.syncFromCloud().then(() => {
+      refreshData();
+    });
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
@@ -71,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (identifier: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+    await storageService.syncFromCloud();
     const profiles = await storageService.getProfiles();
     const cleanId = identifier.trim().toLowerCase();
 

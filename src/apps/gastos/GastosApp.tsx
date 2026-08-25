@@ -142,6 +142,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
     loadData();
+    storageService.syncFromCloud().then(() => {
+      loadData();
+    });
 
     const unsubscribe = storageService.onSync(() => {
       loadData();
