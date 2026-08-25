@@ -15,26 +15,30 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
   onClose,
   onSave
 }) => {
-  const [age, setAge] = useState(profile.age);
-  const [gender, setGender] = useState<Gender>(profile.gender);
-  const [heightCm, setHeightCm] = useState(profile.height_cm);
-  const [currentWeight, setCurrentWeight] = useState(profile.current_weight);
-  const [targetWeight, setTargetWeight] = useState(profile.target_weight);
-  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(profile.activity_level);
-  const [goal, setGoal] = useState<FitnessGoal>(profile.goal);
-  const [deficitSurplusPct, setDeficitSurplusPct] = useState(profile.deficit_surplus_pct);
-  const [targetCalories, setTargetCalories] = useState(profile.target_calories);
-  const [targetProtein, setTargetProtein] = useState(profile.target_protein);
-  const [targetCarbs, setTargetCarbs] = useState(profile.target_carbs);
-  const [targetFat, setTargetFat] = useState(profile.target_fat);
-  const [targetWaterMl, setTargetWaterMl] = useState(profile.target_water_ml);
-  const [targetSteps, setTargetSteps] = useState(profile.target_daily_steps);
+  const [age, setAge] = useState<number | ''>(profile.age || '');
+  const [gender, setGender] = useState<Gender>(profile.gender || 'male');
+  const [heightCm, setHeightCm] = useState<number | ''>(profile.height_cm || '');
+  const [currentWeight, setCurrentWeight] = useState<number | ''>(profile.current_weight || '');
+  const [targetWeight, setTargetWeight] = useState<number | ''>(profile.target_weight || '');
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(profile.activity_level || 'moderate');
+  const [goal, setGoal] = useState<FitnessGoal>(profile.goal || 'fat_loss');
+  const [deficitSurplusPct, setDeficitSurplusPct] = useState<number | ''>(profile.deficit_surplus_pct ?? -20);
+  const [targetCalories, setTargetCalories] = useState<number | ''>(profile.target_calories || '');
+  const [targetProtein, setTargetProtein] = useState<number | ''>(profile.target_protein || '');
+  const [targetCarbs, setTargetCarbs] = useState<number | ''>(profile.target_carbs || '');
+  const [targetFat, setTargetFat] = useState<number | ''>(profile.target_fat || '');
+  const [targetWaterMl, setTargetWaterMl] = useState<number | ''>(profile.target_water_ml || '');
+  const [targetSteps, setTargetSteps] = useState<number | ''>(profile.target_daily_steps || '');
   const [isSaving, setIsSaving] = useState(false);
 
   if (!isOpen) return null;
 
   const handleAutoCalculate = () => {
-    let bmr = 10 * currentWeight + 6.25 * heightCm - 5 * age;
+    const w = Number(currentWeight) || 75;
+    const h = Number(heightCm) || 178;
+    const a = Number(age) || 28;
+
+    let bmr = 10 * w + 6.25 * h - 5 * a;
     bmr += gender === 'male' ? 5 : -161;
 
     const multMap: Record<ActivityLevel, number> = {
@@ -53,8 +57,8 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
     else adjPct = 0;
 
     const cal = Math.round(tdee * (1 + adjPct / 100));
-    const prot = Math.round(currentWeight * (goal === 'fat_loss' || goal === 'recomp' ? 2.2 : 2.0));
-    const fat = Math.round(currentWeight * 0.9);
+    const prot = Math.round(w * (goal === 'fat_loss' || goal === 'recomp' ? 2.2 : 2.0));
+    const fat = Math.round(w * 0.9);
     const remainingCals = cal - (prot * 4 + fat * 9);
     const carbs = Math.max(50, Math.round(remainingCals / 4));
 
@@ -63,7 +67,7 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
     setTargetProtein(prot);
     setTargetCarbs(carbs);
     setTargetFat(fat);
-    setTargetWaterMl(Math.round(currentWeight * 38));
+    setTargetWaterMl(Math.round(w * 38));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,20 +75,20 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
     setIsSaving(true);
     try {
       await onSave({
-        age: Number(age),
+        age: Number(age) || 28,
         gender,
-        height_cm: Number(heightCm),
-        current_weight: Number(currentWeight),
-        target_weight: Number(targetWeight),
+        height_cm: Number(heightCm) || 178,
+        current_weight: Number(currentWeight) || 75,
+        target_weight: Number(targetWeight) || 70,
         activity_level: activityLevel,
         goal,
-        deficit_surplus_pct: Number(deficitSurplusPct),
-        target_calories: Number(targetCalories),
-        target_protein: Number(targetProtein),
-        target_carbs: Number(targetCarbs),
-        target_fat: Number(targetFat),
-        target_water_ml: Number(targetWaterMl),
-        target_daily_steps: Number(targetSteps)
+        deficit_surplus_pct: Number(deficitSurplusPct) || -20,
+        target_calories: Number(targetCalories) || 2000,
+        target_protein: Number(targetProtein) || 160,
+        target_carbs: Number(targetCarbs) || 190,
+        target_fat: Number(targetFat) || 65,
+        target_water_ml: Number(targetWaterMl) || 2800,
+        target_daily_steps: Number(targetSteps) || 10000
       });
       onClose();
     } finally {
@@ -112,22 +116,48 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div>
                 <label className="text-slate-500">Edad</label>
-                <input type="number" value={age} onChange={e => setAge(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white" />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={age}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setAge(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
+                />
               </div>
               <div>
                 <label className="text-slate-500">Género</label>
-                <select value={gender} onChange={e => setGender(e.target.value as Gender)} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white">
+                <select
+                  value={gender}
+                  onChange={e => setGender(e.target.value as Gender)}
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
+                >
                   <option value="male">Hombre</option>
                   <option value="female">Mujer</option>
                 </select>
               </div>
               <div>
                 <label className="text-slate-500">Altura (cm)</label>
-                <input type="number" value={heightCm} onChange={e => setHeightCm(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white" />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={heightCm}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setHeightCm(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
+                />
               </div>
               <div>
                 <label className="text-slate-500">Peso (kg)</label>
-                <input type="number" step="0.1" value={currentWeight} onChange={e => setCurrentWeight(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-[#FF6B00] font-bold" />
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="0.0"
+                  value={currentWeight}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setCurrentWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-[#FF6B00] font-bold"
+                />
               </div>
             </div>
           </div>
@@ -138,7 +168,11 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="text-slate-500">Meta Principal</label>
-                <select value={goal} onChange={e => setGoal(e.target.value as FitnessGoal)} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white">
+                <select
+                  value={goal}
+                  onChange={e => setGoal(e.target.value as FitnessGoal)}
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
+                >
                   <option value="fat_loss">Definición</option>
                   <option value="recomp">Recomposición</option>
                   <option value="muscle_gain">Volumen</option>
@@ -147,7 +181,15 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
               </div>
               <div>
                 <label className="text-slate-500">Peso Objetivo (kg)</label>
-                <input type="number" step="0.1" value={targetWeight} onChange={e => setTargetWeight(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-emerald-400 font-bold" />
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="0.0"
+                  value={targetWeight}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setTargetWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-emerald-400 font-bold"
+                />
               </div>
             </div>
             <button
@@ -165,19 +207,47 @@ export const FitnessProfileModal: React.FC<FitnessProfileModalProps> = ({
             <div className="grid grid-cols-4 gap-2">
               <div className="p-3 rounded-xl bg-[#090C15] border border-white/5 text-center">
                 <span className="text-[10px] text-amber-400 block font-bold">KCAL</span>
-                <input type="number" value={targetCalories} onChange={e => setTargetCalories(Number(e.target.value))} className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none" />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={targetCalories}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setTargetCalories(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none"
+                />
               </div>
               <div className="p-3 rounded-xl bg-[#090C15] border border-white/5 text-center">
                 <span className="text-[10px] text-[#FF3B30] block font-bold">PRO (g)</span>
-                <input type="number" value={targetProtein} onChange={e => setTargetProtein(Number(e.target.value))} className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none" />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={targetProtein}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setTargetProtein(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none"
+                />
               </div>
               <div className="p-3 rounded-xl bg-[#090C15] border border-white/5 text-center">
                 <span className="text-[10px] text-[#38BDF8] block font-bold">CARB (g)</span>
-                <input type="number" value={targetCarbs} onChange={e => setTargetCarbs(Number(e.target.value))} className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none" />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={targetCarbs}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setTargetCarbs(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none"
+                />
               </div>
               <div className="p-3 rounded-xl bg-[#090C15] border border-white/5 text-center">
                 <span className="text-[10px] text-[#30D158] block font-bold">FAT (g)</span>
-                <input type="number" value={targetFat} onChange={e => setTargetFat(Number(e.target.value))} className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none" />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={targetFat}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setTargetFat(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full bg-transparent text-center text-white font-black text-sm mt-0.5 focus:outline-none"
+                />
               </div>
             </div>
           </div>

@@ -33,15 +33,15 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
   const [step, setStep] = useState<number>(1);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Paso 1: Biometría
-  const [currentWeight, setCurrentWeight] = useState<number>(profile.current_weight || 78.5);
-  const [heightCm, setHeightCm] = useState<number>(profile.height_cm || 178);
-  const [age, setAge] = useState<number>(profile.age || 28);
+  // Paso 1: Biometría (Permitir '' para edición fluida sin ceros pegados)
+  const [currentWeight, setCurrentWeight] = useState<number | ''>(profile.current_weight || '');
+  const [heightCm, setHeightCm] = useState<number | ''>(profile.height_cm || 178);
+  const [age, setAge] = useState<number | ''>(profile.age || 28);
   const [gender, setGender] = useState<Gender>(profile.gender || 'male');
 
   // Paso 2: Objetivo
   const [goal, setGoal] = useState<FitnessGoal>(profile.goal || 'fat_loss');
-  const [targetWeight, setTargetWeight] = useState<number>(profile.target_weight || 74.0);
+  const [targetWeight, setTargetWeight] = useState<number | ''>(profile.target_weight || '');
   const [intensity, setIntensity] = useState<'moderate' | 'mild' | 'aggressive'>('moderate');
 
   // Paso 3: Frecuencia de entreno & Polar
@@ -51,10 +51,14 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
 
   if (!isOpen) return null;
 
+  const numWeight = Number(currentWeight) || 75.0;
+  const numHeight = Number(heightCm) || 178;
+  const numAge = Number(age) || 28;
+  const numTargetWeight = Number(targetWeight) || numWeight - 4;
+
   // Cálculo Dinámico en Tiempo Real
   const calculatePlan = () => {
-    // 1. TDEE
-    let bmr = 10 * currentWeight + 6.25 * heightCm - 5 * age + (gender === 'male' ? 5 : -161);
+    let bmr = 10 * numWeight + 6.25 * numHeight - 5 * numAge + (gender === 'male' ? 5 : -161);
     const actMultipliers: Record<ActivityLevel, number> = {
       sedentary: 1.2,
       light: 1.375,
@@ -64,7 +68,6 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
     };
     const tdee = Math.round(bmr * (actMultipliers[activityLevel] || 1.55));
 
-    // 2. Ajuste Calórico
     let calAdjustment = 0;
     if (goal === 'fat_loss') {
       calAdjustment = intensity === 'mild' ? -0.15 : intensity === 'aggressive' ? -0.25 : -0.20;
@@ -76,15 +79,13 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
 
     const targetCalories = Math.round(tdee * (1 + calAdjustment));
 
-    // 3. Macros
     const proteinRatio = goal === 'fat_loss' || goal === 'recomp' ? 2.2 : 2.0;
-    const targetProtein = Math.round(currentWeight * proteinRatio);
-    const targetFat = Math.round(currentWeight * 0.85);
+    const targetProtein = Math.round(numWeight * proteinRatio);
+    const targetFat = Math.round(numWeight * 0.85);
     const remainingCals = targetCalories - (targetProtein * 4 + targetFat * 9);
     const targetCarbs = Math.max(50, Math.round(remainingCals / 4));
-    const targetWater = Math.round(currentWeight * 38);
+    const targetWater = Math.round(numWeight * 38);
 
-    // 4. Rutina Recomendada
     let recommendedRoutine = 'Torso - Pierna (4 días/semana)';
     let splitType = 'torso_pierna';
     if (trainingDays <= 3) {
@@ -119,12 +120,12 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
     try {
       await onSavePlan(
         {
-          current_weight: Number(currentWeight),
-          height_cm: Number(heightCm),
-          age: Number(age),
+          current_weight: numWeight,
+          height_cm: numHeight,
+          age: numAge,
           gender,
           goal,
-          target_weight: Number(targetWeight),
+          target_weight: numTargetWeight,
           activity_level: activityLevel,
           target_calories: plan.targetCalories,
           target_protein: plan.targetProtein,
@@ -135,7 +136,7 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
           preferred_split: plan.splitType,
           onboarding_completed: true
         },
-        Number(currentWeight)
+        currentWeight !== '' ? Number(currentWeight) : undefined
       );
       onClose();
     } finally {
@@ -183,7 +184,7 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
             <div>
               <h4 className="text-base font-bold text-white">1. Tu punto de partida</h4>
               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                Introduce tu peso en ayunas (puedes actualizarlo mañana tras pesarte) y tus datos antropométricos básicos.
+                Introduce tu peso en ayunas (el número que escribas sustituirá directamente lo anterior) y tus datos básicos.
               </p>
             </div>
 
@@ -196,14 +197,15 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
                   <input
                     type="number"
                     step="0.1"
-                    required
+                    placeholder="0.0"
                     value={currentWeight}
-                    onChange={e => setCurrentWeight(Number(e.target.value))}
-                    className="w-full bg-transparent text-3xl font-black text-white focus:outline-none font-mono"
+                    onFocus={e => e.target.select()}
+                    onChange={e => setCurrentWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-transparent text-3xl font-black text-white focus:outline-none font-mono placeholder:text-slate-600"
                   />
                   <span className="text-sm font-bold text-slate-400">kg</span>
                 </div>
-                <p className="text-[11px] text-slate-500">Pésate por la mañana antes de desayunar.</p>
+                <p className="text-[11px] text-slate-500">Introduce tu peso real nada más pesarte.</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#090C15] border border-white/5 space-y-2">
@@ -213,10 +215,11 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
                 <div className="flex items-baseline gap-2">
                   <input
                     type="number"
-                    required
+                    placeholder="0"
                     value={heightCm}
-                    onChange={e => setHeightCm(Number(e.target.value))}
-                    className="w-full bg-transparent text-3xl font-black text-white focus:outline-none font-mono"
+                    onFocus={e => e.target.select()}
+                    onChange={e => setHeightCm(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-transparent text-3xl font-black text-white focus:outline-none font-mono placeholder:text-slate-600"
                   />
                   <span className="text-sm font-bold text-slate-400">cm</span>
                 </div>
@@ -229,8 +232,10 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
                 <label className="text-xs text-slate-400 font-medium block mb-1">Edad</label>
                 <input
                   type="number"
+                  placeholder="0"
                   value={age}
-                  onChange={e => setAge(Number(e.target.value))}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setAge(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold text-xs"
                 />
               </div>
@@ -323,8 +328,10 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
                 <input
                   type="number"
                   step="0.1"
+                  placeholder="0.0"
                   value={targetWeight}
-                  onChange={e => setTargetWeight(Number(e.target.value))}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setTargetWeight(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-emerald-400 font-black text-sm"
                 />
               </div>
@@ -432,7 +439,7 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF6B00]">Plan Generado</span>
               <h4 className="text-lg font-black text-white mt-0.5">Tu Estrategia Personalizada</h4>
               <p className="text-xs text-slate-400">
-                Todo listo para empezar mañana desde tu primer pesaje.
+                Todo listo para empezar con tu peso registrado.
               </p>
             </div>
 
@@ -452,7 +459,7 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
                 <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                   {goal === 'fat_loss' ? 'Quema de Grasa' : goal === 'recomp' ? 'Recomposición' : 'Hipertrofia'}
                 </span>
-                <p className="text-[11px] text-slate-400">Meta: {targetWeight} kg</p>
+                <p className="text-[11px] text-slate-400">Meta: {numTargetWeight} kg</p>
               </div>
             </div>
 
@@ -461,7 +468,7 @@ export const FitnessAssessmentModal: React.FC<FitnessAssessmentModalProps> = ({
               <div className="p-3 rounded-2xl bg-[#090C15] border border-white/5">
                 <span className="text-[10px] font-bold text-[#FF3B30] block">PROTEÍNA</span>
                 <span className="text-xl font-black text-white font-mono">{plan.targetProtein}g</span>
-                <span className="text-[10px] text-slate-500 block">{(plan.targetProtein / currentWeight).toFixed(1)}g/kg</span>
+                <span className="text-[10px] text-slate-500 block">{(plan.targetProtein / numWeight).toFixed(1)}g/kg</span>
               </div>
               <div className="p-3 rounded-2xl bg-[#090C15] border border-white/5">
                 <span className="text-[10px] font-bold text-[#38BDF8] block">CARBOS</span>

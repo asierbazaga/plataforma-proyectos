@@ -22,7 +22,7 @@ export const BodyMetricsTracker: React.FC<BodyMetricsTrackerProps> = ({
   const [showAddModal, setShowAddModal] = useState(initialOpenModal);
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [weight, setWeight] = useState(profile.current_weight || 78.5);
+  const [weight, setWeight] = useState<number | ''>(profile.current_weight || '');
   const [bodyFat, setBodyFat] = useState<number | ''>('');
   const [waistCm, setWaistCm] = useState<number | ''>(84);
   const [neckCm, setNeckCm] = useState<number | ''>(38);
@@ -120,38 +120,44 @@ export const BodyMetricsTracker: React.FC<BodyMetricsTrackerProps> = ({
       <div className="p-6 rounded-3xl bg-[#111622] border border-white/5 space-y-4 shadow-xl">
         <h4 className="text-sm font-bold text-white">Historial de Pesajes</h4>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-white/5">
-              <tr>
-                <th className="py-2.5 px-3">Fecha</th>
-                <th className="py-2.5 px-3">Peso</th>
-                <th className="py-2.5 px-3">% Grasa</th>
-                <th className="py-2.5 px-3">Cintura</th>
-                <th className="py-2.5 px-3">Pecho</th>
-                <th className="py-2.5 px-3">Brazo</th>
-                {canEdit && <th className="py-2.5 px-3 text-right">Acción</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 font-medium">
-              {[...sortedEntries].reverse().map(entry => (
-                <tr key={entry.id} className="hover:bg-white/[0.02]">
-                  <td className="py-2.5 px-3 text-white font-bold">{entry.date}</td>
-                  <td className="py-2.5 px-3 font-mono text-emerald-400 font-bold">{entry.weight} kg</td>
-                  <td className="py-2.5 px-3 font-mono text-amber-400">{entry.body_fat_percentage ? `${entry.body_fat_percentage}%` : '-'}</td>
-                  <td className="py-2.5 px-3 text-slate-300">{entry.waist_cm ? `${entry.waist_cm} cm` : '-'}</td>
-                  <td className="py-2.5 px-3 text-slate-300">{entry.chest_cm ? `${entry.chest_cm} cm` : '-'}</td>
-                  <td className="py-2.5 px-3 text-slate-300">{entry.arm_cm ? `${entry.arm_cm} cm` : '-'}</td>
-                  {canEdit && (
-                    <td className="py-2.5 px-3 text-right">
-                      <button onClick={() => onDeleteEntry(entry.id)} className="text-slate-600 hover:text-[#FF3B30]">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  )}
+          {sortedEntries.length === 0 ? (
+            <p className="text-xs text-slate-500 italic py-4 text-center">
+              No hay pesajes registrados todavía. ¡Añade tu primer pesaje de la mañana!
+            </p>
+          ) : (
+            <table className="w-full text-xs text-left">
+              <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-white/5">
+                <tr>
+                  <th className="py-2.5 px-3">Fecha</th>
+                  <th className="py-2.5 px-3">Peso</th>
+                  <th className="py-2.5 px-3">% Grasa</th>
+                  <th className="py-2.5 px-3">Cintura</th>
+                  <th className="py-2.5 px-3">Pecho</th>
+                  <th className="py-2.5 px-3">Brazo</th>
+                  {canEdit && <th className="py-2.5 px-3 text-right">Acción</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-white/5 font-medium">
+                {[...sortedEntries].reverse().map(entry => (
+                  <tr key={entry.id} className="hover:bg-white/[0.02]">
+                    <td className="py-2.5 px-3 text-white font-bold">{entry.date}</td>
+                    <td className="py-2.5 px-3 font-mono text-emerald-400 font-bold">{entry.weight} kg</td>
+                    <td className="py-2.5 px-3 font-mono text-amber-400">{entry.body_fat_percentage ? `${entry.body_fat_percentage}%` : '-'}</td>
+                    <td className="py-2.5 px-3 text-slate-300">{entry.waist_cm ? `${entry.waist_cm} cm` : '-'}</td>
+                    <td className="py-2.5 px-3 text-slate-300">{entry.chest_cm ? `${entry.chest_cm} cm` : '-'}</td>
+                    <td className="py-2.5 px-3 text-slate-300">{entry.arm_cm ? `${entry.arm_cm} cm` : '-'}</td>
+                    {canEdit && (
+                      <td className="py-2.5 px-3 text-right">
+                        <button onClick={() => onDeleteEntry(entry.id)} className="text-slate-600 hover:text-[#FF3B30]">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -168,11 +174,25 @@ export const BodyMetricsTracker: React.FC<BodyMetricsTrackerProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-400">Fecha</label>
-                  <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white" />
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
+                  />
                 </div>
                 <div>
                   <label className="text-slate-400">Peso (kg)</label>
-                  <input type="number" step="0.1" required value={weight} onChange={e => setWeight(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-emerald-400 font-bold text-sm" />
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    placeholder="0.0"
+                    value={weight}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-emerald-400 font-bold text-sm"
+                  />
                 </div>
               </div>
 
@@ -182,7 +202,9 @@ export const BodyMetricsTracker: React.FC<BodyMetricsTrackerProps> = ({
                   <input
                     type="number"
                     step="0.5"
+                    placeholder="0"
                     value={waistCm}
+                    onFocus={e => e.target.select()}
                     onChange={e => {
                       const val = e.target.value === '' ? '' : Number(e.target.value);
                       setWaistCm(val);
@@ -196,7 +218,9 @@ export const BodyMetricsTracker: React.FC<BodyMetricsTrackerProps> = ({
                   <input
                     type="number"
                     step="0.5"
+                    placeholder="0"
                     value={neckCm}
+                    onFocus={e => e.target.select()}
                     onChange={e => {
                       const val = e.target.value === '' ? '' : Number(e.target.value);
                       setNeckCm(val);
@@ -207,7 +231,15 @@ export const BodyMetricsTracker: React.FC<BodyMetricsTrackerProps> = ({
                 </div>
                 <div>
                   <label className="text-slate-400">% Grasa (US Navy)</label>
-                  <input type="number" step="0.1" value={bodyFat} onChange={e => setBodyFat(e.target.value === '' ? '' : Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-amber-400 font-bold" />
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="0"
+                    value={bodyFat}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setBodyFat(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-amber-400 font-bold"
+                  />
                 </div>
               </div>
 

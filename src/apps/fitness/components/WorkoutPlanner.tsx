@@ -501,17 +501,19 @@ export const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({
                           <input
                             type="number"
                             step="0.5"
-                            placeholder="kg"
-                            value={set.weight_kg}
-                            onChange={e => handleUpdateSet(exIdx, sIdx, 'weight_kg', Number(e.target.value))}
-                            className="col-span-4 bg-white/5 rounded-lg px-2.5 py-1 text-center font-bold text-white"
+                            placeholder="0"
+                            value={set.weight_kg === 0 ? '' : set.weight_kg}
+                            onFocus={e => e.target.select()}
+                            onChange={e => handleUpdateSet(exIdx, sIdx, 'weight_kg', e.target.value === '' ? 0 : Number(e.target.value))}
+                            className="col-span-4 bg-white/5 rounded-lg px-2.5 py-1 text-center font-bold text-white placeholder:text-slate-600"
                           />
                           <input
                             type="number"
-                            placeholder="reps"
-                            value={set.reps}
-                            onChange={e => handleUpdateSet(exIdx, sIdx, 'reps', Number(e.target.value))}
-                            className="col-span-4 bg-white/5 rounded-lg px-2.5 py-1 text-center font-bold text-white"
+                            placeholder="0"
+                            value={set.reps === 0 ? '' : set.reps}
+                            onFocus={e => e.target.select()}
+                            onChange={e => handleUpdateSet(exIdx, sIdx, 'reps', e.target.value === '' ? 0 : Number(e.target.value))}
+                            className="col-span-4 bg-white/5 rounded-lg px-2.5 py-1 text-center font-bold text-white placeholder:text-slate-600"
                           />
                           <button
                             type="button"

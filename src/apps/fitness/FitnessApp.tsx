@@ -10,7 +10,8 @@ import {
   ShieldAlert,
   ArrowLeft,
   Calculator,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import {
   FitnessProfile,
@@ -38,7 +39,7 @@ interface FitnessAppProps {
 }
 
 export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
-  const { canEditApp, currentUser } = useAuth();
+  const { canEditApp } = useAuth();
   const canEdit = canEditApp('fitness');
 
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -60,6 +61,12 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const loadAllFitnessData = async () => {
+    // Si es la primera vez que se carga con la nueva versión limpia, resetear datos antiguos mock
+    if (localStorage.getItem('fitness_clean_v2') !== 'true') {
+      localStorage.setItem('fitness_clean_v2', 'true');
+      await storageService.resetFitnessData();
+    }
+
     const [prof, wks, nut, bp, pol] = await Promise.all([
       storageService.getFitnessProfile(),
       storageService.getWorkouts(),
@@ -103,16 +110,24 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
     });
     setProfile(saved);
 
-    // Si introduce peso inicial, registrar pesaje en el historial
+    // Si introduce peso inicial, registrar pesaje único en el historial de peso
     if (initialWeightEntry) {
       await storageService.addBodyProgress({
         date: todayStr,
         weight: initialWeightEntry,
-        notes: 'Pesaje inicial registrado en el test de evaluación'
+        notes: 'Pesaje inicial del plan'
       });
     }
 
     await loadAllFitnessData();
+  };
+
+  const handleResetFitness = async () => {
+    if (window.confirm('¿Deseas reiniciar todos los datos de fitness y volver a realizar el test inicial?')) {
+      await storageService.resetFitnessData();
+      await loadAllFitnessData();
+      setShowAssessmentModal(true);
+    }
   };
 
   const handleApplyMacrosFromCalculator = async (macros: {
@@ -225,7 +240,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
           })}
         </div>
 
-        {/* Acceso Rápido al Perfil y Test de Evaluación */}
+        {/* Acceso Rápido al Perfil, Test y Reset */}
         <div className="flex items-center justify-end gap-2 px-2 pb-1 sm:pb-0">
           <button
             onClick={() => setShowAssessmentModal(true)}
@@ -234,6 +249,14 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Test Inicial</span>
+          </button>
+
+          <button
+            onClick={handleResetFitness}
+            title="Resetear datos y empezar de cero"
+            className="p-1.5 text-slate-500 hover:text-rose-400 rounded-xl hover:bg-white/5 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
           <button

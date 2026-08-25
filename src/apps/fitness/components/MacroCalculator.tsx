@@ -18,10 +18,10 @@ interface MacroCalculatorProps {
 type MacroProtocol = 'balanced_fit' | 'high_protein_recomp' | 'carb_cycling' | 'low_carb_keto';
 
 export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApplyMacros }) => {
-  const [age, setAge] = useState(profile.age || 28);
+  const [age, setAge] = useState<number | ''>(profile.age || 28);
   const [gender, setGender] = useState<Gender>(profile.gender || 'male');
-  const [heightCm, setHeightCm] = useState(profile.height_cm || 178);
-  const [weightKg, setWeightKg] = useState(profile.current_weight || 78.5);
+  const [heightCm, setHeightCm] = useState<number | ''>(profile.height_cm || 178);
+  const [weightKg, setWeightKg] = useState<number | ''>(profile.current_weight || 75.0);
   const [bodyFatPct, setBodyFatPct] = useState<number | ''>(17);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(profile.activity_level || 'moderate');
   const [goal, setGoal] = useState<FitnessGoal>(profile.goal || 'fat_loss');
@@ -33,13 +33,17 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
   const [appliedSuccess, setAppliedSuccess] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
 
+  const numWeight = Number(weightKg) || 75.0;
+  const numHeight = Number(heightCm) || 178;
+  const numAge = Number(age) || 28;
+
   const calculateResult = (): MacroCalculationResult => {
     let bmr = 0;
     if (typeof bodyFatPct === 'number' && bodyFatPct > 5 && bodyFatPct < 60) {
-      const leanMassKg = weightKg * (1 - bodyFatPct / 100);
+      const leanMassKg = numWeight * (1 - bodyFatPct / 100);
       bmr = Math.round(370 + 21.6 * leanMassKg);
     } else {
-      bmr = Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + (gender === 'male' ? 5 : -161));
+      bmr = Math.round(10 * numWeight + 6.25 * numHeight - 5 * numAge + (gender === 'male' ? 5 : -161));
     }
 
     const activityMultipliers: Record<ActivityLevel, number> = {
@@ -69,20 +73,20 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
 
     const targetCalories = Math.round(tdee * (1 + calorieAdj));
 
-    let protein = Math.round(weightKg * proteinGPerKg);
-    let fat = Math.round(weightKg * fatGPerKg);
+    let protein = Math.round(numWeight * proteinGPerKg);
+    let fat = Math.round(numWeight * fatGPerKg);
     let carbs = 0;
     let trainingCarbs = 0;
     let restCarbs = 0;
 
     if (protocol === 'low_carb_keto') {
-      protein = Math.round(weightKg * 2.0);
+      protein = Math.round(numWeight * 2.0);
       carbs = 40;
       const remainingCals = targetCalories - (protein * 4 + carbs * 4);
       fat = Math.max(30, Math.round(remainingCals / 9));
     } else if (protocol === 'carb_cycling') {
-      protein = Math.round(weightKg * proteinGPerKg);
-      fat = Math.round(weightKg * fatGPerKg);
+      protein = Math.round(numWeight * proteinGPerKg);
+      fat = Math.round(numWeight * fatGPerKg);
       const remainingCals = targetCalories - (protein * 4 + fat * 9);
       carbs = Math.max(50, Math.round(remainingCals / 4));
       trainingCarbs = Math.round(carbs * 1.3);
@@ -183,8 +187,10 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
                 <label className="text-slate-500">Edad</label>
                 <input
                   type="number"
+                  placeholder="0"
                   value={age}
-                  onChange={e => setAge(Number(e.target.value))}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setAge(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
                 />
               </div>
@@ -192,8 +198,10 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
                 <label className="text-slate-500">Altura (cm)</label>
                 <input
                   type="number"
+                  placeholder="0"
                   value={heightCm}
-                  onChange={e => setHeightCm(Number(e.target.value))}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setHeightCm(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white"
                 />
               </div>
@@ -202,8 +210,10 @@ export const MacroCalculator: React.FC<MacroCalculatorProps> = ({ profile, onApp
                 <input
                   type="number"
                   step="0.1"
+                  placeholder="0.0"
                   value={weightKg}
-                  onChange={e => setWeightKg(Number(e.target.value))}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setWeightKg(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-[#FF6B00] font-bold"
                 />
               </div>

@@ -113,8 +113,10 @@ export const FitnessTools: React.FC = () => {
                 <input
                   type="number"
                   step="0.5"
+                  placeholder="0"
                   value={oneRmWeight}
-                  onChange={e => setOneRmWeight(Number(e.target.value))}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setOneRmWeight(e.target.value === '' ? ('' as any) : Number(e.target.value))}
                   className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white font-bold"
                 />
               </div>
@@ -124,8 +126,10 @@ export const FitnessTools: React.FC = () => {
                   type="number"
                   min="1"
                   max="20"
+                  placeholder="0"
                   value={oneRmReps}
-                  onChange={e => setOneRmReps(Number(e.target.value))}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setOneRmReps(e.target.value === '' ? ('' as any) : Number(e.target.value))}
                   className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white font-bold"
                 />
               </div>
@@ -161,8 +165,10 @@ export const FitnessTools: React.FC = () => {
               <input
                 type="number"
                 step="2.5"
+                placeholder="0"
                 value={targetBarWeight}
-                onChange={e => setTargetBarWeight(Number(e.target.value))}
+                onFocus={e => e.target.select()}
+                onChange={e => setTargetBarWeight(e.target.value === '' ? ('' as any) : Number(e.target.value))}
                 className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-white font-bold"
               />
             </div>

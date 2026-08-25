@@ -43,10 +43,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
   // Form State
   const [foodMealType, setFoodMealType] = useState<MealType>('breakfast');
   const [foodName, setFoodName] = useState('');
-  const [foodCalories, setFoodCalories] = useState(250);
-  const [foodProtein, setFoodProtein] = useState(25);
-  const [foodCarbs, setFoodCarbs] = useState(25);
-  const [foodFat, setFoodFat] = useState(5);
+  const [foodCalories, setFoodCalories] = useState<number | ''>(250);
+  const [foodProtein, setFoodProtein] = useState<number | ''>(25);
+  const [foodCarbs, setFoodCarbs] = useState<number | ''>(25);
+  const [foodFat, setFoodFat] = useState<number | ''>(5);
   const [foodPortion, setFoodPortion] = useState('1 ración');
   const [selectedRecipe, setSelectedRecipe] = useState<FitnessRecipe | null>(null);
 
@@ -72,10 +72,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
     await onAddFood(selectedDate, {
       meal_type: foodMealType,
       name: foodName,
-      calories: Number(foodCalories),
-      protein: Number(foodProtein),
-      carbs: Number(foodCarbs),
-      fat: Number(foodFat),
+      calories: Number(foodCalories) || 0,
+      protein: Number(foodProtein) || 0,
+      carbs: Number(foodCarbs) || 0,
+      fat: Number(foodFat) || 0,
       portion_size: foodPortion
     });
 
@@ -399,8 +399,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
                   <label className="text-slate-400">Calorías (kcal)</label>
                   <input
                     type="number"
+                    placeholder="0"
                     value={foodCalories}
-                    onChange={e => setFoodCalories(Number(e.target.value))}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setFoodCalories(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-amber-400 font-bold"
                   />
                 </div>
@@ -408,8 +410,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
                   <label className="text-slate-400">Proteína (g)</label>
                   <input
                     type="number"
+                    placeholder="0"
                     value={foodProtein}
-                    onChange={e => setFoodProtein(Number(e.target.value))}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setFoodProtein(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-[#FF3B30] font-bold"
                   />
                 </div>
@@ -420,8 +424,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
                   <label className="text-slate-400">Carbos (g)</label>
                   <input
                     type="number"
+                    placeholder="0"
                     value={foodCarbs}
-                    onChange={e => setFoodCarbs(Number(e.target.value))}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setFoodCarbs(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-[#38BDF8] font-bold"
                   />
                 </div>
@@ -429,8 +435,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({
                   <label className="text-slate-400">Grasas (g)</label>
                   <input
                     type="number"
+                    placeholder="0"
                     value={foodFat}
-                    onChange={e => setFoodFat(Number(e.target.value))}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setFoodFat(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-3 py-2 text-[#30D158] font-bold"
                   />
                 </div>

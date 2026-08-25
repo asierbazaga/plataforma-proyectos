@@ -72,207 +72,31 @@ const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
   age: 28,
   gender: 'male',
   height_cm: 178,
-  current_weight: 78.5,
-  target_weight: 74.0,
+  current_weight: 75.0,
+  target_weight: 70.0,
   activity_level: 'moderate',
   goal: 'fat_loss',
   deficit_surplus_pct: -20,
-  target_calories: 2150,
-  target_protein: 165,
-  target_carbs: 210,
+  target_calories: 2000,
+  target_protein: 160,
+  target_carbs: 190,
   target_fat: 65,
-  target_water_ml: 3000,
+  target_water_ml: 2800,
   target_daily_steps: 10000,
   carb_cycling_enabled: false,
-  training_day_carbs: 240,
-  rest_day_carbs: 160,
+  training_day_carbs: 220,
+  rest_day_carbs: 150,
+  onboarding_completed: false,
   updated_at: new Date().toISOString()
 };
 
-const DEFAULT_WORKOUTS: FitnessWorkout[] = [
-  {
-    id: 'wk-1',
-    title: 'Push - Pecho, Hombro y Tríceps',
-    category: 'Fuerza',
-    duration_minutes: 55,
-    calories_burned: 440,
-    workout_date: '2026-08-22',
-    notes: 'Excelente congestión. Subí peso en banca a 80kg.',
-    heart_rate_avg: 138,
-    heart_rate_max: 164,
-    cardio_zone: 'Z3 Aeróbico / Z4 Umbral',
-    polar_training_load: 'Alta',
-    polar_energy_carbs_pct: 68,
-    polar_energy_fat_pct: 27,
-    polar_energy_protein_pct: 5,
-    perceived_exertion: 8,
-    exercises: [
-      {
-        id: 'e1',
-        exercise_id: 'ex-bench-press',
-        name: 'Press de Banca con Barra',
-        muscle_group: 'Pecho',
-        equipment: 'Barra',
-        sets: [
-          { id: 's1', set_number: 1, type: 'warmup', reps: 12, weight_kg: 50, completed: true, rest_seconds: 90 },
-          { id: 's2', set_number: 2, type: 'normal', reps: 8, weight_kg: 75, rpe: 8, rir: 2, completed: true, rest_seconds: 120 },
-          { id: 's3', set_number: 3, type: 'normal', reps: 7, weight_kg: 80, rpe: 9, rir: 1, completed: true, rest_seconds: 150 },
-          { id: 's4', set_number: 4, type: 'failure', reps: 6, weight_kg: 80, rpe: 10, rir: 0, completed: true, rest_seconds: 120 }
-        ]
-      },
-      {
-        id: 'e2',
-        exercise_id: 'ex-db-incline-press',
-        name: 'Press Inclinado con Mancuernas',
-        muscle_group: 'Pecho',
-        equipment: 'Mancuernas',
-        sets: [
-          { id: 's5', set_number: 1, type: 'normal', reps: 10, weight_kg: 28, rpe: 8, rir: 2, completed: true, rest_seconds: 90 },
-          { id: 's6', set_number: 2, type: 'normal', reps: 9, weight_kg: 28, rpe: 9, rir: 1, completed: true, rest_seconds: 90 },
-          { id: 's7', set_number: 3, type: 'normal', reps: 8, weight_kg: 28, rpe: 9.5, rir: 0.5, completed: true, rest_seconds: 90 }
-        ]
-      },
-      {
-        id: 'e3',
-        exercise_id: 'ex-db-lateral-raises',
-        name: 'Elevaciones Laterales con Mancuernas',
-        muscle_group: 'Hombros',
-        equipment: 'Mancuernas',
-        sets: [
-          { id: 's8', set_number: 1, type: 'normal', reps: 15, weight_kg: 12, rpe: 8, rir: 2, completed: true, rest_seconds: 60 },
-          { id: 's9', set_number: 2, type: 'normal', reps: 14, weight_kg: 12, rpe: 9, rir: 1, completed: true, rest_seconds: 60 },
-          { id: 's10', set_number: 3, type: 'drop_set', reps: 12, weight_kg: 12, rpe: 10, rir: 0, completed: true, rest_seconds: 60 }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'wk-2',
-    title: 'Cardio Polar Zona 2 + Core',
-    category: 'Cardio',
-    duration_minutes: 40,
-    calories_burned: 360,
-    workout_date: '2026-08-20',
-    notes: 'Ritmo constante en zona de quema de grasa (130 ppm media).',
-    heart_rate_avg: 131,
-    heart_rate_max: 146,
-    cardio_zone: 'Z2 Quema Grasa',
-    polar_training_load: 'Media',
-    polar_energy_carbs_pct: 42,
-    polar_energy_fat_pct: 54,
-    polar_energy_protein_pct: 4,
-    perceived_exertion: 6
-  }
-];
+const DEFAULT_WORKOUTS: FitnessWorkout[] = [];
 
-const DEFAULT_NUTRITION_LOGS: DailyNutritionLog[] = [
-  {
-    id: 'nut-today',
-    date: '2026-08-23',
-    water_ml: 2250,
-    meals: [
-      {
-        id: 'm1',
-        meal_type: 'breakfast',
-        name: 'Bowl de Avena con Proteína y Arándanos',
-        calories: 420,
-        protein: 36,
-        carbs: 48,
-        fat: 10,
-        portion_size: '1 ración'
-      },
-      {
-        id: 'm2',
-        meal_type: 'lunch',
-        name: 'Pechuga de Pollo con Arroz Jazmín y Brócoli',
-        calories: 520,
-        protein: 48,
-        carbs: 60,
-        fat: 9,
-        portion_size: '1 plato grande'
-      },
-      {
-        id: 'm3',
-        meal_type: 'snack',
-        name: 'Yogur Griego 0% con Nueces y Plátano',
-        calories: 280,
-        protein: 22,
-        carbs: 32,
-        fat: 8,
-        portion_size: '200g yogur + 15g nueces'
-      }
-    ],
-    notes: 'Día de entrenamiento. Muy buena energía.'
-  }
-];
+const DEFAULT_NUTRITION_LOGS: DailyNutritionLog[] = [];
 
-const DEFAULT_BODY_PROGRESS: BodyProgressEntry[] = [
-  {
-    id: 'bp-1',
-    date: '2026-08-01',
-    weight: 80.2,
-    body_fat_percentage: 18.5,
-    waist_cm: 86,
-    chest_cm: 104,
-    arm_cm: 37.0,
-    thigh_cm: 58.5,
-    notes: 'Inicio de la fase de definición y recomposición.'
-  },
-  {
-    id: 'bp-2',
-    date: '2026-08-08',
-    weight: 79.6,
-    body_fat_percentage: 18.0,
-    waist_cm: 85.5,
-    chest_cm: 104,
-    arm_cm: 37.0,
-    thigh_cm: 58.0,
-    notes: 'Buena pérdida de retención inicial.'
-  },
-  {
-    id: 'bp-3',
-    date: '2026-08-15',
-    weight: 79.1,
-    body_fat_percentage: 17.5,
-    waist_cm: 84.8,
-    chest_cm: 104.5,
-    arm_cm: 37.2,
-    thigh_cm: 57.8,
-    notes: 'Fuerza mantenida en presses.'
-  },
-  {
-    id: 'bp-4',
-    date: '2026-08-22',
-    weight: 78.5,
-    body_fat_percentage: 16.9,
-    waist_cm: 84.0,
-    chest_cm: 104.5,
-    arm_cm: 37.3,
-    thigh_cm: 57.5,
-    notes: 'Cintura bajando consistentemente.'
-  }
-];
+const DEFAULT_BODY_PROGRESS: BodyProgressEntry[] = [];
 
-const DEFAULT_POLAR_METRICS: PolarGritMetrics[] = [
-  {
-    id: 'pol-1',
-    date: '2026-08-23',
-    nightly_recharge_status: 'Muy Bueno',
-    ans_charge: 5.8,
-    sleep_score: 88,
-    resting_hr: 48,
-    max_hr: 186,
-    vo2_max_running_index: 54,
-    cardio_load_status: 'Productivo',
-    cardio_load_ratio: 1.15,
-    cardio_z1_z2_min: 35,
-    cardio_z3_min: 20,
-    cardio_z4_z5_min: 15,
-    daily_steps: 11420,
-    polar_calories: 2680,
-    fitspark_recommendation: 'Excelente recuperación nocturna. Tu sistema nervioso está listo para un entrenamiento de Fuerza / Hipertrofia de alta intensidad o series pesadas.'
-  }
-];
+const DEFAULT_POLAR_METRICS: PolarGritMetrics[] = [];
 
 const DEFAULT_EXPENSES: ExpenseItem[] = [];
 
@@ -860,6 +684,27 @@ class StorageService {
       withTimeout(supabase.from('fitness_polar_metrics').upsert(item)).catch(() => {});
     }
     return item;
+  }
+
+  async resetFitnessData(): Promise<void> {
+    this.setLocal('fitness_profile', DEFAULT_FITNESS_PROFILE);
+    this.setLocal('workouts', []);
+    this.setLocal('nutrition_logs', []);
+    this.setLocal('body_progress', []);
+    this.setLocal('polar_metrics', []);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await Promise.allSettled([
+          withTimeout(supabase.from('fitness_profiles').delete().neq('id', '0')),
+          withTimeout(supabase.from('fitness_workouts').delete().neq('id', '0')),
+          withTimeout(supabase.from('fitness_nutrition_logs').delete().neq('id', '0')),
+          withTimeout(supabase.from('fitness_body_progress').delete().neq('id', '0')),
+          withTimeout(supabase.from('fitness_polar_metrics').delete().neq('id', '0'))
+        ]);
+      } catch (e) {}
+    }
   }
 
   // ==========================================

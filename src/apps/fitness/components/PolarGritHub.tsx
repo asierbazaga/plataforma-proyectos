@@ -184,15 +184,37 @@ export const PolarGritHub: React.FC<PolarGritHubProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="text-slate-400">Carga SNA</label>
-                  <input type="number" step="0.1" value={ansCharge} onChange={e => setAnsCharge(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-white" />
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="0"
+                    value={ansCharge}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setAnsCharge(e.target.value === '' ? ('' as any) : Number(e.target.value))}
+                    className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-white"
+                  />
                 </div>
                 <div>
                   <label className="text-slate-400">Sueño (pts)</label>
-                  <input type="number" value={sleepScore} onChange={e => setSleepScore(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-white" />
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={sleepScore}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setSleepScore(e.target.value === '' ? ('' as any) : Number(e.target.value))}
+                    className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-white"
+                  />
                 </div>
                 <div>
                   <label className="text-slate-400">FC Reposo</label>
-                  <input type="number" value={restingHr} onChange={e => setRestingHr(Number(e.target.value))} className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-white" />
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={restingHr}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setRestingHr(e.target.value === '' ? ('' as any) : Number(e.target.value))}
+                    className="w-full mt-1 bg-[#090C15] border border-white/5 rounded-xl px-2 py-1.5 text-white"
+                  />
                 </div>
               </div>
 
