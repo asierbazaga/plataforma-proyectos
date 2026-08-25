@@ -66,6 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storageService.syncFromCloud().then(() => {
       refreshData();
     });
+
+    const unsubscribe = storageService.onSync(() => {
+      refreshData();
+    });
+    return () => unsubscribe();
   }, []);
 
   const login = async (identifier: string, password?: string): Promise<{ success: boolean; error?: string }> => {

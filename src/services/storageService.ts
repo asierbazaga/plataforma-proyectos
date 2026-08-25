@@ -717,9 +717,6 @@ class StorageService {
 
   private getUserKey(baseKey: string, userId?: string): string {
     if (!userId) return baseKey;
-    if (userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' || userId.includes('asier')) {
-      return baseKey;
-    }
     return `${baseKey}_${userId}`;
   }
 
@@ -727,19 +724,18 @@ class StorageService {
   // FITNESS & SALUD INTEGRAL (CAMBIO FÍSICO + POLAR)
   // ==========================================
   async getFitnessProfile(userId?: string): Promise<FitnessProfile> {
-    const isAsier = !userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' || userId.includes('asier');
     const key = this.getUserKey('fitness_profile', userId);
     const defaultProfile: FitnessProfile = {
       ...DEFAULT_FITNESS_PROFILE,
       user_id: userId,
-      onboarding_completed: isAsier ? true : false,
-      current_weight: isAsier ? 95.7 : 75.0
+      onboarding_completed: false,
+      current_weight: 75.0
     };
 
     if (isSupabaseConfigured && supabase) {
       try {
         let query = supabase.from('fitness_profiles').select('*');
-        if (userId && userId !== 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' && !userId.includes('asier')) {
+        if (userId) {
           query = query.eq('user_id', userId);
         }
         query = query.order('updated_at', { ascending: false }).limit(1);
@@ -747,18 +743,15 @@ class StorageService {
         const res = await withTimeout(query, 3000);
         if (!res.error && res.data && res.data.length > 0) {
           const remote = res.data[0] as FitnessProfile;
-          if (isAsier) {
-            remote.onboarding_completed = true;
-            if (!remote.current_weight || remote.current_weight < 80) {
-              remote.current_weight = 95.7;
-            }
-          }
           this.setLocal(key, remote);
+          if (!userId || userId === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') {
+            this.setLocal('fitness_profile', remote);
+          }
           return remote;
         }
       } catch (e) {}
     }
-    return this.getLocal(key, defaultProfile);
+    return this.getLocal(key, this.getLocal('fitness_profile', defaultProfile));
   }
 
   async updateFitnessProfile(updates: Partial<FitnessProfile>, userId?: string): Promise<FitnessProfile> {
@@ -1257,16 +1250,17 @@ class StorageService {
   // BIBLIOTECA (LIBROS & JUEGOS)
   // ==========================================
   async getLibrary(): Promise<LibraryItem[]> {
-    const local = this.getLocal('library', DEFAULT_LIBRARY);
+    const key = 'library';
     if (isSupabaseConfigured && supabase) {
-      withTimeout(supabase.from('user_library').select('*'), 5000).then(res => {
+      try {
+        const res = await withTimeout(supabase.from('user_library').select('*'), 3000);
         if (!res.error && res.data && res.data.length > 0) {
-          this.setLocal('library', res.data as LibraryItem[]);
-          this.broadcastChange();
+          this.setLocal(key, res.data as LibraryItem[]);
+          return res.data as LibraryItem[];
         }
-      }).catch(() => {});
+      } catch (e) {}
     }
-    return local;
+    return this.getLocal(key, DEFAULT_LIBRARY);
   }
 
   async addLibraryItem(item: Omit<LibraryItem, 'id'>): Promise<LibraryItem> {
@@ -1295,6 +1289,18 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       withTimeout(supabase.from('user_library').update(updates).eq('id', id), 6000)
         .catch(() => this.queueOfflineMutation('user_library', 'upsert', { id, ...updates }));
+    }
+  }
+
+  async deleteLibraryItem(id: string): Promise<void> {
+    const current = this.getLocal('library', DEFAULT_LIBRARY);
+    const updated = current.filter(item => item.id !== id);
+    this.setLocal('library', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      withTimeout(supabase.from('user_library').delete().eq('id', id), 6000)
+        .catch(() => this.queueOfflineMutation('user_library', 'delete', { id }));
     }
   }
 
