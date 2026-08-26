@@ -196,7 +196,8 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
   // B) Búsqueda por catálogo de nombres de pila comunes españoles + apellidos (ej. "Pelayo García García")
   if (!fullName) {
     for (const firstName of COMMON_FIRST_NAMES) {
-      const namePattern = new RegExp(`\\b(${firstName}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`, 'i');
+      // Patrón ultra-permisivo: Nombre + 1 o 2 palabras de al menos 2 letras
+      const namePattern = new RegExp(`(?:^|\\s)(${firstName}(?:\\s+[A-ZÁÉÍÓÚÑa-záéíóúñ]{2,}){1,2})(?:\\s|$)`, 'i');
       const match = cleanNoEmails.match(namePattern);
       if (match && match[1]) {
         const found = match[1].trim();
@@ -223,7 +224,7 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
       .filter(w => w.length >= 3);
 
     for (const hint of baseWords) {
-      const hintRegex = new RegExp(`\\b(${hint}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`, 'i');
+      const hintRegex = new RegExp(`(?:^|\\s)(${hint}(?:\\s+[A-ZÁÉÍÓÚÑa-záéíóúñ]{2,}){1,2})(?:\\s|$)`, 'i');
       const m = cleanNoEmails.match(hintRegex);
       if (m && m[1]) {
         const words = m[1].trim().split(/\s+/).filter(w => w.length > 1);
