@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { CandidateInterview, MecaluxCompetencyRubric, MecaluxCompetencySection } from '../../../types';
 import { MECALUX_RUBRICS } from './mecaluxRubrics';
 
@@ -10,19 +9,20 @@ export class ExcelInterviewService {
    * 3. Softskills
    * 4. Resultado
    */
-  static exportCandidateToExcel(candidate: CandidateInterview): void {
+  static async exportCandidateToExcel(candidate: CandidateInterview): Promise<void> {
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
 
     // 1. Hoja Competencias Profesionales
-    const wsProf = this.createSectionSheet('Competencias Profesionales', candidate);
+    const wsProf = this.createSectionSheet(XLSX, 'Competencias Profesionales', candidate);
     XLSX.utils.book_append_sheet(wb, wsProf, 'Competencias Profesionales');
 
     // 3. Hoja Softskills
-    const wsSoft = this.createSectionSheet('Softskills', candidate);
+    const wsSoft = this.createSectionSheet(XLSX, 'Softskills', candidate);
     XLSX.utils.book_append_sheet(wb, wsSoft, 'Softskills');
 
     // 4. Hoja Resultado
-    const wsResultado = this.createResultadoSheet(candidate);
+    const wsResultado = this.createResultadoSheet(XLSX, candidate);
     XLSX.utils.book_append_sheet(wb, wsResultado, 'Resultado');
 
     // Generar y descargar archivo
@@ -35,7 +35,7 @@ export class ExcelInterviewService {
    * Crea una hoja para una sección específica (Framework, Competencias Profesionales o Softskills)
    * replicando exactamente la estructura de filas y columnas del Excel de Mecalux.
    */
-  private static createSectionSheet(section: MecaluxCompetencySection, candidate: CandidateInterview): XLSX.WorkSheet {
+  private static createSectionSheet(XLSX: any, section: MecaluxCompetencySection, candidate: CandidateInterview): any {
     const rubrics = MECALUX_RUBRICS.filter(r => r.section === section);
     const rows: any[][] = [];
 
@@ -114,7 +114,7 @@ export class ExcelInterviewService {
   /**
    * Crea la hoja de "Resultado" con resumen ejecutivo, métricas, pros/cons y conclusiones.
    */
-  private static createResultadoSheet(candidate: CandidateInterview): XLSX.WorkSheet {
+  private static createResultadoSheet(XLSX: any, candidate: CandidateInterview): any {
     const rows: any[][] = [];
 
     rows.push(['MECALUX - DICTAMEN FINAL DE ENTREVISTA (TEAM LEADER)', '', '', '']);
@@ -181,7 +181,8 @@ export class ExcelInterviewService {
   /**
    * Exporta la matriz global con todos los candidatos entrevistados.
    */
-  static exportAllCandidatesSummary(candidates: CandidateInterview[]): void {
+  static async exportAllCandidatesSummary(candidates: CandidateInterview[]): Promise<void> {
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const rows: any[][] = [];
 
@@ -233,6 +234,7 @@ export class ExcelInterviewService {
    * Lee un archivo Excel o CSV y extrae datos de candidatos o rellena evaluaciones existentes.
    */
   static async importCandidatesFromExcel(file: File): Promise<Partial<CandidateInterview>[]> {
+    const XLSX = await import('xlsx');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {

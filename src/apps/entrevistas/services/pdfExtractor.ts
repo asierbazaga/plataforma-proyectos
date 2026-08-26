@@ -1,18 +1,5 @@
-import * as pdfjsLib from 'pdfjs-dist';
-// Importar worker local vía URL de Vite para no depender de CDN externo ni fallos de red
+// Worker url via Vite for async loading
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-if (typeof window !== 'undefined') {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
-  } catch (e) {
-    try {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-    } catch (err) {
-      console.warn('No se pudo inicializar worker de PDF.js', err);
-    }
-  }
-}
 
 interface PdfTextItem {
   str: string;
@@ -116,6 +103,21 @@ function extractPageTextWithColumns(items: PdfTextItem[]): string {
  */
 export async function extractTextFromPdfFile(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
+  
+  // Dynamic import for pdfjs to avoid heavy initial bundle
+  const pdfjsLib = await import('pdfjs-dist');
+  
+  if (typeof window !== 'undefined') {
+    try {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+    } catch (e) {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      } catch (err) {
+        console.warn('No se pudo inicializar worker de PDF.js', err);
+      }
+    }
+  }
 
   try {
     const loadingTask = pdfjsLib.getDocument({

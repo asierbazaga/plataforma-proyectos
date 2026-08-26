@@ -340,111 +340,140 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     }
   };
 
-  // Filtro de movimientos según cartera seleccionada
-  const filteredExpenses = expenses.filter(e => {
-    if (selectedWallet === 'all') return true;
-    return (e.account || 'abanca') === selectedWallet;
-  });
-
   // Cálculos por Cartera
-  // 1. Abanca Personal
-  const abancaIncome = expenses.filter(e => (e.account || 'abanca') === 'abanca' && e.type === 'income').reduce((acc, c) => acc + c.amount, 0);
-  const abancaExpense = expenses.filter(e => (e.account || 'abanca') === 'abanca' && e.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
-  const abancaBalance = abancaIncome - abancaExpense;
+  const {
+    abancaIncome, abancaExpense, abancaBalance,
+    ingIncome, ingExpense, ingBalance,
+    totalIncome, totalExpense, netBalance,
+    filteredExpenses
+  } = React.useMemo(() => {
+    const filtered = expenses.filter(e => {
+      if (selectedWallet === 'all') return true;
+      return (e.account || 'abanca') === selectedWallet;
+    });
 
-  // 2. ING Conjunta (con Lore)
-  const ingIncome = expenses.filter(e => e.account === 'ing' && e.type === 'income').reduce((acc, c) => acc + c.amount, 0);
-  const ingExpense = expenses.filter(e => e.account === 'ing' && e.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
-  const ingBalance = ingIncome - ingExpense;
-
-  // 3. Totales Filtrados
-  const totalIncome = filteredExpenses.filter(e => e.type === 'income').reduce((acc, c) => acc + c.amount, 0);
-  const totalExpense = filteredExpenses.filter(e => e.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
-  const netBalance = totalIncome - totalExpense;
-
-  // Totales de Objetivos
-  const totalTargetGoals = goals.reduce((acc, g) => acc + g.target_amount, 0);
-  const totalSavedGoals = goals.reduce((acc, g) => acc + g.current_amount, 0);
-  const totalGoalsPct = totalTargetGoals > 0 ? (totalSavedGoals / totalTargetGoals) * 100 : 0;
-
-  // CÁLCULO DE DISTRIBUCIÓN POR CATEGORÍA PARA EL GRÁFICO
-  const onlyExpenses = filteredExpenses.filter(e => e.type === 'expense');
-  const totalExpenseSum = onlyExpenses.reduce((acc, c) => acc + c.amount, 0);
-
-  const categoryBreakdown = Object.keys(CATEGORY_META).map(catName => {
-    const catTotal = onlyExpenses.filter(e => e.category === catName).reduce((acc, c) => acc + c.amount, 0);
-    const catPct = totalExpenseSum > 0 ? (catTotal / totalExpenseSum) * 100 : 0;
-    const meta = CATEGORY_META[catName] || { icon: '📦', color: '#64748B' };
-    const budgetObj = budgets.find(b => b.category === catName);
-    const monthlyLimit = budgetObj ? budgetObj.monthly_limit : 200;
-    const budgetConsumedPct = monthlyLimit > 0 ? (catTotal / monthlyLimit) * 100 : 0;
+    const abInc = expenses.filter(e => (e.account || 'abanca') === 'abanca' && e.type === 'income').reduce((acc, c) => acc + c.amount, 0);
+    const abExp = expenses.filter(e => (e.account || 'abanca') === 'abanca' && e.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
+    const inInc = expenses.filter(e => e.account === 'ing' && e.type === 'income').reduce((acc, c) => acc + c.amount, 0);
+    const inExp = expenses.filter(e => e.account === 'ing' && e.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
+    
+    const tInc = filtered.filter(e => e.type === 'income').reduce((acc, c) => acc + c.amount, 0);
+    const tExp = filtered.filter(e => e.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
 
     return {
-      category: catName,
-      total: catTotal,
-      percentage: catPct,
-      icon: meta.icon,
-      color: meta.color,
-      monthlyLimit,
-      budgetConsumedPct
+      abancaIncome: abInc, abancaExpense: abExp, abancaBalance: abInc - abExp,
+      ingIncome: inInc, ingExpense: inExp, ingBalance: inInc - inExp,
+      totalIncome: tInc, totalExpense: tExp, netBalance: tInc - tExp,
+      filteredExpenses: filtered
     };
-  }).filter(item => item.total > 0 || item.monthlyLimit > 0)
-    .sort((a, b) => b.total - a.total);
+  }, [expenses, selectedWallet]);
 
-  // Total Presupuesto Mensual
-  const totalMonthlyBudget = budgets.reduce((acc, b) => acc + b.monthly_limit, 0);
-  const totalBudgetConsumedPct = totalMonthlyBudget > 0 ? (totalExpenseSum / totalMonthlyBudget) * 100 : 0;
+  // Totales de Objetivos
+  const { totalTargetGoals, totalSavedGoals, totalGoalsPct } = React.useMemo(() => {
+    const tTarget = goals.reduce((acc, g) => acc + g.target_amount, 0);
+    const tSaved = goals.reduce((acc, g) => acc + g.current_amount, 0);
+    return {
+      totalTargetGoals: tTarget,
+      totalSavedGoals: tSaved,
+      totalGoalsPct: tTarget > 0 ? (tSaved / tTarget) * 100 : 0
+    };
+  }, [goals]);
+
+  // CÁLCULO DE DISTRIBUCIÓN POR CATEGORÍA PARA EL GRÁFICO
+  const { categoryBreakdown, totalMonthlyBudget, totalBudgetConsumedPct } = React.useMemo(() => {
+    const onlyExpenses = filteredExpenses.filter(e => e.type === 'expense');
+    const totalExpenseSum = onlyExpenses.reduce((acc, c) => acc + c.amount, 0);
+
+    const breakdown = Object.keys(CATEGORY_META).map(catName => {
+      const catTotal = onlyExpenses.filter(e => e.category === catName).reduce((acc, c) => acc + c.amount, 0);
+      const catPct = totalExpenseSum > 0 ? (catTotal / totalExpenseSum) * 100 : 0;
+      const meta = CATEGORY_META[catName] || { icon: '📦', color: '#64748B' };
+      const budgetObj = budgets.find(b => b.category === catName);
+      const monthlyLimit = budgetObj ? budgetObj.monthly_limit : 200;
+      const budgetConsumedPct = monthlyLimit > 0 ? (catTotal / monthlyLimit) * 100 : 0;
+
+      return {
+        category: catName,
+        total: catTotal,
+        percentage: catPct,
+        icon: meta.icon,
+        color: meta.color,
+        monthlyLimit,
+        budgetConsumedPct
+      };
+    }).filter(item => item.total > 0 || item.monthlyLimit > 0)
+      .sort((a, b) => b.total - a.total);
+
+    const tMonthlyBudget = budgets.reduce((acc, b) => acc + b.monthly_limit, 0);
+    const tBudgetConsumedPct = tMonthlyBudget > 0 ? (totalExpenseSum / tMonthlyBudget) * 100 : 0;
+
+    return {
+      categoryBreakdown: breakdown,
+      totalMonthlyBudget: tMonthlyBudget,
+      totalBudgetConsumedPct: tBudgetConsumedPct
+    };
+  }, [filteredExpenses, budgets]);
 
   // =========================================================================
   // CÁLCULO DE COMPARATIVA MES A MES (HISTÓRICO ÚLTIMOS 6 MESES)
   // =========================================================================
-  const currentDate = new Date();
-  const last6Months = Array.from({ length: 6 }).map((_, i) => {
-    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - (5 - i), 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const label = `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
-    const fullLabel = `${d.toLocaleString('es-ES', { month: 'long' })} ${d.getFullYear()}`;
+  const { last6Months, currentMonthData, previousMonthData, expenseDiff, incomeDiff, savingsDiff, maxMonthlyBar } = React.useMemo(() => {
+    const currentDate = new Date();
+    const l6m = Array.from({ length: 6 }).map((_, i) => {
+      const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - (5 - i), 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const label = `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
+      const fullLabel = `${d.toLocaleString('es-ES', { month: 'long' })} ${d.getFullYear()}`;
 
-    const monthExpenses = filteredExpenses.filter(e => String(e.transaction_date || '').startsWith(key) && e.type === 'expense');
-    const monthIncomes = filteredExpenses.filter(e => String(e.transaction_date || '').startsWith(key) && e.type === 'income');
+      const monthExpenses = filteredExpenses.filter(e => String(e.transaction_date || '').startsWith(key) && e.type === 'expense');
+      const monthIncomes = filteredExpenses.filter(e => String(e.transaction_date || '').startsWith(key) && e.type === 'income');
 
-    const expenseTotal = monthExpenses.reduce((acc, c) => acc + c.amount, 0);
-    const incomeTotal = monthIncomes.reduce((acc, c) => acc + c.amount, 0);
-    const netSavings = incomeTotal - expenseTotal;
-    const savingsRate = incomeTotal > 0 ? (netSavings / incomeTotal) * 100 : 0;
+      const expenseTotal = monthExpenses.reduce((acc, c) => acc + c.amount, 0);
+      const incomeTotal = monthIncomes.reduce((acc, c) => acc + c.amount, 0);
+      const netSavings = incomeTotal - expenseTotal;
+      const savingsRate = incomeTotal > 0 ? (netSavings / incomeTotal) * 100 : 0;
+
+      return {
+        key,
+        label,
+        fullLabel,
+        expenseTotal,
+        incomeTotal,
+        netSavings,
+        savingsRate,
+        isCurrent: i === 5
+      };
+    });
+
+    const curr = l6m[5];
+    const prev = l6m[4];
+
+    const eDiff = prev.expenseTotal > 0
+      ? ((curr.expenseTotal - prev.expenseTotal) / prev.expenseTotal) * 100
+      : 0;
+
+    const iDiff = prev.incomeTotal > 0
+      ? ((curr.incomeTotal - prev.incomeTotal) / prev.incomeTotal) * 100
+      : 0;
+
+    const sDiff = curr.netSavings - prev.netSavings;
+
+    const maxBar = Math.max(
+      ...l6m.map(m => Math.max(m.expenseTotal, m.incomeTotal)),
+      100
+    );
 
     return {
-      key,
-      label,
-      fullLabel,
-      expenseTotal,
-      incomeTotal,
-      netSavings,
-      savingsRate,
-      isCurrent: i === 5
+      last6Months: l6m,
+      currentMonthData: curr,
+      previousMonthData: prev,
+      expenseDiff: eDiff,
+      incomeDiff: iDiff,
+      savingsDiff: sDiff,
+      maxMonthlyBar: maxBar
     };
-  });
-
-  const currentMonthData = last6Months[5];
-  const previousMonthData = last6Months[4];
-
-  // Diferencia porcentual de gastos e ingresos
-  const expenseDiff = previousMonthData.expenseTotal > 0
-    ? ((currentMonthData.expenseTotal - previousMonthData.expenseTotal) / previousMonthData.expenseTotal) * 100
-    : 0;
-
-  const incomeDiff = previousMonthData.incomeTotal > 0
-    ? ((currentMonthData.incomeTotal - previousMonthData.incomeTotal) / previousMonthData.incomeTotal) * 100
-    : 0;
-
-  const savingsDiff = currentMonthData.netSavings - previousMonthData.netSavings;
-
-  // Escala máxima para las barras visuales
-  const maxMonthlyBar = Math.max(
-    ...last6Months.map(m => Math.max(m.expenseTotal, m.incomeTotal)),
-    100
-  );
+  }, [filteredExpenses]);
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 font-sans">
