@@ -103,15 +103,28 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
   };
 
   const handleSaveFromModal = async (candidate: CandidateInterview, startNow?: boolean) => {
-    await storageService.saveInterviewCandidate(candidate, currentUser?.id);
-    await loadCandidates();
-    setSelectedCandidateId(candidate.id);
+    // Optimistic UI: Cerrar modal y cambiar de pestaña instantáneamente
     setIsModalOpen(false);
     setCandidateToEdit(null);
+    setSelectedCandidateId(candidate.id);
 
     if (startNow) {
       setActiveTab('interview');
     }
+
+    // Actualizar también la lista local inmediatamente para que el componente no se quede sin datos
+    setCandidates(prev => {
+      const exists = prev.find(c => c.id === candidate.id);
+      if (exists) {
+        return prev.map(c => c.id === candidate.id ? candidate : c);
+      }
+      return [candidate, ...prev];
+    });
+
+    // Guardar en background sin bloquear la interfaz
+    storageService.saveInterviewCandidate(candidate, currentUser?.id).then(() => {
+      loadCandidates();
+    }).catch(console.error);
   };
 
   const handleImportCandidates = async (imported: Partial<CandidateInterview>[]) => {
