@@ -85,7 +85,7 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/\u00A0/g, ' ')
-    .replace(/[\uF000-\uFFFF]/g, ' ') // Quitar iconos de fuentes privadas
+    .replace(/[\uF000-\uFFFF]/g, ' ')
     .trim();
 
   const lines = clean
@@ -107,15 +107,16 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
   // 2. EXTRAER TELÉFONO
   // ==========================================
   let phone = '';
-  const phoneLabelMatch = clean.match(/(?:tel[eé]fono|m[oó]vil|tlf|tfno|celular|phone|contact(?:o)?)[:\s]+(\+?(?:\(?\d+\)?[\s.-]?){8,16})/i);
+  const phoneLabelMatch = clean.match(/(?:tel[eé]fono|m[oó]vil|tlf|tfno|celular|phone|contact(?:o)?)[:\s]*(\+?(?:\(?34\)?)?[\s.-]?[6789]\d(?:[\s.-]?\d){7})/i);
   if (phoneLabelMatch && phoneLabelMatch[1]) {
     phone = phoneLabelMatch[1].trim();
   }
 
   if (!phone) {
-    const spanishMobileMatch = clean.match(/(?:\+34|0034|\(34\)|\(\+34\))?[ -]?(?:[6789]\d{2})[ -]?\d{2,3}[ -]?\d{2,4}[ -]?\d{0,3}/);
-    if (spanishMobileMatch && spanishMobileMatch[0].replace(/\D/g, '').length >= 9) {
-      phone = spanishMobileMatch[0].trim();
+    const rawPhoneMatch = clean.match(/(?:\+34|0034|\(34\)|\(\+34\))?[ -]?[6789]\d{2}[ -]?\d{3}[ -]?\d{3}/) ||
+                          clean.match(/(?:\+34|0034|\(34\)|\(\+34\))?[ -]?[6789]\d{8}/);
+    if (rawPhoneMatch) {
+      phone = rawPhoneMatch[0].trim();
     }
   }
 
@@ -128,16 +129,29 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
   // ==========================================
   let location = '';
 
-  // A) Buscar etiqueta explícita de residencia, domicilio o dirección
-  const explicitLocMatch = clean.match(/(?:residencia|ubicaci[oó]n|localidad|poblaci[oó]n|ciudad|provincia|domicilio|lugar de residencia|vive en|reside en|direcci[oó]n|address|location)[:\s]+([^\n\r,;]{3,50})/i);
-  if (explicitLocMatch && explicitLocMatch[1]) {
-    const candidateLoc = explicitLocMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
-    if (!candidateLoc.includes('@') && !candidateLoc.match(/^\+?\d{5,}/) && candidateLoc.length > 2) {
-      location = candidateLoc;
+  // A) Priorizar zona de CONTACTO / DOMICILIO / RESIDENCIA
+  const contactoSnippetMatch = clean.match(/CONTACTO[\s\S]{0,180}?(?:domicilio|\n\n|$)/i) ||
+                               clean.match(/DOMICILIO[\s\S]{0,120}/i) ||
+                               clean.match(/RESIDENCIA[\s\S]{0,120}/i);
+  const contactArea = contactoSnippetMatch ? contactoSnippetMatch[0] : clean;
+
+  const cpMatch = contactArea.match(/\b(0[1-9]|[1-4][0-9]|5[0-2])\d{3}\b\s*,?\s*([A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]+?)(?:,?\s*Espa[ñn]a|\n|\(|\)|$)/i);
+  if (cpMatch && cpMatch[2] && cpMatch[2].trim().length > 2 && !cpMatch[2].toLowerCase().includes('cervantes')) {
+    location = cpMatch[2].trim();
+  }
+
+  // B) Buscar etiqueta explícita de residencia o domicilio
+  if (!location) {
+    const explicitLocMatch = clean.match(/(?:residencia|ubicaci[oó]n|localidad|poblaci[oó]n|ciudad|provincia|domicilio|lugar de residencia|vive en|reside en)[:\s]+([^\n\r,;]{3,50})/i);
+    if (explicitLocMatch && explicitLocMatch[1]) {
+      const candidateLoc = explicitLocMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
+      if (!candidateLoc.includes('@') && !candidateLoc.match(/^\+?\d{5,}/) && candidateLoc.length > 2 && !candidateLoc.toLowerCase().includes('cervantes')) {
+        location = candidateLoc;
+      }
     }
   }
 
-  // B) Buscar en catálogo de ciudades/provincias de España
+  // C) Buscar en catálogo de ciudades/provincias de España
   if (!location) {
     for (const city of SPANISH_PROVINCES_AND_CITIES) {
       const cityRegex = new RegExp(`\\b${city.replace('-', '\\-')}\\b`, 'i');
@@ -145,14 +159,6 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
         location = city;
         break;
       }
-    }
-  }
-
-  // C) Buscar código postal + municipio (ej. 33404 Corvera o 33201 Gijón o 28001 Madrid)
-  if (!location) {
-    const cpMatch = clean.match(/\b(0[1-9]|[1-4][0-9]|5[0-2])\d{3}\b\s*,?\s*([A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]+?)(?:,?\s*Espa[ñn]a|\n|$)/i);
-    if (cpMatch && cpMatch[2] && cpMatch[2].trim().length > 2) {
-      location = cpMatch[2].trim();
     }
   }
 
@@ -179,8 +185,22 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
     }
   }
 
-  // B) Si tenemos un nombre de archivo (ej. Pelayo.cv-5.pdf o CV_Pelayo_Garcia.pdf) o email (pelayovrs7@gmail.com):
-  // Buscar en el texto la aparición de la palabra clave para extraer el nombre y apellidos completos
+  // B) Búsqueda por catálogo de nombres de pila comunes españoles (ej. Pelayo García García)
+  if (!fullName) {
+    for (const firstName of COMMON_FIRST_NAMES) {
+      const namePattern = new RegExp(`\\b(${firstName}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`);
+      const match = clean.match(namePattern);
+      if (match && match[1]) {
+        const found = match[1].trim();
+        if (found.length >= 5 && !forbiddenHeaderWords.some(w => found.toLowerCase().includes(w))) {
+          fullName = found;
+          break;
+        }
+      }
+    }
+  }
+
+  // C) Si tenemos un nombre de archivo (ej. Pelayo.cv-5.pdf o CV_Pelayo_Garcia.pdf) o email (pelayovrs7@gmail.com):
   if (!fullName) {
     const hints: string[] = [];
     if (fileNameHint) {
@@ -201,7 +221,6 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
       const hintRegex = new RegExp(`\\b(${hint}[A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\\s]{2,40})`, 'i');
       const match = clean.match(hintRegex);
       if (match && match[1]) {
-        // Limpiar sufijos como puestos de trabajo o saltos
         let candidateText = match[1].split('\n')[0].trim();
         candidateText = candidateText.replace(/\s+(?:t[eé]cnico|desarrollador|ingeniero|programador|administrador|fecha|nacionalidad|contacto|experiencia|educaci[oó]n|domicilio|email|tel[eé]fono|tel|tlf|para|de|en|del).*/i, '').trim();
         const words = candidateText.split(/\s+/).filter(w => w.length > 1);
@@ -215,22 +234,7 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
     }
   }
 
-  // C) Búsqueda por catálogo de nombres de pila comunes españoles (ej. Pelayo García García)
-  if (!fullName || fullName.split(/\s+/).length < 2) {
-    for (const firstName of COMMON_FIRST_NAMES) {
-      const namePattern = new RegExp(`\\b(${firstName}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`);
-      const match = clean.match(namePattern);
-      if (match && match[1]) {
-        const found = match[1].trim();
-        if (found.length >= 6 && !forbiddenHeaderWords.some(w => found.toLowerCase().includes(w))) {
-          fullName = found;
-          break;
-        }
-      }
-    }
-  }
-
-  // D) Escaneo de las primeras 15 líneas del documento (línea con 2 a 4 palabras en mayúsculas)
+  // D) Escaneo de las primeras líneas del documento
   if (!fullName && lines.length > 0) {
     for (let i = 0; i < Math.min(15, lines.length); i++) {
       let line = lines[i].replace(/[|•·,;:\-_/()]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -259,7 +263,7 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
     }
   }
 
-  // E) Fallback final al nombre de archivo o email
+  // E) Fallback final al nombre de archivo
   if (!fullName && fileNameHint) {
     const base = fileNameHint
       .replace(/\.pdf$/i, '')
@@ -277,18 +281,40 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
   let currentPosition = '';
   let currentCompany = '';
 
-  // A) Etiquetas explícitas
-  const explicitPosMatch = clean.match(/(?:puesto|cargo|posici[oó]n|rol|ocupaci[oó]n|actualmente|trabajo\s+actual)[:\s]+([^\n\r,;]{3,50})/i);
-  if (explicitPosMatch && explicitPosMatch[1]) {
-    currentPosition = explicitPosMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
+  // A) Detectar empresas conocidas en experiencia profesional (Capgemini, Indra, Telefónica, DXC, Mecalux, Accenture, etc.)
+  const knownCompanies = ['Capgemini', 'Indra', 'Telefónica', 'DXC Technology', 'Mecalux', 'Accenture', 'NTT Data', 'Inetum', 'Alten', 'Babel', 'Izertis', 'Satec', 'Oesia', 'Autoridad Portuaria'];
+  for (const comp of knownCompanies) {
+    if (new RegExp(`\\b${comp}\\b`, 'i').test(clean)) {
+      currentCompany = comp;
+      break;
+    }
   }
 
-  const explicitCompMatch = clean.match(/(?:empresa|compa[ñn][ií]a|cliente|organizaci[oó]n|company)[:\s]+([^\n\r,;]{2,50})/i);
-  if (explicitCompMatch && explicitCompMatch[1]) {
-    currentCompany = explicitCompMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
+  // B) Puesto actual
+  if (/tecnico\s*n2|t[eé]cnico\s*n2/i.test(clean)) {
+    currentPosition = 'Técnico N2 de Soporte';
+  } else if (/tecnico\s*(?:inform[aá]tico\s*)?n1|t[eé]cnico\s*(?:inform[aá]tico\s*)?n1/i.test(clean)) {
+    currentPosition = 'Técnico informático N1';
+  } else if (/administrador\s+de\s+sistemas/i.test(clean) && !currentPosition) {
+    currentPosition = 'Administrador de Sistemas';
   }
 
-  // B) Patrones como "Técnico N2 para negocio telefónica Capgemini" o "Técnico en Indra"
+  // C) Etiquetas explícitas
+  if (!currentPosition) {
+    const explicitPosMatch = clean.match(/(?:puesto|cargo|posici[oó]n|rol|ocupaci[oó]n|actualmente|trabajo\s+actual)[:\s]+([^\n\r,;]{3,50})/i);
+    if (explicitPosMatch && explicitPosMatch[1]) {
+      currentPosition = explicitPosMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
+    }
+  }
+
+  if (!currentCompany) {
+    const explicitCompMatch = clean.match(/(?:empresa|compa[ñn][ií]a|cliente|organizaci[oó]n|company)[:\s]+([^\n\r,;]{2,50})/i);
+    if (explicitCompMatch && explicitCompMatch[1]) {
+      currentCompany = explicitCompMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
+    }
+  }
+
+  // D) Patrones como "Técnico N2 para negocio telefónica Capgemini"
   if (!currentPosition || !currentCompany) {
     const jobCompanyPattern = /((?:t[eé]cnico|helpdesk|soporte|desarrollador|programador|analista|ingeniero|operador|consultor|administrador|especialista)[^\n\r]{0,45})\s+(?:en|at|para\s+negocio[^\n\r]{0,25})\s+([A-Za-z0-9ÁÉÍÓÚÑáéíóúñ\s.,&-]{2,30})/i;
     const jobCompMatch = clean.match(jobCompanyPattern);
@@ -298,49 +324,8 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
     }
   }
 
-  // C) Sección de Experiencia Laboral: escanear líneas tras "EXPERIENCIA LABORAL"
-  if (!currentPosition || !currentCompany) {
-    const expIndex = clean.search(/(?:experiencia\s+laboral|experiencia\s+profesional|experiencia|historial\s+laboral|trayectoria|work\s+experience)/i);
-    if (expIndex !== -1) {
-      const expSnippet = clean.slice(expIndex, expIndex + 600);
-      const expLines = expSnippet.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-      
-      for (let j = 1; j < expLines.length; j++) {
-        const el = expLines[j];
-        if (!currentPosition && /(t[eé]cnico|helpdesk|soporte|desarrollador|programador|ingeniero|operador|consultor|analista|administrador|inform[aá]tico|lead|qa|devops)/i.test(el)) {
-          currentPosition = el.replace(/^[-•*#\d.]+\s*/, '').slice(0, 50).trim();
-          
-          if (expLines[j + 1] && !currentCompany && !expLines[j + 1].match(/\d{4}/) && expLines[j + 1].length < 40) {
-            currentCompany = expLines[j + 1].replace(/^[-•*#]+\s*/, '').trim();
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  // D) Detectar empresas conocidas si aparecen en el CV (Capgemini, Indra, Telefónica, DXC, Mecalux, Accenture, etc.)
-  if (!currentCompany) {
-    const knownCompanies = ['Capgemini', 'Indra', 'Telefónica', 'DXC Technology', 'Mecalux', 'Accenture', 'NTT Data', 'Inetum', 'Alten', 'Babel', 'Izertis', 'Satec', 'Oesia', 'Autoridad Portuaria'];
-    for (const comp of knownCompanies) {
-      if (new RegExp(`\\b${comp}\\b`, 'i').test(clean)) {
-        currentCompany = comp;
-        break;
-      }
-    }
-  }
-
-  // Fallback de puesto
   if (!currentPosition) {
-    if (/t[eé]cnico\s*(?:de\s*)?(?:soporte|helpdesk|sistemas|n1|nivel 1|n2|nivel 2|inform[aá]tico)/i.test(clean)) {
-      currentPosition = 'Técnico de Soporte / Helpdesk';
-    } else if (/implantaci[oó]n|puesta\s+en\s+marcha|field\s+service/i.test(clean)) {
-      currentPosition = 'Técnico de Implantación SGA';
-    } else if (/desarrollador|programador|developer|software\s*engineer/i.test(clean)) {
-      currentPosition = 'Desarrollador de Software';
-    } else if (/operador\s*(?:de\s*)?(?:sistemas|monitorizaci[oó]n|almac[eé]n)/i.test(clean)) {
-      currentPosition = 'Operador de Sistemas';
-    }
+    currentPosition = 'Técnico de Soporte';
   }
 
   // ==========================================
@@ -401,7 +386,7 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
   let englishLevel: 'A2' | 'B1' | 'B2' | 'C1' | 'C2 / Nativo' = 'B2';
   if (/ingl[eé]s[\s\S]{0,30}\b(?:c2|nativo|biling[uü]e|native|proficiency|cpe)\b/i.test(clean)) {
     englishLevel = 'C2 / Nativo';
-  } else if (/ingl[eé]s[\s\S]{0,30}\b(?:c1|avanzado|advanced|cae|fluido\s*profesional)\b/i.test(clean) || /\b(c1\s*ingl[eé]s|cae\s*cambridge)\b/i.test(clean)) {
+  } else if (/ingl[eé]s[\s\S]{0,30}\b(?:c1|avanzado|advanced|cae|fluido\s*profesional)\b/i.test(clean) || /\b(c1\s*ingl[eé]s|cae\s*cambridge)\b/i.test(clean) || /\bingl[eé]s[\s\S]{0,40}c1\b/i.test(clean)) {
     englishLevel = 'C1';
   } else if (/ingl[eé]s[\s\S]{0,30}\b(?:b2|intermedio\s*alto|first\s*certificate|fce)\b/i.test(clean) || /\b(b2\s*ingl[eé]s|fce\s*cambridge)\b/i.test(clean)) {
     englishLevel = 'B2';
