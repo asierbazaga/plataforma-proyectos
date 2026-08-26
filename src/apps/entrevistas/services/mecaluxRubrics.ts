@@ -409,103 +409,6 @@ export const INITIAL_CANDIDATE_SAMPLE: import('../../../types').CandidateIntervi
       'Actitud colaborativa y muy buena comunicación'
     ],
     puntosAMejorar: [
-];
-
-export const EVALUATION_LEVELS: { id: import('../../../types').MecaluxEvaluationLevel; label: string; score: number; color: string; badgeBg: string }[] = [
-  { id: 'Inexistente', label: 'Inexistente', score: 0, color: 'text-rose-400', badgeBg: 'bg-rose-500/15 border-rose-500/30' },
-  { id: 'Pobre', label: 'Pobre', score: 1, color: 'text-amber-400', badgeBg: 'bg-amber-500/15 border-amber-500/30' },
-  { id: 'Bueno', label: 'Bueno', score: 2, color: 'text-blue-400', badgeBg: 'bg-blue-500/15 border-blue-500/30' },
-  { id: 'Fuerte', label: 'Fuerte', score: 3, color: 'text-emerald-400', badgeBg: 'bg-emerald-500/15 border-emerald-500/30' }
-];
-
-export const INITIAL_CANDIDATE_SAMPLE: import('../../../types').CandidateInterview = {
-  id: 'cand_mecalux_demo_1',
-  fullName: 'Carlos Ramos Martínez',
-  email: 'carlos.ramos@email.com',
-  phone: '+34 612 345 678',
-  role: 'Software Engineer Backend (.NET / SGA)',
-  seniority: 'Senior',
-  currentCompany: 'LogisTech Solutions',
-  currentSalaryEur: 38000,
-  expectedSalaryEur: 44000,
-  noticePeriodWeeks: 2,
-  englishLevel: 'B2',
-  location: 'Gijón / Remoto Híbrido',
-  linkedinUrl: 'https://linkedin.com/in/carlos-ramos-demo',
-  status: 'evaluated',
-  interviewDate: new Date().toISOString().split('T')[0],
-  durationMinutes: 55,
-  parsedSkills: ['C#', '.NET 8', 'SQL Server', 'Easy WMS', 'Clean Architecture', 'Docker', 'RabbitMQ'],
-  evaluations: {
-    'cp_intralogistica': {
-      competencyId: 'cp_intralogistica',
-      section: 'Competencias Profesionales',
-      nombre: 'Intralogística & Flujos de Almacén',
-      evaluacion: 'Fuerte',
-      comentarios: 'Conoce a la perfección los flujos de recepción, picking por olas y expedición en almacenes automatizados.'
-    },
-    'cp_trato_clientes': {
-      competencyId: 'cp_trato_clientes',
-      section: 'Competencias Profesionales',
-      nombre: 'Experiencia en trato a clientes',
-      evaluacion: 'Bueno',
-      comentarios: 'Ha liderado puestas en marcha en planta cliente, trato educado y muy resolutivo.'
-    },
-    'cp_sga_wms': {
-      competencyId: 'cp_sga_wms',
-      section: 'Competencias Profesionales',
-      nombre: 'Software SGA / WMS (Sistemas de Gestión de Almacenes)',
-      evaluacion: 'Fuerte',
-      comentarios: '3 años de experiencia parametrizando reglas de ubicación y estrategias de reaprovisionamiento.'
-    },
-    'cp_sql_bbdd': {
-      competencyId: 'cp_sql_bbdd',
-      section: 'Competencias Profesionales',
-      nombre: 'Bases de Datos & SQL de Alto Rendimiento',
-      evaluacion: 'Bueno',
-      comentarios: 'Buen manejo de índices y planes de ejecución. Ha resuelto deadlocks en transacciones concurrentes.'
-    },
-    'cp_desarrollo_backend': {
-      competencyId: 'cp_desarrollo_backend',
-      section: 'Competencias Profesionales',
-      nombre: 'Desarrollo Backend & Arquitectura (.NET / C# / Java / APIs)',
-      evaluacion: 'Fuerte',
-      comentarios: 'Sólidos conocimientos de .NET 8, Clean Architecture y mensajería con RabbitMQ.'
-    },
-    
-    
-    
-    'ss_comunicacion': {
-      competencyId: 'ss_comunicacion',
-      section: 'Softskills',
-      nombre: 'Comunicación, Claridad & Asertividad',
-      evaluacion: 'Fuerte',
-      comentarios: 'Excelente capacidad de explicación técnica y escucha activa.'
-    },
-    'ss_trabajo_equipo': {
-      competencyId: 'ss_trabajo_equipo',
-      section: 'Softskills',
-      nombre: 'Trabajo en Equipo, Colaboración & Mentoría',
-      evaluacion: 'Fuerte',
-      comentarios: 'Ha mentorizado a 2 juniors en su anterior trabajo.'
-    },
-    'ss_cultura_mecalux': {
-      competencyId: 'ss_cultura_mecalux',
-      section: 'Softskills',
-      nombre: 'Alineación con Valores Mecalux, Compromiso & Proactividad',
-      evaluacion: 'Fuerte',
-      comentarios: 'Muy motivado por la envergadura de los proyectos de almacenes automáticos de Mecalux.'
-    }
-  },
-  resultadoFinal: {
-    decision: 'Aprobado / Contratar',
-    puntuacionGlobal: 91,
-    puntosFuertes: [
-      'Amplia experiencia real en intralogística y software SGA',
-      'Excelente nivel en C# .NET y SQL Server',
-      'Actitud colaborativa y muy buena comunicación'
-    ],
-    puntosAMejorar: [
       'Ampliar experiencia en arquitecturas cloud distribuidas avanzadas'
     ],
     conclusionesTeamLeader: 'Candidato sobresaliente con encaje directo para el equipo de desarrollo de Easy WMS. Nivel técnico senior demostrado y excelente actitud.',
@@ -515,7 +418,7 @@ export const INITIAL_CANDIDATE_SAMPLE: import('../../../types').CandidateIntervi
   updatedAt: new Date().toISOString()
 };
 
-export const getRubrics = (): MecaluxCompetencyRubric[] => {
+export const getRubrics = (): import('../../../types').MecaluxCompetencyRubric[] => {
   try {
     const saved = localStorage.getItem('entrevistas_custom_rubrics');
     if (saved) return JSON.parse(saved);
@@ -525,6 +428,6 @@ export const getRubrics = (): MecaluxCompetencyRubric[] => {
   return DEFAULT_MECALUX_RUBRICS;
 };
 
-export const saveRubrics = (rubrics: MecaluxCompetencyRubric[]) => {
+export const saveRubrics = (rubrics: import('../../../types').MecaluxCompetencyRubric[]) => {
   localStorage.setItem('entrevistas_custom_rubrics', JSON.stringify(rubrics));
 };

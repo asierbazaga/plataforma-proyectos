@@ -20,7 +20,7 @@ import {
 import { CandidateInterview } from '../../../types';
 import { EVALUATION_LEVELS } from '../services/mecaluxRubrics';
 import { ExcelInterviewService } from '../services/excelService';
-import { MecaluxCompetencyRubric } from '../../types';
+import { MecaluxCompetencyRubric } from '../../../types';
 
 interface ResultadoSummaryViewProps {
   candidate: CandidateInterview;

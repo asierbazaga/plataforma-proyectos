@@ -1129,7 +1129,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <span>Distribución del Mes</span>
               </h3>
 
-              {totalExpenseSum === 0 ? (
+              {totalExpense === 0 ? (
                 <div className="py-12 text-center text-slate-500 text-xs space-y-2">
                   <PieChart className="w-12 h-12 mx-auto text-slate-700 animate-pulse" />
                   <p>Aún no hay gastos registrados este mes.</p>
@@ -1169,7 +1169,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     {/* Centro del Donut */}
                     <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
                       <span className="text-[10px] uppercase font-bold text-slate-400">Total Gastos</span>
-                      <span className="text-base font-black text-white">{totalExpenseSum.toFixed(0)} €</span>
+                      <span className="text-base font-black text-white">{totalExpense.toFixed(0)} €</span>
                     </div>
                   </div>
 
