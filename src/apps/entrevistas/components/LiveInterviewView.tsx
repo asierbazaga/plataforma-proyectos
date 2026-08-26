@@ -196,7 +196,6 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
   const sections: { id: MecaluxCompetencySection; label: string; count: number }[] = [
     { id: 'Competencias Profesionales', label: 'Competencias Profesionales', count: MECALUX_RUBRICS.filter(r => r.section === 'Competencias Profesionales').length },
-    { id: 'Framework', label: 'Framework & Metodologías', count: MECALUX_RUBRICS.filter(r => r.section === 'Framework').length },
     { id: 'Softskills', label: 'Softskills & Liderazgo', count: MECALUX_RUBRICS.filter(r => r.section === 'Softskills').length }
   ];
 
@@ -281,14 +280,14 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
         </div>
 
         {/* Notificación flotante de autoguardado */}
-        {autoSaveToast && (
-          <div className="text-right">
+        <div className="h-6 flex justify-end">
+          {autoSaveToast && (
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20 animate-fade-in">
               <CheckCircle2 className="w-3 h-3" />
               <span>Guardado en directo</span>
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* --- BLOC DE NOTAS CON IA --- */}
         <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 mb-4">
@@ -561,22 +560,24 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
                   </div>
 
                   {/* Disparadores (Preguntas dinámicas a realizar) */}
-                  <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 space-y-2.5">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-indigo-400" />
-                      <span className="text-xs font-extrabold text-indigo-200 uppercase tracking-wider">
-                        Disparadores sugeridos para el Team Leader:
-                      </span>
+                  {rubric.disparadores && rubric.disparadores.length > 0 && (
+                    <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                        <span className="text-xs font-extrabold text-indigo-200 uppercase tracking-wider">
+                          Disparadores sugeridos para el Team Leader:
+                        </span>
+                      </div>
+                      <ul className="space-y-1.5 text-xs text-slate-300">
+                        {rubric.disparadores.map((d, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-indigo-400 font-bold">•</span>
+                            <span className="leading-relaxed">{d}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="space-y-1.5 text-xs text-slate-300">
-                      {rubric.disparadores.map((d, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-indigo-400 font-bold">•</span>
-                          <span className="leading-relaxed">{d}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  )}
 
                   {/* Comentarios de la persona entrevistadora */}
                   <div className="space-y-2">

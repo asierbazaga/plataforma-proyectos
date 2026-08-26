@@ -13,11 +13,7 @@ export class ExcelInterviewService {
   static exportCandidateToExcel(candidate: CandidateInterview): void {
     const wb = XLSX.utils.book_new();
 
-    // 1. Hoja Framework
-    const wsFramework = this.createSectionSheet('Framework', candidate);
-    XLSX.utils.book_append_sheet(wb, wsFramework, 'Framework');
-
-    // 2. Hoja Competencias Profesionales
+    // 1. Hoja Competencias Profesionales
     const wsProf = this.createSectionSheet('Competencias Profesionales', candidate);
     XLSX.utils.book_append_sheet(wb, wsProf, 'Competencias Profesionales');
 

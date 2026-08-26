@@ -199,72 +199,7 @@ export const MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
     ]
   },
 
-// ==========================================================================
-  // FRAMEWORK & METODOLOGÍAS DE TRABAJO
-  // ==========================================================================
-  {
-    id: 'fw_buenas_practicas',
-    section: 'Framework',
-    nombre: 'Buenas Prácticas de Código (Clean Code, SOLID & Patrones)',
-    criterios: {
-      inexistente: 'Código desestructurado sin seguir estándares ni convenciones de legibilidad.',
-      pobre: 'Conoce los términos SOLID o Clean Code pero no sabe aplicarlos en código real.',
-      bueno: 'Aplica principios SOLID de forma natural, escribe código autodocumentado, modular y con bajo acoplamiento.',
-      fuerte: 'Referente técnico en calidad de código: define guías de estilo, realiza code reviews constructivos y refactoriza sistemas legados con seguridad.'
-    },
-    disparadores: [
-      '¿Puedes poner un ejemplo práctico de cómo aplicas el Principio de Responsabilidad Única o Inversión de Dependencias en tu día a día?',
-      '¿Qué criterios sigues al hacer una Code Review a un compañero?'
-    ]
-  },
-  {
-    id: 'fw_agil_metodologias',
-    section: 'Framework',
-    nombre: 'Metodologías Ágiles & Gestión de Tareas (Scrum / Kanban / Jira)',
-    criterios: {
-      inexistente: 'No ha trabajado con metodologías ágiles ni herramientas de gestión de tickets.',
-      pobre: 'Participa pasivamente en reuniones ágiles pero no comprende el valor de las estimaciones o retrospectivas.',
-      bueno: 'Familiarizado con ciclos de sprint, estimación de historias de usuario, dailies, retrospectivas y uso fluido de Jira/Azure DevOps.',
-      fuerte: 'Comprensión profunda de la mentalidad ágil. Capaz de desbloquear impedimentos, afinar refinamientos y equilibrar deuda técnica con entrega de valor.'
-    },
-    disparadores: [
-      '¿Cómo organizas tu jornada de trabajo y cómo estimas una tarea compleja con incertidumbre técnica?',
-      'Si a mitad de un sprint entra un cambio de alcance prioritario, ¿cómo lo gestionas?'
-    ]
-  },
-  {
-    id: 'fw_git_cicd',
-    section: 'Framework',
-    nombre: 'Control de Versiones & CI/CD (Git Flow, Pipelines, Calidad)',
-    criterios: {
-      inexistente: 'No utiliza herramientas de control de versiones o solo comandos básicos con miedo a conflictos.',
-      pobre: 'Usa git pull/push pero se bloquea ante ramas divergentes, rebases o resolución de conflictos.',
-      bueno: 'Domina Git Flow, ramas de feature/hotfix, pull requests, resolución de conflictos y pipelines de build/deploy automáticos.',
-      fuerte: 'Diseña y optimiza pipelines de integración continua, despliegues sin downtime, versionado semántico y políticas de protección de ramas.'
-    },
-    disparadores: [
-      '¿Qué flujo de trabajo en Git prefieres (GitFlow, Trunk-Based) y por qué?',
-      '¿Cómo resuelves un conflicto de merge complejo entre dos ramas desfasadas?'
-    ]
-  },
-  {
-    id: 'fw_testing_qa',
-    section: 'Framework',
-    nombre: 'Testing, Calidad & Cobertura (Unit, Integration, E2E)',
-    criterios: {
-      inexistente: 'No realiza pruebas automatizadas; solo comprobaciones manuales rápidas.',
-      pobre: 'Escribe tests unitarios muy simples únicamente cuando se lo exigen, sin validar casos límites.',
-      bueno: 'Escribe tests unitarios y de integración de forma habitual con mocks/stubs, garantizando cobertura de lógica de negocio crítica.',
-      fuerte: 'Estrategia integral de testing (TDD/BDD, tests de carga, regresión automatizada, pipelines con gates de calidad SonarQube).'
-    },
-    disparadores: [
-      '¿Qué porcentaje de tu tiempo dedicas a escribir tests y qué partes del código consideras prioritarias para testear?',
-      '¿Cómo testeas un proceso que depende de una base de datos externa o un servicio de terceros?'
-    ]
-  },
-
-  // ==========================================================================
-  // SOFTSKILLS & CULTURA
+// SOFTSKILLS & CULTURA
   // ==========================================================================
   {
     id: 'ss_proactividad',
@@ -406,27 +341,9 @@ export const INITIAL_CANDIDATE_SAMPLE: import('../../../types').CandidateIntervi
       evaluacion: 'Fuerte',
       comentarios: 'Sólidos conocimientos de .NET 8, Clean Architecture y mensajería con RabbitMQ.'
     },
-    'fw_buenas_practicas': {
-      competencyId: 'fw_buenas_practicas',
-      section: 'Framework',
-      nombre: 'Buenas Prácticas de Código (Clean Code, SOLID & Patrones)',
-      evaluacion: 'Fuerte',
-      comentarios: 'Aplica SOLID con naturalidad. Buenas referencias sobre modularidad.'
-    },
-    'fw_agil_metodologias': {
-      competencyId: 'fw_agil_metodologias',
-      section: 'Framework',
-      nombre: 'Metodologías Ágiles & Gestión de Tareas (Scrum / Kanban / Jira)',
-      evaluacion: 'Bueno',
-      comentarios: 'Acostumbrado a sprints de 2 semanas y estimaciones en Story Points.'
-    },
-    'fw_git_cicd': {
-      competencyId: 'fw_git_cicd',
-      section: 'Framework',
-      nombre: 'Control de Versiones & CI/CD (Git Flow, Pipelines, Calidad)',
-      evaluacion: 'Bueno',
-      comentarios: 'Manejo fluido de GitFlow y pipelines en Azure DevOps.'
-    },
+    
+    
+    
     'ss_comunicacion': {
       competencyId: 'ss_comunicacion',
       section: 'Softskills',
