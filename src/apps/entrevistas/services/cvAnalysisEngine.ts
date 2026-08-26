@@ -235,43 +235,14 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
     }
   }
 
-  // D) Escaneo de las primeras líneas del documento (línea con 2 a 4 palabras en mayúsculas)
-  if (!fullName && lines.length > 0) {
-    for (let i = 0; i < Math.min(15, lines.length); i++) {
-      let line = lines[i].replace(/[|•·,;:\-_/()]/g, ' ').replace(/\s+/g, ' ').trim();
-      const lower = line.toLowerCase();
-
-      if (line.includes('@') || line.match(/\+?\d{6,}/) || line.includes('http') || line.includes('www.') || line.includes('linkedin.com')) {
-        continue;
-      }
-
-      if (forbiddenHeaderWords.some(w => lower === w || lower.startsWith(w + ' ') || lower.endsWith(' ' + w))) {
-        continue;
-      }
-
-      const words = line.split(/\s+/).filter(w => w.length > 1);
-      if (words.length >= 2 && words.length <= 4 && !line.match(/\d/)) {
-        const isNameLike = words.every(w => 
-          /^[A-ZÁÉÍÓÚÑ]/.test(w) || 
-          ['de', 'del', 'la', 'las', 'los', 'san', 'santa', 'y', 'von', 'van', 'da', 'di'].includes(w.toLowerCase())
-        );
-
-        if (isNameLike && line.length >= 5 && line.length <= 45) {
-          fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-          break;
-        }
-      }
-    }
-  }
-
-  // E) Fallback final al nombre de archivo si contiene nombre y apellido
+  // D) Fallback final al nombre de archivo (si no encontramos nada en el texto)
   if (!fullName && fileNameHint) {
     const base = fileNameHint
       .replace(/\.pdf$/i, '')
       .replace(/[._-](?:cv|curriculum|\d+)/gi, ' ')
       .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]/g, ' ')
       .trim();
-    const words = base.split(/\s+/).filter(w => w.length >= 2);
+    const words = base.split(/\s+/).filter(w => w.length >= 2); // Palabras de al menos 2 letras
     if (words.length >= 1) {
       fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     }
