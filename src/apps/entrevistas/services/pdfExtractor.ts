@@ -49,8 +49,9 @@ function extractPageTextWithColumns(items: PdfTextItem[]): string {
 
   const columns: PdfTextItem[][] = [];
   if (splitX > 0) {
-    const col1 = items.filter(it => it.x + it.width <= splitX + 10);
-    const col2 = items.filter(it => it.x > splitX - 10);
+    // Asignar en base al punto medio del texto para NO perder textos largos (ej. el Nombre que cruza toda la cabecera)
+    const col1 = items.filter(it => (it.x + (it.width / 2)) <= splitX);
+    const col2 = items.filter(it => (it.x + (it.width / 2)) > splitX);
     columns.push(col1, col2);
   } else {
     columns.push(items);
