@@ -1,5 +1,5 @@
 import { CandidateInterview, MecaluxCompetencyRubric, MecaluxCompetencySection } from '../../../types';
-import { MECALUX_RUBRICS } from './mecaluxRubrics';
+import { getRubrics } from './mecaluxRubrics';
 
 export class ExcelInterviewService {
   /**
@@ -36,7 +36,7 @@ export class ExcelInterviewService {
    * replicando exactamente la estructura de filas y columnas del Excel de Mecalux.
    */
   private static createSectionSheet(XLSX: any, section: MecaluxCompetencySection, candidate: CandidateInterview): any {
-    const rubrics = MECALUX_RUBRICS.filter(r => r.section === section);
+    const rubrics = getRubrics().filter(r => r.section === section);
     const rows: any[][] = [];
 
     // Cabecera superior con datos del candidato
@@ -131,7 +131,7 @@ export class ExcelInterviewService {
     rows.push(['RESUMEN DE EVALUACIONES POR BLOQUE', '', '', '']);
     rows.push(['Bloque / Sección', 'Competencia', 'Nivel Obtenido', 'Comentarios del Evaluador']);
 
-    MECALUX_RUBRICS.forEach(r => {
+    getRubrics().forEach(r => {
       const ev = candidate.evaluations[r.id];
       rows.push([
         r.section,

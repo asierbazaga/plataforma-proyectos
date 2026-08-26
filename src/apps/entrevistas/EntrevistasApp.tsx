@@ -26,8 +26,9 @@ import { CandidateListView } from './components/CandidateListView';
 import { LiveInterviewView } from './components/LiveInterviewView';
 import { ResultadoSummaryView } from './components/ResultadoSummaryView';
 import { CandidateModal } from './components/CandidateModal';
-import { MECALUX_RUBRICS } from './services/mecaluxRubrics';
+import { getRubrics, saveRubrics, DEFAULT_MECALUX_RUBRICS } from './services/mecaluxRubrics';
 import { ExcelInterviewService } from './services/excelService';
+import { MecaluxCompetencyRubric } from '../../types';
 
 interface EntrevistasAppProps {
   onBack?: () => void;
@@ -42,7 +43,16 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<'candidates' | 'interview' | 'resultado' | 'rubrics' | 'excel_center'>('candidates');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [candidateToEdit, setCandidateToEdit] = useState<CandidateInterview | null>(null);
+  const [rubrics, setRubrics] = useState<MecaluxCompetencyRubric[]>(() => getRubrics());
   const [rubricSearch, setRubricSearch] = useState<string>('');
+  
+  // Edit rubric states
+  const [editingRubric, setEditingRubric] = useState<MecaluxCompetencyRubric | null>(null);
+
+  const handleSaveRubrics = (newRubrics: MecaluxCompetencyRubric[]) => {
+    setRubrics(newRubrics);
+    saveRubrics(newRubrics);
+  };
 
   const loadCandidates = async () => {
     const list = await storageService.getInterviewCandidates(currentUser?.id);
@@ -155,7 +165,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
     await loadCandidates();
   };
 
-  const filteredRubrics = MECALUX_RUBRICS.filter(r => {
+  const filteredRubrics = rubrics.filter(r => {
     const q = rubricSearch.toLowerCase();
     return r.nombre.toLowerCase().includes(q) ||
            r.section.toLowerCase().includes(q) ||
@@ -335,6 +345,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
           onUpdateCandidate={handleUpdateCandidate}
           onGoToResultado={() => setActiveTab('resultado')}
           onBackToList={() => setActiveTab('candidates')}
+          rubrics={rubrics}
         />
       )}
 
@@ -344,6 +355,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
           onUpdateCandidate={handleUpdateCandidate}
           onBackToInterview={() => setActiveTab('interview')}
           onBackToList={() => setActiveTab('candidates')}
+          rubrics={rubrics}
         />
       )}
 
@@ -359,15 +371,33 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
                 </p>
               </div>
 
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={rubricSearch}
-                  onChange={(e) => setRubricSearch(e.target.value)}
-                  placeholder="Buscar disparador o competencia..."
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={rubricSearch}
+                    onChange={(e) => setRubricSearch(e.target.value)}
+                    placeholder="Buscar disparador o competencia..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <button
+                  onClick={() => setEditingRubric({ id: '', section: 'Competencias Profesionales', nombre: '', criterios: { inexistente: '', pobre: '', bueno: '', fuerte: '' }, disparadores: [] })}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all"
+                >
+                  + Añadir
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('¿Restaurar las rúbricas por defecto? Se perderán todos tus cambios.')) {
+                      handleSaveRubrics(DEFAULT_MECALUX_RUBRICS);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-300 border border-slate-700 text-xs font-bold transition-all"
+                >
+                  Restaurar
+                </button>
               </div>
             </div>
           </div>
@@ -381,6 +411,24 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
                       {r.section}
                     </span>
                     <h3 className="text-base font-black text-white">{r.nombre}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingRubric(r)}
+                      className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 text-xs font-semibold transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('¿Eliminar esta competencia?')) {
+                          handleSaveRubrics(rubrics.filter(rub => rub.id !== r.id));
+                        }
+                      }}
+                      className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs font-semibold transition-colors"
+                    >
+                      Eliminar
+                    </button>
                   </div>
                 </div>
 
@@ -497,6 +545,127 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
         }}
         onSave={handleSaveFromModal}
       />
+
+      {/* Modal de Nueva/Editar Rúbrica */}
+      {editingRubric && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="text-xl font-black text-white">
+                {editingRubric.id ? 'Editar Competencia' : 'Nueva Competencia'}
+              </h3>
+              <button
+                onClick={() => setEditingRubric(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Nombre de Competencia</label>
+                <input
+                  type="text"
+                  value={editingRubric.nombre}
+                  onChange={(e) => setEditingRubric({ ...editingRubric, nombre: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Sección</label>
+                <select
+                  value={editingRubric.section}
+                  onChange={(e) => setEditingRubric({ ...editingRubric, section: e.target.value as any })}
+                  className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="Competencias Profesionales">Competencias Profesionales</option>
+                  <option value="Softskills">Softskills</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Disparadores (Preguntas)</label>
+                <textarea
+                  value={editingRubric.disparadores.join('\n')}
+                  onChange={(e) => setEditingRubric({ ...editingRubric, disparadores: e.target.value.split('\n') })}
+                  placeholder="Escribe una pregunta por línea..."
+                  rows={4}
+                  className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-rose-400 mb-1">Criterio Inexistente</label>
+                  <textarea
+                    value={editingRubric.criterios.inexistente}
+                    onChange={(e) => setEditingRubric({ ...editingRubric, criterios: { ...editingRubric.criterios, inexistente: e.target.value } })}
+                    rows={3}
+                    className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-amber-400 mb-1">Criterio Pobre</label>
+                  <textarea
+                    value={editingRubric.criterios.pobre}
+                    onChange={(e) => setEditingRubric({ ...editingRubric, criterios: { ...editingRubric.criterios, pobre: e.target.value } })}
+                    rows={3}
+                    className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-400 mb-1">Criterio Bueno</label>
+                  <textarea
+                    value={editingRubric.criterios.bueno}
+                    onChange={(e) => setEditingRubric({ ...editingRubric, criterios: { ...editingRubric.criterios, bueno: e.target.value } })}
+                    rows={3}
+                    className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-emerald-400 mb-1">Criterio Fuerte</label>
+                  <textarea
+                    value={editingRubric.criterios.fuerte}
+                    onChange={(e) => setEditingRubric({ ...editingRubric, criterios: { ...editingRubric.criterios, fuerte: e.target.value } })}
+                    rows={3}
+                    className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+            </div>
+            <div className="p-6 border-t border-slate-800 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingRubric(null)}
+                className="px-5 py-2 rounded-xl font-bold text-xs text-slate-300 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const finalRubric = { 
+                    ...editingRubric, 
+                    id: editingRubric.id || `custom_${Date.now()}`,
+                    disparadores: editingRubric.disparadores.filter(d => d.trim().length > 0)
+                  };
+                  let newRubrics = [...rubrics];
+                  const idx = newRubrics.findIndex(r => r.id === finalRubric.id);
+                  if (idx >= 0) {
+                    newRubrics[idx] = finalRubric;
+                  } else {
+                    newRubrics.push(finalRubric);
+                  }
+                  handleSaveRubrics(newRubrics);
+                  setEditingRubric(null);
+                }}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white transition-all shadow-lg shadow-indigo-500/25"
+              >
+                Guardar Competencia
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

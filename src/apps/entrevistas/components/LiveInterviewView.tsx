@@ -16,8 +16,8 @@ import {
   Bot,
   Key
 } from 'lucide-react';
-import { CandidateInterview, MecaluxCompetencySection, MecaluxEvaluationLevel } from '../../../types';
-import { MECALUX_RUBRICS, EVALUATION_LEVELS } from '../services/mecaluxRubrics';
+import { CandidateInterview, MecaluxCompetencySection, MecaluxEvaluationLevel, MecaluxCompetencyRubric } from '../../../types';
+import { EVALUATION_LEVELS } from '../services/mecaluxRubrics';
 import { ExcelInterviewService } from '../services/excelService';
 import { CandidatePreviewModal } from './CandidatePreviewModal';
 import { aiEvaluatorService } from '../services/aiEvaluatorService';
@@ -27,13 +27,15 @@ interface LiveInterviewViewProps {
   onUpdateCandidate: (updated: CandidateInterview) => void;
   onGoToResultado: () => void;
   onBackToList: () => void;
+  rubrics: MecaluxCompetencyRubric[];
 }
 
 export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   candidate,
   onUpdateCandidate,
   onGoToResultado,
-  onBackToList
+  onBackToList,
+  rubrics
 }) => {
   const [activeSection, setActiveSection] = useState<MecaluxCompetencySection>('Competencias Profesionales');
   const [expandedRubrics, setExpandedRubrics] = useState<Record<string, boolean>>({});
@@ -57,7 +59,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       alert("Por favor, escribe algunas notas primero.");
       return;
     }
-    const promptText = aiEvaluatorService.generatePrompt(notes, MECALUX_RUBRICS);
+    const promptText = aiEvaluatorService.generatePrompt(notes, rubrics);
     navigator.clipboard.writeText(promptText).then(() => {
       setManualAiResponse('');
       setManualAiPromptOpen(true);
@@ -78,7 +80,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       
       const newEvals = { ...candidate.evaluations };
       Object.entries(result.evaluations).forEach(([rubricId, evalData]) => {
-         const rubric = MECALUX_RUBRICS.find(r => r.id === rubricId);
+         const rubric = rubrics.find(r => r.id === rubricId);
          if (rubric) {
            newEvals[rubricId] = {
              competencyId: rubricId,
@@ -128,11 +130,11 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
     };
 
     // Recalcular puntuación global automáticamente
-    const totalPossible = MECALUX_RUBRICS.length * 3; // Nivel máximo 'Fuerte' = 3 pts
+    const totalPossible = rubrics.length * 3; // Nivel máximo 'Fuerte' = 3 pts
     let totalScore = 0;
     let evaluatedCount = 0;
 
-    MECALUX_RUBRICS.forEach(r => {
+    rubrics.forEach(r => {
       const ev = updatedEvaluations[r.id];
       if (ev && ev.evaluacion) {
         evaluatedCount++;
@@ -192,11 +194,11 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
     setExpandedRubrics(prev => ({ ...prev, [rubricId]: !prev[rubricId] }));
   };
 
-  const rubricsInSection = MECALUX_RUBRICS.filter(r => r.section === activeSection);
+  const rubricsInSection = rubrics.filter(r => r.section === activeSection);
 
   const sections: { id: MecaluxCompetencySection; label: string; count: number }[] = [
-    { id: 'Competencias Profesionales', label: 'Competencias Profesionales', count: MECALUX_RUBRICS.filter(r => r.section === 'Competencias Profesionales').length },
-    { id: 'Softskills', label: 'Softskills & Liderazgo', count: MECALUX_RUBRICS.filter(r => r.section === 'Softskills').length }
+    { id: 'Competencias Profesionales', label: 'Competencias Profesionales', count: rubrics.filter(r => r.section === 'Competencias Profesionales').length },
+    { id: 'Softskills', label: 'Softskills & Liderazgo', count: rubrics.filter(r => r.section === 'Softskills').length }
   ];
 
   // Conteo de evaluados en la sección actual

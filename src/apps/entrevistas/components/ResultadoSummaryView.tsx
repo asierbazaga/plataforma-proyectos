@@ -18,21 +18,24 @@ import {
   Building
 } from 'lucide-react';
 import { CandidateInterview } from '../../../types';
-import { MECALUX_RUBRICS } from '../services/mecaluxRubrics';
+import { EVALUATION_LEVELS } from '../services/mecaluxRubrics';
 import { ExcelInterviewService } from '../services/excelService';
+import { MecaluxCompetencyRubric } from '../../types';
 
 interface ResultadoSummaryViewProps {
   candidate: CandidateInterview;
   onUpdateCandidate: (updated: CandidateInterview) => void;
   onBackToInterview: () => void;
   onBackToList: () => void;
+  rubrics: MecaluxCompetencyRubric[];
 }
 
 export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
   candidate,
   onUpdateCandidate,
   onBackToInterview,
-  onBackToList
+  onBackToList,
+  rubrics
 }) => {
   const [newPro, setNewPro] = useState('');
   const [newCon, setNewCon] = useState('');
@@ -407,7 +410,7 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {MECALUX_RUBRICS.map(r => {
+              {rubrics.map(r => {
                 const ev = candidate.evaluations[r.id];
                 const level = ev?.evaluacion;
                 return (
