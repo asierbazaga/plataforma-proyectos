@@ -264,67 +264,84 @@ export const MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
   },
 
   // ==========================================================================
-  // SOFTSKILLS & VISIÓN TEAM LEADER
+  // SOFTSKILLS & CULTURA
   // ==========================================================================
   {
-    id: 'ss_comunicacion',
+    id: 'ss_proactividad',
     section: 'Softskills',
-    nombre: 'Comunicación, Claridad & Asertividad',
+    nombre: 'Proactividad',
     criterios: {
-      inexistente: 'Dificultad severa para expresar ideas técnicas con claridad. Respuestas monosilábicas o dispersas.',
-      pobre: 'Comunica de forma confusa, requiere repreguntar constantemente para entender sus explicaciones.',
-      bueno: 'Se expresa de manera estructurada, clara y fluida. Adapta el lenguaje según el interlocutor (técnico vs negocio).',
-      fuerte: 'Excelente capacidad de síntesis, argumentación constructiva, escucha activa y carisma para presentar soluciones técnicas complejas con sencillez.'
+      inexistente: 'No demuestra proactividad alguna, ni en lo que narra de su experiencia pasada ni en la entrevista. No hace preguntas o comentarios que no sean respuestas directas.',
+      pobre: 'Cuesta mucho que explique algo motu proprio. Es pasivo durante la entrevista o las preguntas que hace son poco interesantes y dejan claro que lo que hace el puesto en realidad le da igual.',
+      bueno: 'Demuestra iniciativa, tanto viendo su experiencia pasada vital y profesional como durante la entrevista. Es una persona curiosa e interesada por crecer profesionalmente.',
+      fuerte: 'Es un motor de cambios. En la entrevista es capaz de llevar la conversación y explicar en su experiencia pasada como ha hecho evolucionar situaciones o posiciones. Siempre ha dado pasos firmes en su carrera profesional'
+    },
+    disparadores: []
+  },
+  {
+    id: 'ss_empowerment',
+    section: 'Softskills',
+    nombre: 'Empowerment / Transmitir seguridad',
+    criterios: {
+      inexistente: 'Ultra nervioso, titubea todo el rato, no mira a los ojos, etc.',
+      pobre: 'Duda en las respuestas. Cuando repreguntas, cambia sus respuestas o opiniones. No da la impresión de conocer con firmeza de lo que habla',
+      bueno: 'Es claro en sus respuestas. Esta tranquilo y ante repreguntas explica con mas detalle y de forma clara.',
+      fuerte: 'Esta seguro de sus capacidades y de su trayectoria, y cuando habla da una impresión clara de dominar el tema, sea cierto o no.'
+    },
+    disparadores: []
+  },
+  {
+    id: 'ss_confianza_transparencia',
+    section: 'Softskills',
+    nombre: 'Confianza / Transparencia',
+    criterios: {
+      inexistente: 'Todo lo que cuenta suena falso. En cuanto repreguntas inventa nuevas respuestas. Parece un vendehumos.',
+      pobre: 'Duda, no es claro, cuando cuenta cosas no quedan claras y se lia en las repreguntas. Si no sabe de algo intenta disimularlo. Acaba generando dudas de si es veridico lo que indica.',
+      bueno: 'Es claro y humilde. Si algo no tiene experiencia o no sabe del tema no lo disfraza. Lo que explica parece veraz.',
+      fuerte: 'Es completamente abierto sobre su carrera y expectativas futuras. Tambien sobre sus conocimientos y experiencia: indica claramente cuando no sabe de algo. Ante repreguntas, es firme y da detalles, trasmitiendo confianza en lo que narra.'
+    },
+    disparadores: []
+  },
+  {
+    id: 'ss_mentalidad_analitica',
+    section: 'Softskills',
+    nombre: 'Mentalidad analítica',
+    criterios: {
+      inexistente: 'No parece tener la capacidad para identificar problemas y aportar soluciones. No conecta ideas y conceptos de una manera coherente.',
+      pobre: 'Tiene capacidad para reconocer problemas o áreas de mejora. En su experiencia ha sido capaz de realizar análisis básicos para extraer conclusiones. Parece capaz de distinguir lo principal de lo secundario.',
+      bueno: 'Ha abordado problemas complejos y ha aportado soluciones concretas. Ha utilizado la información obtenida para tomar decisiones acertadas. Es capaz de proponer ideas innovadoras para resolver problemas.',
+      fuerte: 'Ha tomado decisiones basadas en toda la información, apoyadas en análisis de datos y que sirven para el largo plazo. Ha buscado de manera constante la manera de optimizar procesos cuestionando su comportamiento inicial y planteando mejoras más allá de lo establecido. Tiene una influencia positiva en los demás e intenta liderar iniciativas siempre reforzando que han de estar basadas en datos.'
     },
     disparadores: [
-      'Explícanos un concepto técnico complejo de tu especialidad como si se lo contaras a alguien que no sabe de informática.',
-      '¿Cómo comunicas a un responsable de proyecto que un plazo no se va a poder cumplir?'
+      '¿Cual ha sido tu mayor desafío a lo largo de tu carrera? ¿Como llegaste a dar con la solución?',
+      '¿Cómo abordarias un problema técnico desconocido? ¿Qué pasos seguirías para analizarlo y encontrar una solución?',
+      '¿Cómo evaluarías la eficacia de un proceso o sistema existente? ¿Qué indicadores o métricas considerarías?',
+      'Si te enfrentas a un problema muy importante y tuvieras que tomar una decisión ¿Cómo analizarías que opciones tienes y cómo harías una elección?'
     ]
   },
   {
-    id: 'ss_resolucion_conflictos',
+    id: 'ss_adaptacion_cambio',
     section: 'Softskills',
-    nombre: 'Resolución de Conflictos & Gestión de Desacuerdos',
+    nombre: 'Adaptación al cambio',
     criterios: {
-      inexistente: 'Genera fricción o adopta actitudes defensivas/agresivas ante opiniones contrarias.',
-      pobre: 'Evita los desacuerdos o cede sin aportar argumentos técnicos por no generar debate.',
-      bueno: 'Afronta discrepancias técnicas con respeto, datos objetivos y búsqueda de consenso profesional.',
-      fuerte: 'Capacidad de mediación, empatía para entender diferentes perspectivas y orientar discusiones técnicas hacia la mejor decisión para el producto y el equipo.'
+      inexistente: 'No parece haber tenido que manejar ningun cambio previamente.',
+      pobre: 'Muestra una actitud negativa ante los cambios, ha comentado incluso haberse resistido activamente o negado a llevar a cabo alguno.',
+      bueno: 'Admite que necesita tiempo para asimilar y adaptarse a los cambios pero, que una vez lo ha hecho, se adapta perfectamente.',
+      fuerte: 'Muestra una actitud positiva hacia los cambios. Indica que se adapta rápidamente a nuevas situaciones y desafíos. Busca oportunidades de aprendizaje y crecimiento en momentos de cambio. Acepta y se adapta a las modificaciones sin apenas resistencia.'
     },
-    disparadores: [
-      'Cuéntanos un desacuerdo técnico que hayas tenido con un compañero o líder de equipo. ¿Cómo se llegó a la solución final?',
-      '¿Cómo manejas una crítica constructiva a una solución arquitectónica que tú propusiste?'
-    ]
+    disparadores: []
   },
   {
-    id: 'ss_presion_resiliencia',
+    id: 'ss_tolerancia_presion',
     section: 'Softskills',
-    nombre: 'Gestión de la Presión, Cambios & Resiliencia',
+    nombre: 'Tolerancia a la presión',
     criterios: {
-      inexistente: 'Se bloquea o pierde la calma fácilmente ante imprevistos o plazos ajustados.',
-      pobre: 'Se estresa visiblemente y su productividad cae ante cambios de prioridades de última hora.',
-      bueno: 'Mantiene la serenidad, prioriza con criterio y gestiona situaciones de estrés con profesionalidad.',
-      fuerte: 'Firmeza y claridad mental sobresaliente en picos de alta demanda. Transmite calma al equipo y encuentra soluciones pragmáticas ante imprevistos.'
+      inexistente: 'No parece haber tenido que manejar ninguna situación con presión alta o gestionar altos niveles de extrés.',
+      pobre: 'Admite que trabajando bajo presión puede reaccionar negativamente, que le cuesta dificultad abordar las tareas solicitadas e incluso llegar a bloquearse.',
+      bueno: 'A pesar de la presión, indica que suele lograr alcanzar los objetivos aunque admite que su rendimiento puede ser ligeramente inferior en esas circunstancias.',
+      fuerte: 'Indica haber sido capaz de tomar decisiones correctas en condiciones adversas indicando ejemplos de ello. Indica que puede realizar tareas y mantener la calidad aún en situaciones exigentes.'
     },
-    disparadores: [
-      '¿Cómo gestionas una jornada en la que se juntan varias urgencias simultáneas y un despliegue crítico?',
-      '¿Qué técnicas utilizas para desconectar y mantener un rendimiento sostenible a largo plazo?'
-    ]
-  },
-  {
-    id: 'ss_cultura_mecalux',
-    section: 'Softskills',
-    nombre: 'Alineación con Valores Mecalux, Compromiso & Proactividad',
-    criterios: {
-      inexistente: 'Desconoce por completo a Mecalux y muestra desinterés por el sector intralogístico y el puesto.',
-      pobre: 'Interés superficial motivado solo por el cambio de empresa sin motivación por el proyecto tecnológico.',
-      bueno: 'Se ha informado sobre Mecalux, valora el reto de la ingeniería intralogística y muestra entusiasmo y compromiso.',
-      fuerte: 'Identificación total con el impacto de Mecalux a nivel global. Curiosidad genuina por los almacenes automatizados, ambición de crecimiento y visión a largo plazo.'
-    },
-    disparadores: [
-      '¿Qué te motivó a postular a esta posición en Mecalux y qué esperas de nosotros como equipo?',
-      '¿Dónde te visualizas profesionalmente en 2 o 3 años dentro de nuestra organización?'
-    ]
+    disparadores: []
   }
 ];
 
