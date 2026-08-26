@@ -1,8 +1,19 @@
-import { MecaluxCompetencyRubric } from '../../../types';
+const fs = require('fs');
+const filepath = 'src/apps/entrevistas/services/mecaluxRubrics.ts';
+let code = fs.readFileSync(filepath, 'utf8');
 
-export const MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
-  // ==========================================================================
-  // COMPETENCIAS PROFESIONALES (SEGÚN CAPTURAS)
+const regex = /\/\/\s*COMPETENCIAS PROFESIONALES\s*\(TÉCNICAS & OPERATIVAS MECALUX\)[\s\S]*?\/\/\s*==========================================================================\n\s*\/\/\s*FRAMEWORK & METODOLOG/i;
+
+if (!regex.test(code)) {
+    // try fallback 
+    const fallbackRegex = /\/\/\s*COMPETENCIAS PROFESIONALES[\s\S]*?\/\/\s*==========================================================================\n\s*\/\/\s*FRAMEWORK & METODOLOG/i;
+    if(!fallbackRegex.test(code)) {
+        console.log('Could not match sections!');
+        process.exit(1);
+    }
+}
+
+const replacementText = `// COMPETENCIAS PROFESIONALES (SEGÚN CAPTURAS)
   // ==========================================================================
   {
     id: 'cp_trabajo_equipo',
@@ -22,7 +33,7 @@ export const MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
     ]
   },
   {
-    id: 'cp_conocimiento_lenguciones',
+    id: 'cp_conocimiento_lenguajes',
     section: 'Competencias Profesionales',
     nombre: 'Conocimiento de lenguajes de programación',
     criterios: {
@@ -94,7 +105,7 @@ export const MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
     criterios: {
       inexistente: 'No tiene experiencia ni conocimiento sobre intralogística',
       pobre: 'Tiene conocimientos muy básicos, solo terminos como albarán y ha visto alguno alguna vez.',
-      bueno: 'Tiene expeciencia o conocimientos sobre operativas del almacén como picking, reposiciones, gestion de lotes, entradas, carga de camión, empaquetado.',
+      bueno: 'Tiene experiencia o conocimientos sobre operativas del almacén como picking, reposiciones, gestion de lotes, entradas, carga de camión, empaquetado.',
       fuerte: 'Conoce todos los flujos internos en un almacén. Tanto de sistemas altamente automátizados como manuales con multiples operativas y operarios.'
     },
     disparadores: [
@@ -199,253 +210,12 @@ export const MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
     ]
   },
 
-// ==========================================================================
-  // FRAMEWORK & METODOLOGÍAS DE TRABAJO
   // ==========================================================================
-  {
-    id: 'fw_buenas_practicas',
-    section: 'Framework',
-    nombre: 'Buenas Prácticas de Código (Clean Code, SOLID & Patrones)',
-    criterios: {
-      inexistente: 'Código desestructurado sin seguir estándares ni convenciones de legibilidad.',
-      pobre: 'Conoce los términos SOLID o Clean Code pero no sabe aplicarlos en código real.',
-      bueno: 'Aplica principios SOLID de forma natural, escribe código autodocumentado, modular y con bajo acoplamiento.',
-      fuerte: 'Referente técnico en calidad de código: define guías de estilo, realiza code reviews constructivos y refactoriza sistemas legados con seguridad.'
-    },
-    disparadores: [
-      '¿Puedes poner un ejemplo práctico de cómo aplicas el Principio de Responsabilidad Única o Inversión de Dependencias en tu día a día?',
-      '¿Qué criterios sigues al hacer una Code Review a un compañero?'
-    ]
-  },
-  {
-    id: 'fw_agil_metodologias',
-    section: 'Framework',
-    nombre: 'Metodologías Ágiles & Gestión de Tareas (Scrum / Kanban / Jira)',
-    criterios: {
-      inexistente: 'No ha trabajado con metodologías ágiles ni herramientas de gestión de tickets.',
-      pobre: 'Participa pasivamente en reuniones ágiles pero no comprende el valor de las estimaciones o retrospectivas.',
-      bueno: 'Familiarizado con ciclos de sprint, estimación de historias de usuario, dailies, retrospectivas y uso fluido de Jira/Azure DevOps.',
-      fuerte: 'Comprensión profunda de la mentalidad ágil. Capaz de desbloquear impedimentos, afinar refinamientos y equilibrar deuda técnica con entrega de valor.'
-    },
-    disparadores: [
-      '¿Cómo organizas tu jornada de trabajo y cómo estimas una tarea compleja con incertidumbre técnica?',
-      'Si a mitad de un sprint entra un cambio de alcance prioritario, ¿cómo lo gestionas?'
-    ]
-  },
-  {
-    id: 'fw_git_cicd',
-    section: 'Framework',
-    nombre: 'Control de Versiones & CI/CD (Git Flow, Pipelines, Calidad)',
-    criterios: {
-      inexistente: 'No utiliza herramientas de control de versiones o solo comandos básicos con miedo a conflictos.',
-      pobre: 'Usa git pull/push pero se bloquea ante ramas divergentes, rebases o resolución de conflictos.',
-      bueno: 'Domina Git Flow, ramas de feature/hotfix, pull requests, resolución de conflictos y pipelines de build/deploy automáticos.',
-      fuerte: 'Diseña y optimiza pipelines de integración continua, despliegues sin downtime, versionado semántico y políticas de protección de ramas.'
-    },
-    disparadores: [
-      '¿Qué flujo de trabajo en Git prefieres (GitFlow, Trunk-Based) y por qué?',
-      '¿Cómo resuelves un conflicto de merge complejo entre dos ramas desfasadas?'
-    ]
-  },
-  {
-    id: 'fw_testing_qa',
-    section: 'Framework',
-    nombre: 'Testing, Calidad & Cobertura (Unit, Integration, E2E)',
-    criterios: {
-      inexistente: 'No realiza pruebas automatizadas; solo comprobaciones manuales rápidas.',
-      pobre: 'Escribe tests unitarios muy simples únicamente cuando se lo exigen, sin validar casos límites.',
-      bueno: 'Escribe tests unitarios y de integración de forma habitual con mocks/stubs, garantizando cobertura de lógica de negocio crítica.',
-      fuerte: 'Estrategia integral de testing (TDD/BDD, tests de carga, regresión automatizada, pipelines con gates de calidad SonarQube).'
-    },
-    disparadores: [
-      '¿Qué porcentaje de tu tiempo dedicas a escribir tests y qué partes del código consideras prioritarias para testear?',
-      '¿Cómo testeas un proceso que depende de una base de datos externa o un servicio de terceros?'
-    ]
-  },
+  // FRAMEWORK & METODOLOG`;
 
-  // ==========================================================================
-  // SOFTSKILLS & VISIÓN TEAM LEADER
-  // ==========================================================================
-  {
-    id: 'ss_comunicacion',
-    section: 'Softskills',
-    nombre: 'Comunicación, Claridad & Asertividad',
-    criterios: {
-      inexistente: 'Dificultad severa para expresar ideas técnicas con claridad. Respuestas monosilábicas o dispersas.',
-      pobre: 'Comunica de forma confusa, requiere repreguntar constantemente para entender sus explicaciones.',
-      bueno: 'Se expresa de manera estructurada, clara y fluida. Adapta el lenguaje según el interlocutor (técnico vs negocio).',
-      fuerte: 'Excelente capacidad de síntesis, argumentación constructiva, escucha activa y carisma para presentar soluciones técnicas complejas con sencillez.'
-    },
-    disparadores: [
-      'Explícanos un concepto técnico complejo de tu especialidad como si se lo contaras a alguien que no sabe de informática.',
-      '¿Cómo comunicas a un responsable de proyecto que un plazo no se va a poder cumplir?'
-    ]
-  },
-  {
-    id: 'ss_resolucion_conflictos',
-    section: 'Softskills',
-    nombre: 'Resolución de Conflictos & Gestión de Desacuerdos',
-    criterios: {
-      inexistente: 'Genera fricción o adopta actitudes defensivas/agresivas ante opiniones contrarias.',
-      pobre: 'Evita los desacuerdos o cede sin aportar argumentos técnicos por no generar debate.',
-      bueno: 'Afronta discrepancias técnicas con respeto, datos objetivos y búsqueda de consenso profesional.',
-      fuerte: 'Capacidad de mediación, empatía para entender diferentes perspectivas y orientar discusiones técnicas hacia la mejor decisión para el producto y el equipo.'
-    },
-    disparadores: [
-      'Cuéntanos un desacuerdo técnico que hayas tenido con un compañero o líder de equipo. ¿Cómo se llegó a la solución final?',
-      '¿Cómo manejas una crítica constructiva a una solución arquitectónica que tú propusiste?'
-    ]
-  },
-  {
-    id: 'ss_presion_resiliencia',
-    section: 'Softskills',
-    nombre: 'Gestión de la Presión, Cambios & Resiliencia',
-    criterios: {
-      inexistente: 'Se bloquea o pierde la calma fácilmente ante imprevistos o plazos ajustados.',
-      pobre: 'Se estresa visiblemente y su productividad cae ante cambios de prioridades de última hora.',
-      bueno: 'Mantiene la serenidad, prioriza con criterio y gestiona situaciones de estrés con profesionalidad.',
-      fuerte: 'Firmeza y claridad mental sobresaliente en picos de alta demanda. Transmite calma al equipo y encuentra soluciones pragmáticas ante imprevistos.'
-    },
-    disparadores: [
-      '¿Cómo gestionas una jornada en la que se juntan varias urgencias simultáneas y un despliegue crítico?',
-      '¿Qué técnicas utilizas para desconectar y mantener un rendimiento sostenible a largo plazo?'
-    ]
-  },
-  {
-    id: 'ss_cultura_mecalux',
-    section: 'Softskills',
-    nombre: 'Alineación con Valores Mecalux, Compromiso & Proactividad',
-    criterios: {
-      inexistente: 'Desconoce por completo a Mecalux y muestra desinterés por el sector intralogístico y el puesto.',
-      pobre: 'Interés superficial motivado solo por el cambio de empresa sin motivación por el proyecto tecnológico.',
-      bueno: 'Se ha informado sobre Mecalux, valora el reto de la ingeniería intralogística y muestra entusiasmo y compromiso.',
-      fuerte: 'Identificación total con el impacto de Mecalux a nivel global. Curiosidad genuina por los almacenes automatizados, ambición de crecimiento y visión a largo plazo.'
-    },
-    disparadores: [
-      '¿Qué te motivó a postular a esta posición en Mecalux y qué esperas de nosotros como equipo?',
-      '¿Dónde te visualizas profesionalmente en 2 o 3 años dentro de nuestra organización?'
-    ]
-  }
-];
+let newCode = code.replace(/\/\/\s*COMPETENCIAS PROFESIONALES[\s\S]*?\/\/\s*==========================================================================\n\s*\/\/\s*FRAMEWORK & METODOLOG/i, replacementText);
 
-export const EVALUATION_LEVELS: { id: import('../../../types').MecaluxEvaluationLevel; label: string; score: number; color: string; badgeBg: string }[] = [
-  { id: 'Inexistente', label: 'Inexistente', score: 0, color: 'text-rose-400', badgeBg: 'bg-rose-500/15 border-rose-500/30' },
-  { id: 'Pobre', label: 'Pobre', score: 1, color: 'text-amber-400', badgeBg: 'bg-amber-500/15 border-amber-500/30' },
-  { id: 'Bueno', label: 'Bueno', score: 2, color: 'text-blue-400', badgeBg: 'bg-blue-500/15 border-blue-500/30' },
-  { id: 'Fuerte', label: 'Fuerte', score: 3, color: 'text-emerald-400', badgeBg: 'bg-emerald-500/15 border-emerald-500/30' }
-];
+newCode = newCode.replace(/\{\s*id:\s*'ss_trabajo_equipo'[\s\S]*?disparadores:\s*\[[\s\S]*?\]\s*\},?\s*/, '');
 
-export const INITIAL_CANDIDATE_SAMPLE: import('../../../types').CandidateInterview = {
-  id: 'cand_mecalux_demo_1',
-  fullName: 'Carlos Ramos Martínez',
-  email: 'carlos.ramos@email.com',
-  phone: '+34 612 345 678',
-  role: 'Software Engineer Backend (.NET / SGA)',
-  seniority: 'Senior',
-  currentCompany: 'LogisTech Solutions',
-  currentSalaryEur: 38000,
-  expectedSalaryEur: 44000,
-  noticePeriodWeeks: 2,
-  englishLevel: 'B2',
-  location: 'Gijón / Remoto Híbrido',
-  linkedinUrl: 'https://linkedin.com/in/carlos-ramos-demo',
-  status: 'evaluated',
-  interviewDate: new Date().toISOString().split('T')[0],
-  durationMinutes: 55,
-  parsedSkills: ['C#', '.NET 8', 'SQL Server', 'Easy WMS', 'Clean Architecture', 'Docker', 'RabbitMQ'],
-  evaluations: {
-    'cp_intralogistica': {
-      competencyId: 'cp_intralogistica',
-      section: 'Competencias Profesionales',
-      nombre: 'Intralogística & Flujos de Almacén',
-      evaluacion: 'Fuerte',
-      comentarios: 'Conoce a la perfección los flujos de recepción, picking por olas y expedición en almacenes automatizados.'
-    },
-    'cp_trato_clientes': {
-      competencyId: 'cp_trato_clientes',
-      section: 'Competencias Profesionales',
-      nombre: 'Experiencia en trato a clientes',
-      evaluacion: 'Bueno',
-      comentarios: 'Ha liderado puestas en marcha en planta cliente, trato educado y muy resolutivo.'
-    },
-    'cp_sga_wms': {
-      competencyId: 'cp_sga_wms',
-      section: 'Competencias Profesionales',
-      nombre: 'Software SGA / WMS (Sistemas de Gestión de Almacenes)',
-      evaluacion: 'Fuerte',
-      comentarios: '3 años de experiencia parametrizando reglas de ubicación y estrategias de reaprovisionamiento.'
-    },
-    'cp_sql_bbdd': {
-      competencyId: 'cp_sql_bbdd',
-      section: 'Competencias Profesionales',
-      nombre: 'Bases de Datos & SQL de Alto Rendimiento',
-      evaluacion: 'Bueno',
-      comentarios: 'Buen manejo de índices y planes de ejecución. Ha resuelto deadlocks en transacciones concurrentes.'
-    },
-    'cp_desarrollo_backend': {
-      competencyId: 'cp_desarrollo_backend',
-      section: 'Competencias Profesionales',
-      nombre: 'Desarrollo Backend & Arquitectura (.NET / C# / Java / APIs)',
-      evaluacion: 'Fuerte',
-      comentarios: 'Sólidos conocimientos de .NET 8, Clean Architecture y mensajería con RabbitMQ.'
-    },
-    'fw_buenas_practicas': {
-      competencyId: 'fw_buenas_practicas',
-      section: 'Framework',
-      nombre: 'Buenas Prácticas de Código (Clean Code, SOLID & Patrones)',
-      evaluacion: 'Fuerte',
-      comentarios: 'Aplica SOLID con naturalidad. Buenas referencias sobre modularidad.'
-    },
-    'fw_agil_metodologias': {
-      competencyId: 'fw_agil_metodologias',
-      section: 'Framework',
-      nombre: 'Metodologías Ágiles & Gestión de Tareas (Scrum / Kanban / Jira)',
-      evaluacion: 'Bueno',
-      comentarios: 'Acostumbrado a sprints de 2 semanas y estimaciones en Story Points.'
-    },
-    'fw_git_cicd': {
-      competencyId: 'fw_git_cicd',
-      section: 'Framework',
-      nombre: 'Control de Versiones & CI/CD (Git Flow, Pipelines, Calidad)',
-      evaluacion: 'Bueno',
-      comentarios: 'Manejo fluido de GitFlow y pipelines en Azure DevOps.'
-    },
-    'ss_comunicacion': {
-      competencyId: 'ss_comunicacion',
-      section: 'Softskills',
-      nombre: 'Comunicación, Claridad & Asertividad',
-      evaluacion: 'Fuerte',
-      comentarios: 'Excelente capacidad de explicación técnica y escucha activa.'
-    },
-    'ss_trabajo_equipo': {
-      competencyId: 'ss_trabajo_equipo',
-      section: 'Softskills',
-      nombre: 'Trabajo en Equipo, Colaboración & Mentoría',
-      evaluacion: 'Fuerte',
-      comentarios: 'Ha mentorizado a 2 juniors en su anterior trabajo.'
-    },
-    'ss_cultura_mecalux': {
-      competencyId: 'ss_cultura_mecalux',
-      section: 'Softskills',
-      nombre: 'Alineación con Valores Mecalux, Compromiso & Proactividad',
-      evaluacion: 'Fuerte',
-      comentarios: 'Muy motivado por la envergadura de los proyectos de almacenes automáticos de Mecalux.'
-    }
-  },
-  resultadoFinal: {
-    decision: 'Aprobado / Contratar',
-    puntuacionGlobal: 91,
-    puntosFuertes: [
-      'Amplia experiencia real en intralogística y software SGA',
-      'Excelente nivel en C# .NET y SQL Server',
-      'Actitud colaborativa y muy buena comunicación'
-    ],
-    puntosAMejorar: [
-      'Ampliar experiencia en arquitecturas cloud distribuidas avanzadas'
-    ],
-    conclusionesTeamLeader: 'Candidato sobresaliente con encaje directo para el equipo de desarrollo de Easy WMS. Nivel técnico senior demostrado y excelente actitud.',
-    salarioRecomendadoEur: 42000
-  },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
-};
+fs.writeFileSync(filepath, newCode);
+console.log('Done replacement');
