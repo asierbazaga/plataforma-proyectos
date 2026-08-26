@@ -396,6 +396,7 @@ export interface CandidateInterview {
   status: 'scheduled' | 'in_progress' | 'evaluated' | 'approved' | 'rejected' | 'on_hold';
   interviewDate: string; // YYYY-MM-DD
   durationMinutes?: number;
+  interviewNotes?: string;
   cvText?: string;
   cvFileName?: string;
   parsedSkills?: string[];

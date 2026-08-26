@@ -12,12 +12,15 @@ import {
   Layers,
   Award,
   AlertTriangle,
-  UserCheck
+  UserCheck,
+  Bot,
+  Key
 } from 'lucide-react';
 import { CandidateInterview, MecaluxCompetencySection, MecaluxEvaluationLevel } from '../../../types';
 import { MECALUX_RUBRICS, EVALUATION_LEVELS } from '../services/mecaluxRubrics';
 import { ExcelInterviewService } from '../services/excelService';
 import { CandidatePreviewModal } from './CandidatePreviewModal';
+import { aiEvaluatorService } from '../services/aiEvaluatorService';
 
 interface LiveInterviewViewProps {
   candidate: CandidateInterview;
@@ -36,6 +39,76 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   const [expandedRubrics, setExpandedRubrics] = useState<Record<string, boolean>>({});
   const [autoSaveToast, setAutoSaveToast] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+
+  // AI Notes State
+  const [notes, setNotes] = useState<string>(candidate.interviewNotes || '');
+  const [manualAiPromptOpen, setManualAiPromptOpen] = useState<boolean>(false);
+  const [manualAiResponse, setManualAiResponse] = useState<string>('');
+
+  const handleNotesChange = (val: string) => {
+    setNotes(val);
+    onUpdateCandidate({ ...candidate, interviewNotes: val });
+    setAutoSaveToast(true);
+    setTimeout(() => setAutoSaveToast(false), 1800);
+  };
+
+  const handleGeneratePromptClick = () => {
+    if (!notes.trim()) {
+      alert("Por favor, escribe algunas notas primero.");
+      return;
+    }
+    const promptText = aiEvaluatorService.generatePrompt(notes, MECALUX_RUBRICS);
+    navigator.clipboard.writeText(promptText).then(() => {
+      setManualAiResponse('');
+      setManualAiPromptOpen(true);
+    }).catch(err => {
+      alert("No se pudo copiar al portapapeles. Cópialo manualmente.");
+      console.error(err);
+    });
+  };
+
+  const applyManualAiResponse = () => {
+    try {
+      if (!manualAiResponse.trim()) {
+        alert("Pega la respuesta JSON primero.");
+        return;
+      }
+      
+      const result = aiEvaluatorService.parseResponse(manualAiResponse);
+      
+      const newEvals = { ...candidate.evaluations };
+      Object.entries(result.evaluations).forEach(([rubricId, evalData]) => {
+         const rubric = MECALUX_RUBRICS.find(r => r.id === rubricId);
+         if (rubric) {
+           newEvals[rubricId] = {
+             competencyId: rubricId,
+             section: rubric.section,
+             nombre: rubric.nombre,
+             evaluacion: evalData.evaluacion as MecaluxEvaluationLevel,
+             comentarios: evalData.comentarios
+           };
+         }
+      });
+      
+      const newFinal = {
+        ...candidate.resultadoFinal,
+        puntosFuertes: result.puntosFuertes || [],
+        puntosAMejorar: result.puntosAMejorar || [],
+        conclusionesTeamLeader: result.resumen || ''
+      };
+      
+      onUpdateCandidate({
+        ...candidate,
+        evaluations: newEvals,
+        resultadoFinal: newFinal
+      });
+      
+      setManualAiPromptOpen(false);
+      alert("Evaluación completada con éxito. Revisa las pestañas.");
+    } catch (err: any) {
+      alert("Error al procesar la respuesta. Asegúrate de pegar un JSON válido: " + err.message);
+    }
+  };
 
   const handleRatingChange = (rubricId: string, section: MecaluxCompetencySection, name: string, level: MecaluxEvaluationLevel) => {
     const existing = candidate.evaluations[rubricId] || {
@@ -214,6 +287,69 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
               <CheckCircle2 className="w-3 h-3" />
               <span>Guardado en directo</span>
             </span>
+          </div>
+        )}
+
+        {/* --- BLOC DE NOTAS CON IA --- */}
+        <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+              <Bot className="w-4 h-4 text-indigo-400" />
+              Bloc de Notas de la Entrevista (Evaluación IA)
+            </h3>
+            <button
+              onClick={handleGeneratePromptClick}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Generar Instrucciones para IA
+            </button>
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => handleNotesChange(e.target.value)}
+            placeholder="Toma tus apuntes en sucio durante la entrevista... (ej. 'Tiene 3 años de exp en C#, conoce bien los JOINs, pero se ha puesto muy nervioso al explicar su mayor error y ha dudado...')"
+            className="w-full h-32 bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-y"
+          />
+        </div>
+
+        {/* API KEY MODAL */}
+        {manualAiPromptOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative">
+              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                Instrucciones Copiadas
+              </h3>
+              <p className="text-sm text-slate-400 mb-4">
+                Hemos copiado las instrucciones (el <i>prompt</i>) con las rúbricas y tus apuntes en tu portapapeles.<br/>
+                1. Ve a ChatGPT, Gemini o Claude.<br/>
+                2. Pega el texto y envíalo.<br/>
+                3. Pega el código JSON que te responda aquí abajo:
+              </p>
+              
+              <textarea
+                value={manualAiResponse}
+                onChange={(e) => setManualAiResponse(e.target.value)}
+                placeholder='{"evaluations": {...}}'
+                className="w-full h-48 bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-slate-300 font-mono focus:outline-none focus:border-indigo-500/50 resize-y mb-4"
+              />
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setManualAiPromptOpen(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={applyManualAiResponse}
+                  className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                >
+                  Aplicar Evaluación
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
