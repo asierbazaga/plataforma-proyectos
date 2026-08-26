@@ -167,74 +167,75 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
   // ==========================================
   let fullName = '';
 
+  // Texto limpio sin emails ni URLs para evitar falsos positivos con nombres de usuario de correo
+  const cleanNoEmails = clean
+    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, ' ')
+    .replace(/https?:\/\/\S+/g, ' ');
+
   const forbiddenHeaderWords = [
     'curriculum', 'vitae', 'cv', 'resumen', 'perfil', 'contacto', 'datos', 'personales',
     'experiencia', 'laboral', 'profesional', 'educacion', 'educación', 'formacion', 'formación',
     'skills', 'habilidades', 'competencias', 'idiomas', 'proyectos', 'page', 'pagina', 'página',
     'telefono', 'teléfono', 'email', 'correo', 'ingeniero', 'desarrollador', 'tecnico', 'técnico',
     'programador', 'developer', 'consultor', 'helpdesk', 'soporte', 'certificaciones', 'sobre mi', 'sobre mí',
-    'nacionalidad', 'fecha de nacimiento', 'domicilio', 'competencias digitales'
+    'nacionalidad', 'fecha de nacimiento', 'domicilio', 'competencias digitales', 'informática', 'aptitudes',
+    'comprensión auditiva', 'producción oral', 'comprensión lectora', 'interacción oral', 'expresión escrita',
+    'usuario básico', 'usuario independiente', 'usuario competente'
   ];
 
-  // A) Formato InfoJobs / Portales / Etiquetas explícitas
-  const explicitNameMatch = clean.match(/(?:curr[ií]culum\s+de|cv\s+de|nombre(?:\s*y\s*apellidos)?|candidato(?:\/a)?|datos\s+personales|nombre\s+completo)[:\s]+([A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,45})/i);
+  // A) Formato InfoJobs / Portales / Etiquetas explícitas: "Nombre y apellidos: Pelayo García García"
+  const explicitNameMatch = cleanNoEmails.match(/(?:curr[ií]culum\s+de|cv\s+de|nombre(?:\s*y\s*apellidos)?|candidato(?:\/a)?|datos\s+personales|nombre\s+completo)[:\s]+([A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,45})/i);
   if (explicitNameMatch && explicitNameMatch[1]) {
     const cand = explicitNameMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
-    if (cand.split(/\s+/).length >= 2 && cand.length <= 40) {
-      fullName = cand;
+    const words = cand.split(/\s+/).filter(w => w.length > 1);
+    if (words.length >= 2 && words.length <= 4) {
+      fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     }
   }
 
-  // B) Búsqueda por catálogo de nombres de pila comunes españoles (ej. Pelayo García García)
+  // B) Búsqueda por catálogo de nombres de pila comunes españoles + apellidos (ej. "Pelayo García García")
   if (!fullName) {
     for (const firstName of COMMON_FIRST_NAMES) {
-      const namePattern = new RegExp(`\\b(${firstName}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`);
-      const match = clean.match(namePattern);
+      const namePattern = new RegExp(`\\b(${firstName}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`, 'i');
+      const match = cleanNoEmails.match(namePattern);
       if (match && match[1]) {
         const found = match[1].trim();
-        if (found.length >= 5 && !forbiddenHeaderWords.some(w => found.toLowerCase().includes(w))) {
-          fullName = found;
-          break;
+        const lower = found.toLowerCase();
+        if (!forbiddenHeaderWords.some(w => lower.includes(w))) {
+          const words = found.split(/\s+/).filter(w => w.length > 1);
+          if (words.length >= 2 && words.length <= 4) {
+            fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            break;
+          }
         }
       }
     }
   }
 
-  // C) Si tenemos un nombre de archivo (ej. Pelayo.cv-5.pdf o CV_Pelayo_Garcia.pdf) o email (pelayovrs7@gmail.com):
-  if (!fullName) {
-    const hints: string[] = [];
-    if (fileNameHint) {
-      const base = fileNameHint
-        .replace(/\.pdf$/i, '')
-        .replace(/[._-](?:cv|curriculum|\d+)/gi, ' ')
-        .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]/g, ' ')
-        .trim();
-      hints.push(...base.split(/\s+/).filter(w => w.length >= 3));
-    }
-    if (email) {
-      const emailUser = email.split('@')[0];
-      const emailParts = emailUser.split(/[._-]/).filter(p => p.length >= 3 && !/^\d+$/.test(p));
-      hints.push(...emailParts);
-    }
+  // C) Si se proporciona nombre de archivo (ej. Pelayo.cv-5.pdf), buscar palabra en texto para extraer nombre y apellidos
+  if (!fullName && fileNameHint) {
+    const baseWords = fileNameHint
+      .replace(/\.pdf$/i, '')
+      .replace(/[._-](?:cv|curriculum|\d+)/gi, ' ')
+      .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(w => w.length >= 3);
 
-    for (const hint of hints) {
-      const hintRegex = new RegExp(`\\b(${hint}[A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\\s]{2,40})`, 'i');
-      const match = clean.match(hintRegex);
-      if (match && match[1]) {
-        let candidateText = match[1].split('\n')[0].trim();
-        candidateText = candidateText.replace(/\s+(?:t[eé]cnico|desarrollador|ingeniero|programador|administrador|fecha|nacionalidad|contacto|experiencia|educaci[oó]n|domicilio|email|tel[eé]fono|tel|tlf|para|de|en|del).*/i, '').trim();
-        const words = candidateText.split(/\s+/).filter(w => w.length > 1);
+    for (const hint of baseWords) {
+      const hintRegex = new RegExp(`\\b(${hint}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`, 'i');
+      const m = cleanNoEmails.match(hintRegex);
+      if (m && m[1]) {
+        const words = m[1].trim().split(/\s+/).filter(w => w.length > 1);
         if (words.length >= 2 && words.length <= 4) {
           fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
           break;
-        } else if (words.length === 1 && !fullName) {
-          fullName = words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase();
         }
       }
     }
   }
 
-  // D) Escaneo de las primeras líneas del documento
+  // D) Escaneo de las primeras líneas del documento (línea con 2 a 4 palabras en mayúsculas)
   if (!fullName && lines.length > 0) {
     for (let i = 0; i < Math.min(15, lines.length); i++) {
       let line = lines[i].replace(/[|•·,;:\-_/()]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -256,22 +257,23 @@ export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvR
         );
 
         if (isNameLike && line.length >= 5 && line.length <= 45) {
-          fullName = line;
+          fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
           break;
         }
       }
     }
   }
 
-  // E) Fallback final al nombre de archivo
+  // E) Fallback final al nombre de archivo si contiene nombre y apellido
   if (!fullName && fileNameHint) {
     const base = fileNameHint
       .replace(/\.pdf$/i, '')
       .replace(/[._-](?:cv|curriculum|\d+)/gi, ' ')
       .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]/g, ' ')
       .trim();
-    if (base.length >= 3) {
-      fullName = base.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    const words = base.split(/\s+/).filter(w => w.length >= 2);
+    if (words.length >= 1) {
+      fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     }
   }
 
