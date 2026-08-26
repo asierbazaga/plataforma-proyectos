@@ -17,9 +17,13 @@ export class ExcelInterviewService {
     const wsProf = this.createSectionSheet(XLSX, 'Competencias Profesionales', candidate);
     XLSX.utils.book_append_sheet(wb, wsProf, 'Competencias Profesionales');
 
-    // 3. Hoja Softskills
+    // 2. Hoja Softskills
     const wsSoft = this.createSectionSheet(XLSX, 'Softskills', candidate);
     XLSX.utils.book_append_sheet(wb, wsSoft, 'Softskills');
+
+    // 3. Hoja Preguntas Dinámicas
+    const wsDyn = this.createSectionSheet(XLSX, 'Preguntas Dinámicas', candidate);
+    XLSX.utils.book_append_sheet(wb, wsDyn, 'Preguntas Dinámicas');
 
     // 4. Hoja Resultado
     const wsResultado = this.createResultadoSheet(XLSX, candidate);

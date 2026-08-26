@@ -354,7 +354,7 @@ export interface LoreGoalsConfig {
 // ============================================================================
 
 export type MecaluxEvaluationLevel = 'Inexistente' | 'Pobre' | 'Bueno' | 'Fuerte';
-export type MecaluxCompetencySection = 'Competencias Profesionales' | 'Softskills';
+export type MecaluxCompetencySection = 'Competencias Profesionales' | 'Softskills' | 'Preguntas Dinámicas';
 
 export interface MecaluxCompetencyRubric {
   id: string;

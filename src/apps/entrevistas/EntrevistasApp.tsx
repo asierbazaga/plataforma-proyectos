@@ -580,6 +580,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
                 >
                   <option value="Competencias Profesionales">Competencias Profesionales</option>
                   <option value="Softskills">Softskills</option>
+                  <option value="Preguntas Dinámicas">Preguntas Dinámicas</option>
                 </select>
               </div>
 

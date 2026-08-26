@@ -198,7 +198,8 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
   const sections: { id: MecaluxCompetencySection; label: string; count: number }[] = [
     { id: 'Competencias Profesionales', label: 'Competencias Profesionales', count: rubrics.filter(r => r.section === 'Competencias Profesionales').length },
-    { id: 'Softskills', label: 'Softskills & Liderazgo', count: rubrics.filter(r => r.section === 'Softskills').length }
+    { id: 'Softskills', label: 'Softskills & Liderazgo', count: rubrics.filter(r => r.section === 'Softskills').length },
+    { id: 'Preguntas Dinámicas', label: 'Preguntas Dinámicas', count: rubrics.filter(r => r.section === 'Preguntas Dinámicas').length }
   ];
 
   // Conteo de evaluados en la sección actual

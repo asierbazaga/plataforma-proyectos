@@ -199,8 +199,8 @@ export const DEFAULT_MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
     ]
   },
   {
-    id: 'cp_inteligencia_artificial',
-    section: 'Competencias Profesionales',
+    id: 'pd_inteligencia_artificial',
+    section: 'Preguntas Dinámicas',
     nombre: 'Uso y conocimiento de Inteligencia Artificial (IA)',
     criterios: {
       inexistente: 'No conoce ni usa herramientas de IA en su día a día. Desconoce su funcionamiento o potencial real más allá de lo básico.',
@@ -216,8 +216,8 @@ export const DEFAULT_MECALUX_RUBRICS: MecaluxCompetencyRubric[] = [
     ]
   },
   {
-    id: 'cp_casos_situacionales',
-    section: 'Competencias Profesionales',
+    id: 'pd_casos_situacionales',
+    section: 'Preguntas Dinámicas',
     nombre: 'Pool de Preguntas Dinámicas (Casos Situacionales)',
     criterios: {
       inexistente: 'Respuestas cortas, carentes de lógica o de contexto. No sabe cómo enfocar una situación fuera de su zona de confort.',
