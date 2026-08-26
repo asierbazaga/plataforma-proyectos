@@ -537,7 +537,9 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
+        if (error) {
+          console.error('Supabase getExpenses error:', error);
+        } else if (data) {
           const formatted: ExpenseItem[] = (data as any[]).map(row => ({
             id: row.id,
             user_id: row.user_id,
@@ -549,11 +551,22 @@ class StorageService {
             transaction_date: String(row.transaction_date || new Date().toISOString().split('T')[0]),
             created_at: row.created_at
           }));
-          this.setLocal('expenses', formatted);
-          return formatted;
+          
+          // Merge optimista: si hay gastos locales más nuevos que no están en Supabase, no borrarlos
+          const local = this.getLocal<ExpenseItem[]>('expenses', []);
+          const merged = [...formatted];
+          for (const l of local) {
+            if (!merged.find(m => m.id === l.id)) {
+              merged.push(l);
+            }
+          }
+          merged.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+          
+          this.setLocal('expenses', merged);
+          return merged;
         }
       } catch (e) {
-        console.error('Supabase getExpenses error:', e);
+        console.error('Supabase getExpenses exception:', e);
       }
     }
     const local = this.getLocal<any[]>('expenses', []);
@@ -572,13 +585,15 @@ class StorageService {
       id: generateId('exp'),
       created_at: new Date().toISOString()
     };
+    
+    // 1. Guardar en local primero para feedback instantáneo
     const current = this.getLocal<ExpenseItem[]>('expenses', []);
     this.setLocal('expenses', [item, ...current.filter(e => e.id !== item.id)]);
-    this.broadcastChange();
 
+    // 2. Subir a Supabase
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('expenses').upsert({
+        const { error } = await supabase.from('expenses').upsert({
           id: item.id,
           user_id: item.user_id,
           description: item.description,
@@ -588,10 +603,17 @@ class StorageService {
           account: item.account || 'abanca',
           transaction_date: item.transaction_date || new Date().toISOString().split('T')[0]
         });
+        if (error) {
+          console.error('Supabase addExpense upsert error:', error);
+          alert('Error guardando en la nube: ' + error.message);
+        }
       } catch (e) {
-        console.error('Supabase addExpense error:', e);
+        console.error('Supabase addExpense exception:', e);
       }
     }
+    
+    // 3. Notificar cambios después de haber intentado subir
+    this.broadcastChange();
     return item;
   }
 

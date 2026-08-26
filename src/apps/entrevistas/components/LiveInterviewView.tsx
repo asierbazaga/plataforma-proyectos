@@ -1,8 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
   CheckCircle2, 
   FileSpreadsheet, 
   Sparkles, 
@@ -12,7 +9,6 @@ import {
   Save, 
   ArrowLeft,
   ArrowRight,
-  Clock,
   Layers,
   Award,
   AlertTriangle,
@@ -37,28 +33,9 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   onBackToList
 }) => {
   const [activeSection, setActiveSection] = useState<MecaluxCompetencySection>('Competencias Profesionales');
-  const [secondsElapsed, setSecondsElapsed] = useState<number>(candidate.durationMinutes ? candidate.durationMinutes * 60 : 0);
-  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [expandedRubrics, setExpandedRubrics] = useState<Record<string, boolean>>({});
   const [autoSaveToast, setAutoSaveToast] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
-
-  // Temporizador de entrevista
-  useEffect(() => {
-    let interval: any = null;
-    if (isTimerRunning) {
-      interval = setInterval(() => {
-        setSecondsElapsed(prev => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning]);
-
-  const formatTimer = (totalSeconds: number) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handleRatingChange = (rubricId: string, section: MecaluxCompetencySection, name: string, level: MecaluxEvaluationLevel) => {
     const existing = candidate.evaluations[rubricId] || {
@@ -96,7 +73,6 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
     const updatedCandidate: CandidateInterview = {
       ...candidate,
-      durationMinutes: Math.ceil(secondsElapsed / 60),
       status: evaluatedCount > 0 ? 'in_progress' : candidate.status,
       evaluations: updatedEvaluations,
       resultadoFinal: {
@@ -121,7 +97,6 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
     const updatedCandidate: CandidateInterview = {
       ...candidate,
-      durationMinutes: Math.ceil(secondsElapsed / 60),
       evaluations: {
         ...candidate.evaluations,
         [rubricId]: {
@@ -189,36 +164,8 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
             </div>
           </div>
 
-          {/* Cronómetro & Acciones Rápidas */}
+          {/* Acciones Rápidas */}
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Cronómetro */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-slate-950 border border-slate-800">
-              <Clock className="w-4 h-4 text-cyan-400" />
-              <span className="font-mono text-base font-extrabold text-white">
-                {formatTimer(secondsElapsed)}
-              </span>
-              <button
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
-                  isTimerRunning 
-                    ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' 
-                    : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
-                }`}
-                title={isTimerRunning ? 'Pausar Cronómetro' : 'Iniciar Cronómetro'}
-              >
-                {isTimerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => {
-                  setIsTimerRunning(false);
-                  setSecondsElapsed(0);
-                }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-xs"
-                title="Reiniciar Cronómetro"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            </div>
 
             {/* Score Global Badge */}
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/30">

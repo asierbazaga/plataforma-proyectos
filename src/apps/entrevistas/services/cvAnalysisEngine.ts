@@ -9,6 +9,11 @@ export interface ParsedCvResult {
   detectedSkills: string[];
   intralogisticsExperience: boolean;
   yearsOfExperienceEstimate: number;
+  englishLevel?: 'A2' | 'B1' | 'B2' | 'C1' | 'C2 / Nativo';
+  noticePeriodWeeks?: number;
+  suggestedRole?: string;
+  currentSalaryEur?: number;
+  expectedSalaryEur?: number;
   customSuggestedQuestions: {
     category: string;
     question: string;
@@ -19,62 +24,122 @@ export interface ParsedCvResult {
 
 const TECH_DICTIONARY = [
   // Soporte, Sistemas & Helpdesk
-  { name: 'Soporte N1 / Helpdesk', regex: /\b(helpdesk|soporte|service desk|ticketing|jira service|zendesk|remedy|itil|incidencias|guardias)\b/i },
-  { name: 'SGA / Easy WMS', regex: /\b(sga|wms|warehouse management|easy wms|sap wm|sap ewm|manhattan|intralog[ií]stica|almac[eé]n)\b/i },
-  { name: 'SQL & Bases de Datos', regex: /\b(sql|sql server|tsql|t-sql|oracle|pl\/sql|postgres|mysql|select|join|query|queries)\b/i },
-  { name: 'Hardware / Radiofrecuencia', regex: /\b(radiofrecuencia|rf|pistolas|zebra|honeywell|lectores|impresoras t[eé]rmicas|rfid|etiquetadoras)\b/i },
-  { name: 'Redes & Comunicaciones', regex: /\b(tcp\/ip|vpn|dns|dhcp|lan|wan|ssh|remote desktop|rdp|anydesk|teamviewer|switches|routers)\b/i },
-  { name: 'Sistemas Operativos', regex: /\b(windows server|linux|ubuntu|debian|centos|redhat|active directory|powershell|bash)\b/i },
+  { name: 'Soporte N1 / Helpdesk', regex: /\b(helpdesk|soporte\s*t[eé]cnico|soporte|service\s*desk|ticketing|jira\s*service|zendesk|remedy|itil|incidencias|guardias|triage|atenci[oó]n\s*a\s*usuarios|tecnico\s*n1|t[eé]cnico\s*n1|tecnico\s*n2|t[eé]cnico\s*n2)\b/i },
+  { name: 'SGA / Easy WMS', regex: /\b(sga|wms|warehouse\s*management|easy\s*wms|sap\s*wm|sap\s*ewm|manhattan|intralog[ií]stica|almac[eé]n|almacenes|picking|packing|stock|transelevador)\b/i },
+  { name: 'SQL & Bases de Datos', regex: /\b(sql|sql\s*server|tsql|t-sql|oracle|pl\/sql|postgres|postgresql|mysql|sqlite|mariadb|select|join|consultas\s*sql)\b/i },
+  { name: 'Hardware / Radiofrecuencia', regex: /\b(radiofrecuencia|rf|pistolas|zebra|honeywell|datalogic|lectores|impresoras\s*t[eé]rmicas|rfid|etiquetadoras|handheld|montaje\s*hardware)\b/i },
+  { name: 'Redes & Comunicaciones', regex: /\b(tcp\/ip|vpn|dns|dhcp|lan|wan|ssh|remote\s*desktop|rdp|anydesk|teamviewer|switches|routers|firewall|wifi|redes|redes\s*informaticas)\b/i },
+  { name: 'Sistemas Operativos', regex: /\b(windows\s*server|linux|ubuntu|debian|centos|redhat|active\s*directory|powershell|bash|cmd|virtualizaci[oó]n|vmware|hyper-v|sistemas\s*linux)\b/i },
   
   // Desarrollo & Automatización
-  { name: 'C# / .NET', regex: /\b(c#|csharp|\.net|dotnet|asp\.net)\b/i },
-  { name: 'Java', regex: /\b(java|spring)\b/i },
-  { name: 'Python / Scripting', regex: /\b(python|scripting|bash|powershell|automation)\b/i },
-  { name: 'PLC / Industrial', regex: /\b(plc|aut[oó]mata|scada|tia portal|siemens|omron|modbus|opc-ua|wcs|mfc)\b/i },
-  { name: 'Web / APIs', regex: /\b(html|css|javascript|typescript|react|angular|api|rest|json|postman)\b/i }
+  { name: 'C# / .NET', regex: /\b(c#|csharp|\.net|dotnet|asp\.net|entity\s*framework|linq|wpf|wcf)\b/i },
+  { name: 'Java', regex: /\b(java|spring|spring\s*boot|hibernate|maven|gradle)\b/i },
+  { name: 'Python / Scripting', regex: /\b(python|django|fastapi|flask|pandas|scripting|automation)\b/i },
+  { name: 'PLC / Industrial', regex: /\b(plc|aut[oó]mata|scada|tia\s*portal|siemens|s7-1200|s7-1500|omron|beckhoff|modbus|opc-ua|wcs|mfc|rob[oó]tica)\b/i },
+  { name: 'Web / APIs', regex: /\b(html5?|css3?|javascript|typescript|react|angular|vue|node\.?js|api|rest|json|postman|swagger|wordpress)\b/i },
+  { name: 'DevOps & Cloud', regex: /\b(docker|kubernetes|azure|aws|gcp|ci\/cd|jenkins|git|github|gitlab|terraform)\b/i },
+  { name: 'QA & Testing', regex: /\b(qa|testing|selenium|cypress|jest|junit|pruebas\s*unitarias|postman\s*tests)\b/i }
 ];
 
-const SPANISH_CITIES_PROVINCES = [
-  'Gijón', 'Oviedo', 'Avilés', 'Asturias',
-  'Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia',
-  'Palma de Mallorca', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid', 'Vigo',
-  'A Coruña', 'La Coruña', 'Vitoria-Gasteiz', 'Vitoria', 'Granada', 'Elche',
-  'Santander', 'Pamplona', 'Almería', 'San Sebastián', 'Burgos', 'Albacete',
-  'Castellón', 'Logroño', 'Badajoz', 'Salamanca', 'Huelva', 'Lleida', 'Tarragona',
-  'León', 'Cádiz', 'Jaén', 'Ourense', 'Girona', 'Lugo', 'Cáceres', 'Toledo',
-  'Guadalajara', 'Pontevedra', 'Palencia', 'Ciudad Real', 'Zamora', 'Ávila',
-  'Cuenca', 'Huesca', 'Segovia', 'Soria', 'Teruel', 'Cantabria', 'Bizkaia',
-  'Álava', 'Guipúzcoa', 'Remoto / Teletrabajo'
+const SPANISH_PROVINCES_AND_CITIES = [
+  // Asturias
+  'Gijón', 'Oviedo', 'Avilés', 'Corvera', 'Corvera de Asturias', 'Castrillón', 'Piedras Blancas', 'Langreo', 'Mieres', 'Siero', 'Llanera', 'Llanes', 'Villaviciosa', 'Ribadesella', 'Cangas del Narcea', 'Cangas de Onís', 'Pravia', 'Grado', 'Grao', 'Candás', 'Carreño', 'Luanco', 'Gozón', 'Noreña', 'Laviana', 'Asturias',
+  // Madrid
+  'Madrid', 'Alcalá de Henares', 'Getafe', 'Leganés', 'Fuenlabrada', 'Alcorcón', 'Móstoles', 'Las Rozas', 'Pozuelo de Alarcón', 'Alcobendas', 'San Sebastián de los Reyes', 'Torrejón de Ardoz', 'Rivas-Vaciamadrid',
+  // Barcelona & Cataluña
+  'Barcelona', 'L\'Hospitalet', 'Hospitalet de Llobregat', 'Badalona', 'Terrassa', 'Tarrasa', 'Sabadell', 'Mataró', 'Santa Coloma de Gramenet', 'Cornellà', 'Sant Cugat del Vallès', 'Girona', 'Gerona', 'Tarragona', 'Lleida', 'Lérida', 'Cataluña',
+  // Valencia & C. Valenciana
+  'Valencia', 'Alicante', 'Alacant', 'Elche', 'Elx', 'Castellón', 'Castelló', 'Torrevieja', 'Gandia', 'Comunidad Valenciana',
+  // Andalucía
+  'Sevilla', 'Málaga', 'Marbella', 'Córdoba', 'Granada', 'Jerez de la Frontera', 'Almería', 'Huelva', 'Cádiz', 'Algeciras', 'San Fernando', 'Jaén', 'Dos Hermanas', 'Roquetas de Mar', 'Andalucía',
+  // País Vasco & Navarra
+  'Bilbao', 'Bizkaia', 'Vizcaya', 'Donostia', 'San Sebastián', 'Gipuzkoa', 'Guipúzcoa', 'Vitoria-Gasteiz', 'Vitoria', 'Álava', 'Araba', 'País Vasco', 'Pamplona', 'Iruña', 'Navarra',
+  // Galicia
+  'Vigo', 'A Coruña', 'La Coruña', 'Santiago de Compostela', 'Ourense', 'Orense', 'Lugo', 'Pontevedra', 'Ferrol', 'Galicia',
+  // Castilla y León & La Rioja
+  'Valladolid', 'Burgos', 'Salamanca', 'León', 'Palencia', 'Ponferrada', 'Zamora', 'Ávila', 'Segovia', 'Soria', 'Castilla y León', 'Logroño', 'La Rioja',
+  // Castilla-La Mancha & Extremadura
+  'Toledo', 'Albacete', 'Ciudad Real', 'Guadalajara', 'Cuenca', 'Talavera de la Reina', 'Castilla-La Mancha', 'Badajoz', 'Cáceres', 'Mérida', 'Extremadura',
+  // Aragón & Murcia
+  'Zaragoza', 'Huesca', 'Teruel', 'Aragón', 'Murcia', 'Cartagena', 'Lorca',
+  // Islas & Otras
+  'Palma de Mallorca', 'Palma', 'Mallorca', 'Ibiza', 'Menorca', 'Baleares', 'Las Palmas de Gran Canaria', 'Las Palmas', 'Santa Cruz de Tenerife', 'Tenerife', 'Canarias', 'Santander', 'Cantabria', 'Torrelavega', 'Ceuta', 'Melilla', 'Remoto / Teletrabajo'
 ];
 
-export function analyzeCvText(rawText: string): ParsedCvResult {
-  // Limpieza inicial de saltos y espacios múltiples
-  const clean = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const lines = clean.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+const COMMON_FIRST_NAMES = [
+  'Pelayo', 'Carlos', 'Juan', 'David', 'Alejandro', 'Javier', 'Manuel', 'Daniel', 'Pablo', 'Sergio',
+  'Álvaro', 'Alvaro', 'Hugo', 'Adrián', 'Adrian', 'Marcos', 'Lucas', 'Mateo', 'Mario', 'Diego',
+  'Iker', 'Rodrigo', 'Gonzalo', 'Rubén', 'Ruben', 'Iván', 'Ivan', 'Jorge', 'Alberto', 'Miguel',
+  'Antonio', 'José', 'Jose', 'Francisco', 'Guillermo', 'Enrique', 'Víctor', 'Victor', 'Ignacio', 'Raúl',
+  'Raul', 'Borja', 'Aitor', 'Unai', 'Asier', 'Nicolás', 'Nicolas', 'Gabriel', 'Samuel', 'Óscar', 'Oscar',
+  'María', 'Maria', 'Lucía', 'Lucia', 'Paula', 'Sara', 'Laura', 'Alba', 'Claudia', 'Marta',
+  'Irene', 'Sofía', 'Sofia', 'Andrea', 'Carmen', 'Elena', 'Ana', 'Cristina', 'Patricia', 'Nuria',
+  'Beatriz', 'Raquel', 'Silvia', 'Teresa', 'Covadonga', 'Ainara', 'Uxue', 'Nerea', 'Leire', 'Clara'
+];
 
-  // 1. Extraer Email
-  const emailMatch = clean.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  const email = emailMatch ? emailMatch[0] : '';
+export function analyzeCvText(rawText: string, fileNameHint?: string): ParsedCvResult {
+  if (!rawText) rawText = '';
+  
+  // Limpieza inicial de saltos, iconos especiales y espacios
+  const clean = rawText
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\u00A0/g, ' ')
+    .replace(/[\uF000-\uFFFF]/g, ' ') // Quitar iconos de fuentes privadas
+    .trim();
 
-  // 2. Extraer Teléfono
-  const phoneMatch = clean.match(/(?:\+34|0034|34)?[ -]?(?:[6789]\d{2})[ -]?\d{3}[ -]?\d{3}/) ||
-                     clean.match(/\+?\d{1,4}[ -]?\d{2,4}[ -]?\d{3,4}[ -]?\d{3,4}/);
-  const phone = phoneMatch ? phoneMatch[0].trim() : '';
+  const lines = clean
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
 
-  // 3. Extraer Residencia / Ubicación
+  // ==========================================
+  // 1. EXTRAER EMAIL
+  // ==========================================
+  let email = '';
+  const emailRegex = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/;
+  const emailMatch = clean.match(emailRegex);
+  if (emailMatch) {
+    email = emailMatch[0].trim().toLowerCase();
+  }
+
+  // ==========================================
+  // 2. EXTRAER TELÉFONO
+  // ==========================================
+  let phone = '';
+  const phoneLabelMatch = clean.match(/(?:tel[eé]fono|m[oó]vil|tlf|tfno|celular|phone|contact(?:o)?)[:\s]+(\+?(?:\(?\d+\)?[\s.-]?){8,16})/i);
+  if (phoneLabelMatch && phoneLabelMatch[1]) {
+    phone = phoneLabelMatch[1].trim();
+  }
+
+  if (!phone) {
+    const spanishMobileMatch = clean.match(/(?:\+34|0034|\(34\)|\(\+34\))?[ -]?(?:[6789]\d{2})[ -]?\d{2,3}[ -]?\d{2,4}[ -]?\d{0,3}/);
+    if (spanishMobileMatch && spanishMobileMatch[0].replace(/\D/g, '').length >= 9) {
+      phone = spanishMobileMatch[0].trim();
+    }
+  }
+
+  if (phone) {
+    phone = phone.replace(/[^\d+ ]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  // ==========================================
+  // 3. EXTRAER RESIDENCIA / UBICACIÓN
+  // ==========================================
   let location = '';
-  // Buscar etiqueta explícita de residencia o dirección
-  const explicitLocMatch = clean.match(/(?:residencia|ubicaci[oó]n|direcci[oó]n|localidad|ciudad|domicilio|vive en|reside en|provincia|address|location)[:\s]+([^\n\r,;]{3,45})/i);
+
+  // A) Buscar etiqueta explícita de residencia, domicilio o dirección
+  const explicitLocMatch = clean.match(/(?:residencia|ubicaci[oó]n|localidad|poblaci[oó]n|ciudad|provincia|domicilio|lugar de residencia|vive en|reside en|direcci[oó]n|address|location)[:\s]+([^\n\r,;]{3,50})/i);
   if (explicitLocMatch && explicitLocMatch[1]) {
-    const candidateLoc = explicitLocMatch[1].trim();
-    if (!candidateLoc.includes('@') && !candidateLoc.match(/^\+?\d/)) {
+    const candidateLoc = explicitLocMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
+    if (!candidateLoc.includes('@') && !candidateLoc.match(/^\+?\d{5,}/) && candidateLoc.length > 2) {
       location = candidateLoc;
     }
   }
 
-  // Si no se encontró por etiqueta, buscar por catálogo de ciudades/provincias de España o código postal
+  // B) Buscar en catálogo de ciudades/provincias de España
   if (!location) {
-    for (const city of SPANISH_CITIES_PROVINCES) {
+    for (const city of SPANISH_PROVINCES_AND_CITIES) {
       const cityRegex = new RegExp(`\\b${city.replace('-', '\\-')}\\b`, 'i');
       if (cityRegex.test(clean)) {
         location = city;
@@ -83,49 +148,110 @@ export function analyzeCvText(rawText: string): ParsedCvResult {
     }
   }
 
-  // Buscar código postal + ciudad (ej. 33201 Gijón o 28001 Madrid)
+  // C) Buscar código postal + municipio (ej. 33404 Corvera o 33201 Gijón o 28001 Madrid)
   if (!location) {
-    const cpMatch = clean.match(/\b(0[1-9]|[1-4][0-9]|5[0-2])\d{3}\b\s*([A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ]+)/);
-    if (cpMatch && cpMatch[2]) {
-      location = cpMatch[2];
+    const cpMatch = clean.match(/\b(0[1-9]|[1-4][0-9]|5[0-2])\d{3}\b\s*,?\s*([A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]+?)(?:,?\s*Espa[ñn]a|\n|$)/i);
+    if (cpMatch && cpMatch[2] && cpMatch[2].trim().length > 2) {
+      location = cpMatch[2].trim();
     }
   }
 
-  // 4. Extracción Robusta del Nombre Completo
+  // ==========================================
+  // 4. EXTRAER NOMBRE COMPLETO (SISTEMA MULTI-CAPA)
+  // ==========================================
   let fullName = '';
-  
-  // A) Búsqueda por etiqueta explícita
-  const explicitNameMatch = clean.match(/(?:nombre(?:\s*y\s*apellidos)?|candidato|datos personales)[:\s]+([A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,40})/i);
+
+  const forbiddenHeaderWords = [
+    'curriculum', 'vitae', 'cv', 'resumen', 'perfil', 'contacto', 'datos', 'personales',
+    'experiencia', 'laboral', 'profesional', 'educacion', 'educación', 'formacion', 'formación',
+    'skills', 'habilidades', 'competencias', 'idiomas', 'proyectos', 'page', 'pagina', 'página',
+    'telefono', 'teléfono', 'email', 'correo', 'ingeniero', 'desarrollador', 'tecnico', 'técnico',
+    'programador', 'developer', 'consultor', 'helpdesk', 'soporte', 'certificaciones', 'sobre mi', 'sobre mí',
+    'nacionalidad', 'fecha de nacimiento', 'domicilio', 'competencias digitales'
+  ];
+
+  // A) Formato InfoJobs / Portales / Etiquetas explícitas
+  const explicitNameMatch = clean.match(/(?:curr[ií]culum\s+de|cv\s+de|nombre(?:\s*y\s*apellidos)?|candidato(?:\/a)?|datos\s+personales|nombre\s+completo)[:\s]+([A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,45})/i);
   if (explicitNameMatch && explicitNameMatch[1]) {
-    const testName = explicitNameMatch[1].trim();
-    if (testName.length > 3 && !testName.includes('@') && testName.split(/\s+/).length >= 2) {
-      fullName = testName;
+    const cand = explicitNameMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
+    if (cand.split(/\s+/).length >= 2 && cand.length <= 40) {
+      fullName = cand;
     }
   }
 
-  // B) Si no hay etiqueta, buscar en las primeras 12 líneas del CV
+  // B) Si tenemos un nombre de archivo (ej. Pelayo.cv-5.pdf o CV_Pelayo_Garcia.pdf) o email (pelayovrs7@gmail.com):
+  // Buscar en el texto la aparición de la palabra clave para extraer el nombre y apellidos completos
   if (!fullName) {
-    const forbiddenHeaderWords = [
-      'curriculum', 'vitae', 'cv', 'resumen', 'perfil', 'contacto', 'datos',
-      'experiencia', 'laboral', 'profesional', 'educacion', 'formacion', 'skills',
-      'habilidades', 'idiomas', 'proyectos', 'page', 'pagina', 'telefono', 'email',
-      'correo', 'ingeniero', 'desarrollador', 'tecnico', 'programador', 'developer'
-    ];
+    const hints: string[] = [];
+    if (fileNameHint) {
+      const base = fileNameHint
+        .replace(/\.pdf$/i, '')
+        .replace(/[._-](?:cv|curriculum|\d+)/gi, ' ')
+        .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]/g, ' ')
+        .trim();
+      hints.push(...base.split(/\s+/).filter(w => w.length >= 3));
+    }
+    if (email) {
+      const emailUser = email.split('@')[0];
+      const emailParts = emailUser.split(/[._-]/).filter(p => p.length >= 3 && !/^\d+$/.test(p));
+      hints.push(...emailParts);
+    }
 
-    for (let i = 0; i < Math.min(12, lines.length); i++) {
-      const line = lines[i].replace(/[|•·,;:\-_/()]/g, ' ').trim();
+    for (const hint of hints) {
+      const hintRegex = new RegExp(`\\b(${hint}[A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\\s]{2,40})`, 'i');
+      const match = clean.match(hintRegex);
+      if (match && match[1]) {
+        // Limpiar sufijos como puestos de trabajo o saltos
+        let candidateText = match[1].split('\n')[0].trim();
+        candidateText = candidateText.replace(/\s+(?:t[eé]cnico|desarrollador|ingeniero|programador|administrador|fecha|nacionalidad|contacto|experiencia|educaci[oó]n|domicilio|email|tel[eé]fono|tel|tlf|para|de|en|del).*/i, '').trim();
+        const words = candidateText.split(/\s+/).filter(w => w.length > 1);
+        if (words.length >= 2 && words.length <= 4) {
+          fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          break;
+        } else if (words.length === 1 && !fullName) {
+          fullName = words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase();
+        }
+      }
+    }
+  }
+
+  // C) Búsqueda por catálogo de nombres de pila comunes españoles (ej. Pelayo García García)
+  if (!fullName || fullName.split(/\s+/).length < 2) {
+    for (const firstName of COMMON_FIRST_NAMES) {
+      const namePattern = new RegExp(`\\b(${firstName}\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\\b`);
+      const match = clean.match(namePattern);
+      if (match && match[1]) {
+        const found = match[1].trim();
+        if (found.length >= 6 && !forbiddenHeaderWords.some(w => found.toLowerCase().includes(w))) {
+          fullName = found;
+          break;
+        }
+      }
+    }
+  }
+
+  // D) Escaneo de las primeras 15 líneas del documento (línea con 2 a 4 palabras en mayúsculas)
+  if (!fullName && lines.length > 0) {
+    for (let i = 0; i < Math.min(15, lines.length); i++) {
+      let line = lines[i].replace(/[|•·,;:\-_/()]/g, ' ').replace(/\s+/g, ' ').trim();
       const lower = line.toLowerCase();
-      
-      // Ignorar si contiene email, teléfono o palabras reservadas de sección
-      if (line.includes('@') || line.match(/\+?\d{6,}/) || forbiddenHeaderWords.some(w => lower.includes(w))) {
+
+      if (line.includes('@') || line.match(/\+?\d{6,}/) || line.includes('http') || line.includes('www.') || line.includes('linkedin.com')) {
+        continue;
+      }
+
+      if (forbiddenHeaderWords.some(w => lower === w || lower.startsWith(w + ' ') || lower.endsWith(' ' + w))) {
         continue;
       }
 
       const words = line.split(/\s+/).filter(w => w.length > 1);
-      // Un nombre suele tener entre 2 y 4 palabras, sin dígitos y con mayúsculas
       if (words.length >= 2 && words.length <= 4 && !line.match(/\d/)) {
-        const isCapitalized = words.every(w => /^[A-ZÁÉÍÓÚÑ]/.test(w) || w.toLowerCase() === 'de' || w.toLowerCase() === 'del' || w.toLowerCase() === 'la');
-        if (isCapitalized && line.length >= 5 && line.length <= 45) {
+        const isNameLike = words.every(w => 
+          /^[A-ZÁÉÍÓÚÑ]/.test(w) || 
+          ['de', 'del', 'la', 'las', 'los', 'san', 'santa', 'y', 'von', 'van', 'da', 'di'].includes(w.toLowerCase())
+        );
+
+        if (isNameLike && line.length >= 5 && line.length <= 45) {
           fullName = line;
           break;
         }
@@ -133,55 +259,59 @@ export function analyzeCvText(rawText: string): ParsedCvResult {
     }
   }
 
-  // C) Si aún no tiene nombre, tomar la primera línea válida no numérica ni email
-  if (!fullName && lines.length > 0) {
-    for (const l of lines.slice(0, 5)) {
-      if (!l.includes('@') && !l.match(/^\+?\d/) && l.length > 3 && l.length < 40) {
-        fullName = l;
-        break;
-      }
+  // E) Fallback final al nombre de archivo o email
+  if (!fullName && fileNameHint) {
+    const base = fileNameHint
+      .replace(/\.pdf$/i, '')
+      .replace(/[._-](?:cv|curriculum|\d+)/gi, ' ')
+      .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÁÉÍÓÚÑ\s]/g, ' ')
+      .trim();
+    if (base.length >= 3) {
+      fullName = base.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     }
   }
 
-  // 5. Extracción de Puesto y Empresa Actual
+  // ==========================================
+  // 5. EXTRAER PUESTO Y EMPRESA ACTUAL / RECIENTE
+  // ==========================================
   let currentPosition = '';
   let currentCompany = '';
 
-  // Buscar etiquetas explícitas
-  const explicitPosMatch = clean.match(/(?:puesto|cargo|posici[oó]n|rol|ocupaci[oó]n|actualmente|trabajo actual)[:\s]+([^\n\r,;]{3,50})/i);
+  // A) Etiquetas explícitas
+  const explicitPosMatch = clean.match(/(?:puesto|cargo|posici[oó]n|rol|ocupaci[oó]n|actualmente|trabajo\s+actual)[:\s]+([^\n\r,;]{3,50})/i);
   if (explicitPosMatch && explicitPosMatch[1]) {
-    currentPosition = explicitPosMatch[1].trim();
+    currentPosition = explicitPosMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
   }
 
   const explicitCompMatch = clean.match(/(?:empresa|compa[ñn][ií]a|cliente|organizaci[oó]n|company)[:\s]+([^\n\r,;]{2,50})/i);
   if (explicitCompMatch && explicitCompMatch[1]) {
-    currentCompany = explicitCompMatch[1].trim();
+    currentCompany = explicitCompMatch[1].trim().replace(/^[-•*#:]+\s*/, '');
   }
 
-  // Buscar patrones comunes de empleo: "[Puesto] en [Empresa]" o "[Puesto] at [Empresa]"
+  // B) Patrones como "Técnico N2 para negocio telefónica Capgemini" o "Técnico en Indra"
   if (!currentPosition || !currentCompany) {
-    const jobAtMatch = clean.match(/((?:t[eé]cnico|helpdesk|soporte|desarrollador|programador|analista|ingeniero|operador|consultor|administrador|especialista)[^\n\r,;]{0,40})\s+(?:en|at|@)\s+([A-Za-z0-9ÁÉÍÓÚÑáéíóúñ\s.,&-]{2,35})/i);
-    if (jobAtMatch) {
-      if (!currentPosition) currentPosition = jobAtMatch[1].trim();
-      if (!currentCompany) currentCompany = jobAtMatch[2].trim();
+    const jobCompanyPattern = /((?:t[eé]cnico|helpdesk|soporte|desarrollador|programador|analista|ingeniero|operador|consultor|administrador|especialista)[^\n\r]{0,45})\s+(?:en|at|para\s+negocio[^\n\r]{0,25})\s+([A-Za-z0-9ÁÉÍÓÚÑáéíóúñ\s.,&-]{2,30})/i;
+    const jobCompMatch = clean.match(jobCompanyPattern);
+    if (jobCompMatch) {
+      if (!currentPosition) currentPosition = jobCompMatch[1].trim().replace(/^[-•*#\d.]+\s*/, '');
+      if (!currentCompany) currentCompany = jobCompMatch[2].trim();
     }
   }
 
-  // Buscar en la sección de Experiencia Profesional el primer bloque
+  // C) Sección de Experiencia Laboral: escanear líneas tras "EXPERIENCIA LABORAL"
   if (!currentPosition || !currentCompany) {
-    const expIndex = clean.search(/(?:experiencia|historial laboral|trayectoria|work experience)/i);
+    const expIndex = clean.search(/(?:experiencia\s+laboral|experiencia\s+profesional|experiencia|historial\s+laboral|trayectoria|work\s+experience)/i);
     if (expIndex !== -1) {
-      const expSnippet = clean.slice(expIndex, expIndex + 400);
+      const expSnippet = clean.slice(expIndex, expIndex + 600);
       const expLines = expSnippet.split('\n').map(l => l.trim()).filter(l => l.length > 2);
       
-      // Saltar la línea del encabezado
       for (let j = 1; j < expLines.length; j++) {
         const el = expLines[j];
-        if (!currentPosition && /(t[eé]cnico|helpdesk|soporte|desarrollador|programador|ingeniero|operador|consultor|analista|administrador|inform[aá]tico)/i.test(el)) {
-          currentPosition = el.replace(/^[-•*#\d.]+\s*/, '').slice(0, 45).trim();
-          // La siguiente línea suele ser la empresa o las fechas
-          if (expLines[j + 1] && !currentCompany && !expLines[j + 1].match(/\d{4}/)) {
-            currentCompany = expLines[j + 1].replace(/^[-•*#]+\s*/, '').slice(0, 35).trim();
+        if (!currentPosition && /(t[eé]cnico|helpdesk|soporte|desarrollador|programador|ingeniero|operador|consultor|analista|administrador|inform[aá]tico|lead|qa|devops)/i.test(el)) {
+          currentPosition = el.replace(/^[-•*#\d.]+\s*/, '').slice(0, 50).trim();
+          
+          if (expLines[j + 1] && !currentCompany && !expLines[j + 1].match(/\d{4}/) && expLines[j + 1].length < 40) {
+            currentCompany = expLines[j + 1].replace(/^[-•*#]+\s*/, '').trim();
           }
           break;
         }
@@ -189,18 +319,33 @@ export function analyzeCvText(rawText: string): ParsedCvResult {
     }
   }
 
-  // Fallback si encontramos palabras clave de puesto
-  if (!currentPosition) {
-    if (/t[eé]cnico\s*(?:de\s*)?(?:soporte|helpdesk|sistemas|n1|nivel 1|inform[aá]tico)/i.test(clean)) {
-      currentPosition = 'Técnico de Soporte / Helpdesk';
-    } else if (/desarrollador|programador|developer/i.test(clean)) {
-      currentPosition = 'Desarrollador de Software';
-    } else if (/operador\s*(?:de\s*)?(?:sistemas|monitorizaci[oó]n|almac[eé]n)/i.test(clean)) {
-      currentPosition = 'Operador de Sistemas / Almacén';
+  // D) Detectar empresas conocidas si aparecen en el CV (Capgemini, Indra, Telefónica, DXC, Mecalux, Accenture, etc.)
+  if (!currentCompany) {
+    const knownCompanies = ['Capgemini', 'Indra', 'Telefónica', 'DXC Technology', 'Mecalux', 'Accenture', 'NTT Data', 'Inetum', 'Alten', 'Babel', 'Izertis', 'Satec', 'Oesia', 'Autoridad Portuaria'];
+    for (const comp of knownCompanies) {
+      if (new RegExp(`\\b${comp}\\b`, 'i').test(clean)) {
+        currentCompany = comp;
+        break;
+      }
     }
   }
 
-  // 6. Detección de Skills y Ecosistema Mecalux
+  // Fallback de puesto
+  if (!currentPosition) {
+    if (/t[eé]cnico\s*(?:de\s*)?(?:soporte|helpdesk|sistemas|n1|nivel 1|n2|nivel 2|inform[aá]tico)/i.test(clean)) {
+      currentPosition = 'Técnico de Soporte / Helpdesk';
+    } else if (/implantaci[oó]n|puesta\s+en\s+marcha|field\s+service/i.test(clean)) {
+      currentPosition = 'Técnico de Implantación SGA';
+    } else if (/desarrollador|programador|developer|software\s*engineer/i.test(clean)) {
+      currentPosition = 'Desarrollador de Software';
+    } else if (/operador\s*(?:de\s*)?(?:sistemas|monitorizaci[oó]n|almac[eé]n)/i.test(clean)) {
+      currentPosition = 'Operador de Sistemas';
+    }
+  }
+
+  // ==========================================
+  // 6. DETECCIÓN DE SKILLS TÉCNICAS
+  // ==========================================
   const detectedSkills: string[] = [];
   TECH_DICTIONARY.forEach(item => {
     if (item.regex.test(clean)) {
@@ -208,26 +353,115 @@ export function analyzeCvText(rawText: string): ParsedCvResult {
     }
   });
 
-  // 7. Experiencia en SGA e Intralogística
-  const intralogisticsExperience = /\b(intralog[ií]stica|almac[eé]n|almacenes|wms|sga|easy wms|picking|transelevador|log[ií]stica|stock|inventario)\b/i.test(clean);
+  // ==========================================
+  // 7. INTRALOGÍSTICA Y SGA
+  // ==========================================
+  const intralogisticsExperience = /\b(intralog[ií]stica|almac[eé]n|almacenes|wms|sga|easy\s*wms|picking|packing|transelevador|log[ií]stica|stock|inventario|radiofrecuencia|rfid)\b/i.test(clean);
 
-  // 8. Estimación de Experiencia y Seniority
+  // ==========================================
+  // 8. ESTIMACIÓN DE AÑOS DE EXPERIENCIA Y SENIORITY
+  // ==========================================
   let yearsOfExperienceEstimate = 1;
+  const currentYear = new Date().getFullYear();
+
   const yearMatches = clean.match(/(\d{1,2})\s*(?:\+|m[aá]s\s*de)?\s*(?:a[ñn]os|years|a[ñn]o)\s*(?:de)?\s*(?:experiencia|exp)/i);
   if (yearMatches && yearMatches[1]) {
     yearsOfExperienceEstimate = parseInt(yearMatches[1], 10);
+  } else {
+    const dateRangeRegex = /\b(?:(?:\d{1,2}\/)?(20\d{2}|19\d{2}))\s*(?:-|–|a|to|hasta)\s*(?:(?:\d{1,2}\/)?(20\d{2})|actualidad|presente|present|actual|hoy)\b/gi;
+    let match: RegExpExecArray | null;
+    let minYear = currentYear;
+    let foundDates = false;
+
+    while ((match = dateRangeRegex.exec(clean)) !== null) {
+      foundDates = true;
+      const startYear = parseInt(match[1], 10);
+      if (startYear < minYear && startYear >= 1990 && startYear <= currentYear) {
+        minYear = startYear;
+      }
+    }
+
+    if (foundDates && minYear < currentYear) {
+      yearsOfExperienceEstimate = Math.max(1, currentYear - minYear);
+    }
   }
 
   let estimatedSeniority: 'Junior' | 'Mid' | 'Senior' | 'Lead' | 'Tech Lead' | 'Especialista' = 'Junior';
-  if (yearsOfExperienceEstimate >= 5 || /\b(senior|sr\.?|responsable|lead)\b/i.test(clean)) {
+  if (yearsOfExperienceEstimate >= 6 || /\b(senior|sr\.?|responsable|lead|team\s*lead|arquitecto)\b/i.test(clean)) {
     estimatedSeniority = 'Senior';
-  } else if (yearsOfExperienceEstimate >= 2 || /\b(mid|intermedio)\b/i.test(clean)) {
+  } else if (yearsOfExperienceEstimate >= 2 || /\b(mid|intermedio|n2|nivel\s*2)\b/i.test(clean)) {
     estimatedSeniority = 'Mid';
   } else {
     estimatedSeniority = 'Junior';
   }
 
-  // 9. Preguntas Dinámicas adaptadas específicamente para Técnico de Nivel 1 en Mecalux
+  // ==========================================
+  // 9. NIVEL DE INGLÉS DETECTADO
+  // ==========================================
+  let englishLevel: 'A2' | 'B1' | 'B2' | 'C1' | 'C2 / Nativo' = 'B2';
+  if (/ingl[eé]s[\s\S]{0,30}\b(?:c2|nativo|biling[uü]e|native|proficiency|cpe)\b/i.test(clean)) {
+    englishLevel = 'C2 / Nativo';
+  } else if (/ingl[eé]s[\s\S]{0,30}\b(?:c1|avanzado|advanced|cae|fluido\s*profesional)\b/i.test(clean) || /\b(c1\s*ingl[eé]s|cae\s*cambridge)\b/i.test(clean)) {
+    englishLevel = 'C1';
+  } else if (/ingl[eé]s[\s\S]{0,30}\b(?:b2|intermedio\s*alto|first\s*certificate|fce)\b/i.test(clean) || /\b(b2\s*ingl[eé]s|fce\s*cambridge)\b/i.test(clean)) {
+    englishLevel = 'B2';
+  } else if (/ingl[eé]s[\s\S]{0,30}\b(?:b1|intermedio|pet|medio)\b/i.test(clean) || /\b(b1\s*ingl[eé]s)\b/i.test(clean)) {
+    englishLevel = 'B1';
+  } else if (/ingl[eé]s[\s\S]{0,30}\b(?:a2|a1|b[aá]sico|basic)\b/i.test(clean)) {
+    englishLevel = 'A2';
+  }
+
+  // ==========================================
+  // 10. PREAVISO / DISPONIBILIDAD
+  // ==========================================
+  let noticePeriodWeeks = 2;
+  if (/disponibilidad\s*(?:inmediata|completa|ya)|incorporaci[oó]n\s*inmediata/i.test(clean)) {
+    noticePeriodWeeks = 0;
+  } else if (/1\s*mes|un\s*mes|4\s*semanas|30\s*d[ií]as/i.test(clean)) {
+    noticePeriodWeeks = 4;
+  } else if (/2\s*meses|dos\s*meses|8\s*semanas/i.test(clean)) {
+    noticePeriodWeeks = 8;
+  }
+
+  // ==========================================
+  // 11. ROL SUGERIDO EN MECALUX
+  // ==========================================
+  let suggestedRole = 'Técnico de Nivel 1 (Soporte & Helpdesk Mecalux)';
+  if (/implantaci[oó]n|puesta\s+en\s+marcha|field\s*service|viajes|desplazamiento/i.test(clean)) {
+    suggestedRole = 'Técnico de Nivel 1 (Implantación & Puesta en Marcha SGA)';
+  } else if (/\b(c#|csharp|\.net|dotnet)\b/i.test(clean)) {
+    suggestedRole = 'Software Engineer Backend (.NET / C# / SGA)';
+  } else if (/\b(java|spring)\b/i.test(clean)) {
+    suggestedRole = 'Software Engineer Backend (Java / Spring)';
+  } else if (/\b(react|angular|vue|typescript|frontend)\b/i.test(clean) && !/\b(backend|c#|java)\b/i.test(clean)) {
+    suggestedRole = 'Software Engineer Frontend (React / Angular / TS)';
+  } else if (/\b(plc|aut[oó]mata|scada|tia\s*portal|siemens)\b/i.test(clean)) {
+    suggestedRole = 'Ingeniero de Automatización, Robótica & PLC (Siemens / TIA Portal)';
+  } else if (/\b(devops|docker|kubernetes|azure|cloud|ci\/cd)\b/i.test(clean)) {
+    suggestedRole = 'DevOps & Cloud Systems Engineer (Azure / AWS)';
+  } else if (/\b(qa|testing|selenium|cypress|calidad\s*software)\b/i.test(clean)) {
+    suggestedRole = 'QA Automation & Quality Engineer';
+  } else if (/\b(consultor|consulting|funcional|easy\s*wms)\b/i.test(clean)) {
+    suggestedRole = 'Consultor SGA / WMS (Easy WMS Mecalux)';
+  }
+
+  // ==========================================
+  // 12. SALARIOS (OPCIONAL)
+  // ==========================================
+  let currentSalaryEur: number | undefined;
+  let expectedSalaryEur: number | undefined;
+
+  const salaryMatch = clean.match(/(?:salario|sueldo|retribuci[oó]n|expectativa(?:s)?\s*salarial(?:es)?|pretensiones)[:\s]+(\d{2})[.\s]?(\d{3})\s*€?/i);
+  if (salaryMatch) {
+    const val = parseInt(salaryMatch[1] + salaryMatch[2], 10);
+    if (val >= 15000 && val <= 100000) {
+      expectedSalaryEur = val;
+    }
+  }
+
+  // ==========================================
+  // 13. PREGUNTAS DINÁMICAS MECALUX
+  // ==========================================
   const customSuggestedQuestions: { category: string; question: string; reason: string }[] = [];
 
   customSuggestedQuestions.push({
@@ -272,7 +506,7 @@ export function analyzeCvText(rawText: string): ParsedCvResult {
   ];
 
   return {
-    fullName: fullName || 'Candidato Detectado',
+    fullName: fullName || (fileNameHint ? fileNameHint.replace(/\.pdf$/i, '').replace(/[._-](?:cv|curriculum|\d+)/gi, ' ').trim() : 'Candidato Detectado'),
     email,
     phone,
     location: location || 'No especificada',
@@ -282,6 +516,11 @@ export function analyzeCvText(rawText: string): ParsedCvResult {
     detectedSkills,
     intralogisticsExperience,
     yearsOfExperienceEstimate,
+    englishLevel,
+    noticePeriodWeeks,
+    suggestedRole,
+    currentSalaryEur,
+    expectedSalaryEur,
     customSuggestedQuestions,
     suggestedFocusAreas
   };

@@ -3,18 +3,8 @@ import {
   X, 
   Sparkles, 
   Upload, 
-  FileText, 
   CheckCircle2, 
-  User, 
-  Mail, 
-  Phone, 
-  Briefcase, 
-  DollarSign, 
-  Calendar,
-  Clock,
-  Layers,
-  Award,
-  FileSpreadsheet
+  Briefcase 
 } from 'lucide-react';
 import { CandidateInterview } from '../../../types';
 import { analyzeCvText, ParsedCvResult } from '../services/cvAnalysisEngine';
@@ -69,8 +59,8 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
 
-  const applyAnalysis = (text: string) => {
-    const result = analyzeCvText(text);
+  const applyAnalysis = (text: string, fileName?: string) => {
+    const result = analyzeCvText(text, fileName || cvFileName);
     setAnalysisResult(result);
     if (result.fullName && result.fullName !== 'Candidato Detectado') {
       setFullName(result.fullName);
@@ -81,11 +71,25 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
       setLocation(result.location);
     }
     if (result.currentCompany && result.currentCompany !== 'No especificada') {
-      setCurrentCompany(`${result.currentCompany}${result.currentPosition && result.currentPosition !== 'Técnico de Soporte' ? ` (${result.currentPosition})` : ''}`);
+      if (result.currentPosition && result.currentPosition !== 'Técnico de Soporte') {
+        setCurrentCompany(`${result.currentCompany} (${result.currentPosition})`);
+      } else {
+        setCurrentCompany(result.currentCompany);
+      }
     } else if (result.currentPosition && result.currentPosition !== 'Técnico de Soporte') {
       setCurrentCompany(result.currentPosition);
     }
     if (result.estimatedSeniority) setSeniority(result.estimatedSeniority);
+    if (result.englishLevel) setEnglishLevel(result.englishLevel);
+    if (typeof result.noticePeriodWeeks === 'number') setNoticePeriodWeeks(result.noticePeriodWeeks);
+    if (result.suggestedRole && !candidateToEdit) {
+      if (PREDEFINED_ROLES.includes(result.suggestedRole)) {
+        setRole(result.suggestedRole);
+      }
+    }
+    if (result.expectedSalaryEur) setExpectedSalaryEur(result.expectedSalaryEur);
+    if (result.currentSalaryEur) setCurrentSalaryEur(result.currentSalaryEur);
+
     return result;
   };
 
@@ -94,7 +98,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
     setAnalyzing(true);
 
     setTimeout(() => {
-      applyAnalysis(cvText);
+      applyAnalysis(cvText, cvFileName);
       setAnalyzing(false);
     }, 300);
   };
@@ -111,7 +115,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
       try {
         const text = await extractTextFromPdfFile(file);
         setCvText(text);
-        applyAnalysis(text);
+        applyAnalysis(text, file.name);
       } catch (err: any) {
         alert(err.message || 'Error al procesar el archivo PDF');
       } finally {
@@ -127,7 +131,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
       const text = event.target?.result as string;
       if (text) {
         setCvText(text);
-        applyAnalysis(text);
+        applyAnalysis(text, file.name);
       }
     };
     reader.readAsText(file);
