@@ -205,6 +205,35 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   // Conteo de evaluados en la sección actual
   const evaluatedInSection = rubricsInSection.filter(r => candidate.evaluations[r.id]?.evaluacion).length;
 
+  // Componente interno para evitar lag al escribir (Local State)
+  const LocalTextArea = ({ initialValue, onChange, placeholder, className }: any) => {
+    const [val, setVal] = useState(initialValue);
+    const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    React.useEffect(() => {
+      setVal(initialValue);
+    }, [initialValue]);
+
+    const handleChange = (e: any) => {
+      const newVal = e.target.value;
+      setVal(newVal); // Actualiza la UI al instante
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        onChange(newVal);
+      }, 500); // Propaga al padre despues de medio segundo sin escribir
+    };
+
+    return (
+      <textarea
+        value={val}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className={className}
+        rows={3}
+      />
+    );
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* 1. Header Bar de Entrevista en Directo */}
@@ -307,9 +336,9 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
               Generar Instrucciones para IA
             </button>
           </div>
-          <textarea
-            value={notes}
-            onChange={(e) => handleNotesChange(e.target.value)}
+          <LocalTextArea
+            initialValue={notes}
+            onChange={(val: string) => handleNotesChange(val)}
             placeholder="Toma tus apuntes en sucio durante la entrevista... (ej. 'Tiene 3 años de exp en C#, conoce bien los JOINs, pero se ha puesto muy nervioso al explicar su mayor error y ha dudado...')"
             className="w-full h-32 bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-y"
           />
@@ -587,10 +616,9 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                       Comentarios persona entrevistadora:
                     </label>
-                    <textarea
-                      rows={3}
-                      value={evalData.comentarios}
-                      onChange={(e) => handleCommentsChange(rubric.id, rubric.section, rubric.nombre, e.target.value)}
+                    <LocalTextArea
+                      initialValue={evalData.comentarios}
+                      onChange={(val: string) => handleCommentsChange(rubric.id, rubric.section, rubric.nombre, val)}
                       placeholder="Escribe aquí tus observaciones, respuestas destacadas del candidato o dudas técnicas..."
                       className="w-full rounded-2xl bg-slate-950/80 border border-slate-800 p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-y"
                     />
