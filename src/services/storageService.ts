@@ -1476,7 +1476,14 @@ class StorageService {
   // ==========================================
   // 6. MECALUX TALENT & ENTREVISTAS (GLOBAL UNIFICADO)
   // ==========================================
-  async getInterviewCandidates(_userId?: string): Promise<CandidateInterview[]> {
+  async getInterviewCandidates(_userId?: string, forceFetch: boolean = false): Promise<CandidateInterview[]> {
+    const local = this.getLocal<CandidateInterview[]>('interview_candidates', []);
+    
+    // Si no forzamos la recarga y ya tenemos datos, devolvemos rápido para no bloquear UI
+    if (!forceFetch && local.length > 0) {
+      return local;
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('interview_candidates').select('*').order('created_at', { ascending: false });
@@ -1512,11 +1519,11 @@ class StorageService {
         }
       } catch (e) {}
     }
-    return this.getLocal<CandidateInterview[]>('interview_candidates', [INITIAL_CANDIDATE_SAMPLE]);
+    return local.length > 0 ? local : [INITIAL_CANDIDATE_SAMPLE];
   }
 
   async saveInterviewCandidate(candidate: CandidateInterview, userId?: string): Promise<CandidateInterview> {
-    const current = await this.getInterviewCandidates();
+    const current = this.getLocal<CandidateInterview[]>('interview_candidates', []);
     const candidateToSave: CandidateInterview = {
       ...candidate,
       user_id: userId || candidate.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',

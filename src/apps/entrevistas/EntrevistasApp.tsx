@@ -54,8 +54,8 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
     saveRubrics(newRubrics);
   };
 
-  const loadCandidates = async () => {
-    const list = await storageService.getInterviewCandidates(currentUser?.id);
+  const loadCandidates = async (force: boolean = false) => {
+    const list = await storageService.getInterviewCandidates(currentUser?.id, force);
     setCandidates(list);
     if (!selectedCandidateId && list.length > 0) {
       setSelectedCandidateId(list[0].id);
@@ -63,13 +63,13 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
   };
 
   useEffect(() => {
-    loadCandidates();
+    loadCandidates(false);
     storageService.syncFromCloud().then(() => {
-      loadCandidates();
+      loadCandidates(true);
     });
 
     const unsub = storageService.onSync(() => {
-      loadCandidates();
+      loadCandidates(false);
     });
     return () => unsub();
   }, [currentUser]);
@@ -98,9 +98,17 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
 
   const selectedCandidate = candidates.find(c => c.id === selectedCandidateId) || candidates[0] || null;
 
-  const handleUpdateCandidate = async (updated: CandidateInterview) => {
-    await storageService.saveInterviewCandidate(updated, currentUser?.id);
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleUpdateCandidate = (updated: CandidateInterview) => {
+    // Optimistic UI update for instant feedback
     setCandidates(prev => prev.map(c => c.id === updated.id ? updated : c));
+    
+    // Debounce the storage save to prevent spamming the database and triggering full re-fetches on every keystroke
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      storageService.saveInterviewCandidate(updated, currentUser?.id).catch(console.error);
+    }, 1000);
   };
 
   const handleDeleteCandidate = async (id: string) => {
@@ -132,9 +140,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
     });
 
     // Guardar en background sin bloquear la interfaz
-    storageService.saveInterviewCandidate(candidate, currentUser?.id).then(() => {
-      loadCandidates();
-    }).catch(console.error);
+    storageService.saveInterviewCandidate(candidate, currentUser?.id).catch(console.error);
   };
 
   const handleImportCandidates = async (imported: Partial<CandidateInterview>[]) => {
