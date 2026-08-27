@@ -68,10 +68,8 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
       loadCandidates(true);
     });
 
-    const unsub = storageService.onSync(() => {
-      loadCandidates(false);
-    });
-    return () => unsub();
+    // Eliminamos el listener onSync localmente para evitar que se pisen los datos al escribir (race condition)
+    // El optimistic UI ya mantiene la vista actualizada.
   }, [currentUser]);
 
   if (!canAccess) {
