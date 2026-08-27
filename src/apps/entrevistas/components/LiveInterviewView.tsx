@@ -123,8 +123,25 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
          }
       });
       
+      // Recalcular puntuación global excluyendo preguntas dinámicas
+      const evaluableRubrics = rubrics.filter(r => r.section !== 'Preguntas Dinámicas');
+      let totalScore = 0;
+      let evaluatedCount = 0;
+      evaluableRubrics.forEach(r => {
+        const ev = newEvals[r.id];
+        if (ev && ev.evaluacion) {
+          evaluatedCount++;
+          if (ev.evaluacion === 'Fuerte') totalScore += 3;
+          else if (ev.evaluacion === 'Bueno') totalScore += 2;
+          else if (ev.evaluacion === 'Pobre') totalScore += 1;
+        }
+      });
+      const totalPossible = evaluatedCount > 0 ? evaluatedCount * 3 : 0;
+      const puntuacionGlobal = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
+
       const newFinal = {
         ...candidate.resultadoFinal,
+        puntuacionGlobal,
         puntosFuertes: result.puntosFuertes || [],
         puntosAMejorar: result.puntosAMejorar || [],
         conclusionesTeamLeader: result.resumen || ''
@@ -162,7 +179,6 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
     // Recalcular puntuación global automáticamente (excluyendo Preguntas Dinámicas)
     const evaluableRubrics = rubrics.filter(r => r.section !== 'Preguntas Dinámicas');
-    const totalPossible = evaluableRubrics.length * 3; // Nivel máximo 'Fuerte' = 3 pts
     let totalScore = 0;
     let evaluatedCount = 0;
 
@@ -176,6 +192,8 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       }
     });
 
+    // La puntuación máxima posible se basa solo en las competencias que YA han sido evaluadas
+    const totalPossible = evaluatedCount > 0 ? evaluatedCount * 3 : 0;
     const puntuacionGlobal = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
 
     const updatedCandidate: CandidateInterview = {
