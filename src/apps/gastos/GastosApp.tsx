@@ -1545,146 +1545,148 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {showTransactionModal && (
         <div 
           onClick={() => setShowTransactionModal(false)}
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
         >
           <div 
             onClick={e => e.stopPropagation()}
-            className="bg-[#111622] border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn my-auto"
+            className="bg-[#111622] border border-slate-700/80 rounded-2xl sm:rounded-3xl w-[92vw] sm:w-full max-w-md max-h-[88dvh] flex flex-col p-4 sm:p-6 shadow-2xl animate-fadeIn my-auto overflow-hidden"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-400" />
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 flex-shrink-0">
+              <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                 <span>Registrar Movimiento</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowTransactionModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddTransaction} className="space-y-3 sm:space-y-4">
-              {/* Cartera / Cuenta Asignada (Sólo si tiene más de 1 cuenta) */}
-              {walletConfig.has_account_2 && (
+            <form onSubmit={handleAddTransaction} className="flex flex-col flex-1 overflow-hidden pt-2">
+              <div className="space-y-3 overflow-y-auto pr-1 flex-1 py-1">
+                {/* Cartera / Cuenta Asignada (Sólo si tiene más de 1 cuenta) */}
+                {walletConfig.has_account_2 && (
+                  <div>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cartera / Cuenta</label>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setTransactionAccount('abanca')}
+                        className={`py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 truncate ${
+                          transactionAccount === 'abanca'
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        <span className="truncate">🏦 {walletConfig.account_1_name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTransactionAccount('ing')}
+                        className={`py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 truncate ${
+                          transactionAccount === 'ing'
+                            ? 'bg-orange-600 text-white border-orange-500 shadow-md'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        <span className="truncate">🤝 {walletConfig.account_2_name}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tipo: Gasto o Ingreso */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cartera / Cuenta</label>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tipo</label>
                   <div className="grid grid-cols-2 gap-2 mt-1">
                     <button
                       type="button"
-                      onClick={() => setTransactionAccount('abanca')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                        transactionAccount === 'abanca'
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      onClick={() => setType('expense')}
+                      className={`py-1.5 sm:py-2 rounded-xl text-xs font-bold border transition-all ${
+                        type === 'expense'
+                          ? 'bg-rose-500/20 border-rose-500 text-rose-400 font-black'
+                          : 'bg-slate-800 border-slate-700 text-slate-400'
                       }`}
                     >
-                      <span>🏦 {walletConfig.account_1_name}</span>
+                      Gasto (-)
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTransactionAccount('ing')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                        transactionAccount === 'ing'
-                          ? 'bg-orange-600 text-white border-orange-500 shadow-md'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      onClick={() => setType('income')}
+                      className={`py-1.5 sm:py-2 rounded-xl text-xs font-bold border transition-all ${
+                        type === 'income'
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-black'
+                          : 'bg-slate-800 border-slate-700 text-slate-400'
                       }`}
                     >
-                      <span>🤝 {walletConfig.account_2_name}</span>
+                      Ingreso (+)
                     </button>
                   </div>
                 </div>
-              )}
 
-              {/* Tipo: Gasto o Ingreso */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tipo</label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setType('expense')}
-                    className={`py-2 rounded-xl text-xs font-bold border transition-all ${
-                      type === 'expense'
-                        ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    Gasto (-)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setType('income')}
-                    className={`py-2 rounded-xl text-xs font-bold border transition-all ${
-                      type === 'income'
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    Ingreso (+)
-                  </button>
-                </div>
-              </div>
-
-              {/* Concepto */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Concepto</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Supermercado, Gasolina, Alquiler..."
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-emerald-500 text-xs sm:text-sm font-semibold"
-                />
-              </div>
-
-              {/* Importe y Categoría */}
-              <div className="grid grid-cols-2 gap-2.5">
+                {/* Concepto */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Importe (€)</label>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Concepto</label>
                   <input
                     type="text"
-                    inputMode="decimal"
                     required
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm font-bold"
+                    placeholder="Ej. Supermercado, Gasolina, Alquiler..."
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-emerald-500 text-xs sm:text-sm font-semibold"
                   />
                 </div>
 
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Categoría</label>
-                  <select
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-emerald-500 text-xs sm:text-sm"
-                  >
-                    <option value="Alimentación">Alimentación</option>
-                    <option value="Hogar / Alquiler">Hogar / Alquiler</option>
-                    <option value="Transporte / Gasolina">Transporte</option>
-                    <option value="Ocio & Restaurantes">Ocio</option>
-                    <option value="Servicios / Suministros">Servicios</option>
-                    <option value="Tecnología">Tecnología</option>
-                    <option value="Salud & Bienestar">Salud</option>
-                    <option value="Ahorro/Común">Ahorro</option>
-                    <option value="Otros">Otros</option>
-                  </select>
+                {/* Importe y Categoría */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Importe (€)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={e => setAmount(e.target.value)}
+                      className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-emerald-500 text-xs sm:text-sm font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Categoría</label>
+                    <select
+                      value={category}
+                      onChange={e => setCategory(e.target.value)}
+                      className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 sm:py-2 text-white focus:outline-none focus:border-emerald-500 text-xs sm:text-sm"
+                    >
+                      <option value="Alimentación">Alimentación</option>
+                      <option value="Hogar / Alquiler">Hogar / Alquiler</option>
+                      <option value="Transporte / Gasolina">Transporte</option>
+                      <option value="Ocio & Restaurantes">Ocio</option>
+                      <option value="Servicios / Suministros">Servicios</option>
+                      <option value="Tecnología">Tecnología</option>
+                      <option value="Salud & Bienestar">Salud</option>
+                      <option value="Ahorro/Común">Ahorro</option>
+                      <option value="Otros">Otros</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-800">
+              <div className="grid grid-cols-2 gap-2 pt-2.5 mt-1 border-t border-slate-800 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowTransactionModal(false)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all border border-slate-700 text-center"
+                  className="w-full py-2 sm:py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all border border-slate-700 text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-center"
+                  className="w-full py-2 sm:py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-center"
                 >
                   Guardar
                 </button>
@@ -1700,20 +1702,20 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {showGoalModal && (
         <div 
           onClick={() => setShowGoalModal(false)}
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
         >
           <div 
             onClick={e => e.stopPropagation()}
-            className="bg-[#111622] border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn my-auto"
+            className="bg-[#111622] border border-slate-700/80 rounded-2xl sm:rounded-3xl w-[92vw] sm:w-full max-w-md max-h-[88dvh] flex flex-col p-4 sm:p-6 shadow-2xl animate-fadeIn my-auto overflow-hidden"
           >
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2.5 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-purple-400" />
-                <h3 className="text-base sm:text-lg font-black text-white">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+                <h3 className="text-sm sm:text-base font-black text-white">
                   {editingGoal ? 'Modificar Objetivo' : 'Nuevo Objetivo'}
                 </h3>
                 {editingGoal && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
                     Editando
                   </span>
                 )}
@@ -1721,119 +1723,121 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               <button
                 type="button"
                 onClick={() => setShowGoalModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveGoal} className="space-y-3 sm:space-y-4">
-              {/* Título del Objetivo */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nombre del Objetivo</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Play, Viaje Vacaciones, Coche, Fondo..."
-                  value={goalTitle}
-                  onChange={e => setGoalTitle(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm font-semibold"
-                />
-              </div>
-
-              {/* Precio / Meta Total (€) y Aportación Actual */}
-              <div className="grid grid-cols-2 gap-2.5">
+            <form onSubmit={handleSaveGoal} className="flex flex-col flex-1 overflow-hidden pt-2">
+              <div className="space-y-3 overflow-y-auto pr-1 flex-1 py-1">
+                {/* Título del Objetivo */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Precio / Meta (€)</label>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nombre del Objetivo</label>
                   <input
-                    type="number"
-                    step="10"
+                    type="text"
                     required
-                    placeholder="Ej. 3000"
-                    value={goalTargetAmount}
-                    onChange={e => setGoalTargetAmount(e.target.value)}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm font-bold"
+                    placeholder="Ej. Play, Viaje Vacaciones, Coche, Fondo..."
+                    value={goalTitle}
+                    onChange={e => setGoalTitle(e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm font-semibold"
                   />
                 </div>
 
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ahorrado hasta hoy (€)</label>
-                  <input
-                    type="number"
-                    step="10"
-                    placeholder="0"
-                    value={goalCurrentAmount}
-                    onChange={e => setGoalCurrentAmount(e.target.value)}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm font-bold text-emerald-400"
-                  />
-                </div>
-              </div>
+                {/* Precio / Meta Total (€) y Aportación Actual */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Precio / Meta (€)</label>
+                    <input
+                      type="number"
+                      step="10"
+                      required
+                      placeholder="Ej. 3000"
+                      value={goalTargetAmount}
+                      onChange={e => setGoalTargetAmount(e.target.value)}
+                      className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm font-bold"
+                    />
+                  </div>
 
-              {/* Cuenta Asignada (Sólo si tiene 2 cuentas) */}
-              {walletConfig.has_account_2 && (
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cuenta Asociada</label>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => setGoalAccount('ing')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                        goalAccount === 'ing'
-                          ? 'bg-orange-600 text-white border-orange-500 shadow-md'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      <span>🤝 {walletConfig.account_2_name}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGoalAccount('abanca')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                        goalAccount === 'abanca'
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      <span>🏦 {walletConfig.account_1_name}</span>
-                    </button>
+                  <div>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ahorrado (€)</label>
+                    <input
+                      type="number"
+                      step="10"
+                      placeholder="0"
+                      value={goalCurrentAmount}
+                      onChange={e => setGoalCurrentAmount(e.target.value)}
+                      className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm font-bold text-emerald-400"
+                    />
                   </div>
                 </div>
-              )}
 
-              {/* Fecha Prevista */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fecha Prevista (Opcional)</label>
-                <input
-                  type="date"
-                  value={goalDate}
-                  onChange={e => setGoalDate(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm"
-                />
+                {/* Cuenta Asignada (Sólo si tiene 2 cuentas) */}
+                {walletConfig.has_account_2 && (
+                  <div>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cuenta Asociada</label>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setGoalAccount('ing')}
+                        className={`py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 truncate ${
+                          goalAccount === 'ing'
+                            ? 'bg-orange-600 text-white border-orange-500 shadow-md'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        <span className="truncate">🤝 {walletConfig.account_2_name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGoalAccount('abanca')}
+                        className={`py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 truncate ${
+                          goalAccount === 'abanca'
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        <span className="truncate">🏦 {walletConfig.account_1_name}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fecha Prevista */}
+                <div>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fecha Prevista (Opcional)</label>
+                  <input
+                    type="date"
+                    value={goalDate}
+                    onChange={e => setGoalDate(e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm"
+                  />
+                </div>
+
+                {/* Notas */}
+                <div>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Notas / Descripción (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Ahorro personal mensual..."
+                    value={goalNotes}
+                    onChange={e => setGoalNotes(e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm"
+                  />
+                </div>
               </div>
 
-              {/* Notas */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Notas / Descripción (Opcional)</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Ahorro personal mensual..."
-                  value={goalNotes}
-                  onChange={e => setGoalNotes(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500 text-xs sm:text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-800">
+              <div className="grid grid-cols-2 gap-2 pt-2.5 mt-1 border-t border-slate-800 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowGoalModal(false)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all border border-slate-700 text-center"
+                  className="w-full py-2 sm:py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all border border-slate-700 text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="w-full py-2.5 px-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/25 transition-all text-center"
+                  className="w-full py-2 sm:py-2.5 px-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/25 transition-all text-center"
                 >
                   {editingGoal ? 'Guardar' : 'Crear Meta'}
                 </button>
@@ -1849,98 +1853,47 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {showSetupModal && (
         <div 
           onClick={() => setShowSetupModal(false)}
-          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
         >
           <div 
             onClick={e => e.stopPropagation()}
-            className="bg-[#111622] border border-white/10 rounded-2xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn my-auto max-h-[90vh] overflow-y-auto"
+            className="bg-[#111622] border border-white/10 rounded-2xl sm:rounded-3xl w-[92vw] sm:w-full max-w-md max-h-[88dvh] flex flex-col p-4 sm:p-6 shadow-2xl animate-fadeIn my-auto overflow-hidden"
           >
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
-                  <Wallet className="w-5 h-5" />
+            <div className="flex items-center justify-between border-b border-white/5 pb-2.5 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
+                  <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">Configura tus Cuentas y Cartera</h3>
-                  <p className="text-xs text-slate-400">Personaliza los nombres y saldos de tus bancos</p>
+                  <h3 className="text-sm sm:text-base font-black text-white">Configura tus Cuentas</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-400">Nombres y saldos de tus bancos</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowSetupModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveAccountSetup} className="space-y-4 text-xs">
-              {/* Cuenta 1 Principal */}
-              <div className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 space-y-2.5">
-                <div className="flex items-center gap-1.5 text-indigo-300 font-bold">
-                  <span>🏦 Cuenta Principal (Nómina / Banco Habitual)</span>
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco o Cuenta</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. BBVA, Santander, Abanca, Mi Banco..."
-                    value={setupAcc1Name}
-                    onChange={e => setSetupAcc1Name(e.target.value)}
-                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={setupAcc1Balance}
-                    onChange={e => setSetupAcc1Balance(e.target.value)}
-                    className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Toggle Opcional para Cuenta 2 */}
-              <div 
-                onClick={() => setSetupHasAcc2(!setupHasAcc2)}
-                className="p-3.5 rounded-2xl bg-[#090C15] border border-white/5 flex items-center justify-between cursor-pointer hover:border-white/15 transition-all select-none"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold">
-                    🤝
+            <form onSubmit={handleSaveAccountSetup} className="flex flex-col flex-1 overflow-hidden pt-2 text-xs">
+              <div className="space-y-3 overflow-y-auto pr-1 flex-1 py-1">
+                {/* Cuenta 1 Principal */}
+                <div className="p-3 rounded-xl bg-[#090C15] border border-white/5 space-y-2">
+                  <div className="flex items-center gap-1.5 text-indigo-300 font-bold text-xs">
+                    <span>🏦 Cuenta Principal (Habitual / Nómina)</span>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white">¿Añadir una segunda cuenta?</p>
-                    <p className="text-[10px] text-slate-400">Cuenta de ahorro, conjunta o secundaria (opcional)</p>
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={setupHasAcc2}
-                  onChange={e => setSetupHasAcc2(e.target.checked)}
-                  className="w-4 h-4 accent-emerald-500 rounded cursor-pointer pointer-events-none"
-                />
-              </div>
-
-              {/* Campos Cuenta 2 (Sólo si el usuario la activa) */}
-              {setupHasAcc2 && (
-                <div className="p-3.5 rounded-2xl bg-[#090C15] border border-orange-500/20 space-y-2.5 animate-fadeIn">
-                  <div className="flex items-center gap-1.5 text-orange-300 font-bold">
-                    <span>🤝 Cuenta 2 (Ahorro / Conjunta / Secundaria)</span>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre de la 2ª Cuenta</label>
+                    <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco o Cuenta</label>
                     <input
                       type="text"
-                      required={setupHasAcc2}
-                      placeholder="Ej. Cuenta Ahorro, Revolut, ING..."
-                      value={setupAcc2Name}
-                      onChange={e => setSetupAcc2Name(e.target.value)}
-                      className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-orange-500"
+                      required
+                      placeholder="Ej. BBVA, Santander, Abanca..."
+                      value={setupAcc1Name}
+                      onChange={e => setSetupAcc1Name(e.target.value)}
+                      className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-1.5 text-white font-bold focus:outline-none focus:border-indigo-500 text-xs"
                     />
                   </div>
                   <div>
@@ -1949,27 +1902,80 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      value={setupAcc2Balance}
-                      onChange={e => setSetupAcc2Balance(e.target.value)}
-                      className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-orange-500"
+                      value={setupAcc1Balance}
+                      onChange={e => setSetupAcc1Balance(e.target.value)}
+                      className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-1.5 text-white font-mono focus:outline-none focus:border-indigo-500 text-xs"
                     />
                   </div>
                 </div>
-              )}
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                {/* Toggle Opcional para Cuenta 2 */}
+                <div 
+                  onClick={() => setSetupHasAcc2(!setupHasAcc2)}
+                  className="p-3 rounded-xl bg-[#090C15] border border-white/5 flex items-center justify-between cursor-pointer hover:border-white/15 transition-all select-none"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold text-xs">
+                      🤝
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">¿Segunda cuenta?</p>
+                      <p className="text-[10px] text-slate-400">Ahorro, conjunta o secundaria</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={setupHasAcc2}
+                    onChange={e => setSetupHasAcc2(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-500 rounded cursor-pointer pointer-events-none"
+                  />
+                </div>
+
+                {/* Campos Cuenta 2 (Sólo si el usuario la activa) */}
+                {setupHasAcc2 && (
+                  <div className="p-3 rounded-xl bg-[#090C15] border border-orange-500/20 space-y-2 animate-fadeIn">
+                    <div className="flex items-center gap-1.5 text-orange-300 font-bold text-xs">
+                      <span>🤝 Cuenta 2 (Ahorro / Secundaria)</span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre de la 2ª Cuenta</label>
+                      <input
+                        type="text"
+                        required={setupHasAcc2}
+                        placeholder="Ej. Cuenta Ahorro, Revolut, ING..."
+                        value={setupAcc2Name}
+                        onChange={e => setSetupAcc2Name(e.target.value)}
+                        className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-1.5 text-white font-bold focus:outline-none focus:border-orange-500 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={setupAcc2Balance}
+                        onChange={e => setSetupAcc2Balance(e.target.value)}
+                        className="w-full bg-[#111622] border border-white/10 rounded-xl px-3 py-1.5 text-white font-mono focus:outline-none focus:border-orange-500 text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2.5 mt-1 border-t border-white/5 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowSetupModal(false)}
-                  className="px-4 py-2.5 text-slate-400 hover:text-white font-bold"
+                  className="w-full py-2 sm:py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all border border-slate-700 text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-black rounded-xl shadow-lg transition-all"
+                  className="w-full py-2 sm:py-2.5 px-3 bg-emerald-500 hover:bg-emerald-600 text-black font-black rounded-xl shadow-lg transition-all text-xs text-center"
                 >
-                  Guardar Cartera
+                  Guardar
                 </button>
               </div>
             </form>
