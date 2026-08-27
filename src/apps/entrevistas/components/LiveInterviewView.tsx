@@ -30,6 +30,35 @@ interface LiveInterviewViewProps {
   rubrics: MecaluxCompetencyRubric[];
 }
 
+// Componente externo para evitar lag al escribir (Local State) y prevenir la pérdida de foco por recreación
+const LocalTextArea = ({ initialValue, onChange, placeholder, className }: any) => {
+  const [val, setVal] = useState(initialValue);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    setVal(initialValue);
+  }, [initialValue]);
+
+  const handleChange = (e: any) => {
+    const newVal = e.target.value;
+    setVal(newVal); // Actualiza la UI al instante
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      onChange(newVal);
+    }, 500); // Propaga al padre despues de medio segundo sin escribir
+  };
+
+  return (
+    <textarea
+      value={val}
+      onChange={handleChange}
+      placeholder={placeholder}
+      className={className}
+      rows={3}
+    />
+  );
+};
+
 export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   candidate,
   onUpdateCandidate,
@@ -204,35 +233,6 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
   // Conteo de evaluados en la sección actual
   const evaluatedInSection = rubricsInSection.filter(r => candidate.evaluations[r.id]?.evaluacion).length;
-
-  // Componente interno para evitar lag al escribir (Local State)
-  const LocalTextArea = ({ initialValue, onChange, placeholder, className }: any) => {
-    const [val, setVal] = useState(initialValue);
-    const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    React.useEffect(() => {
-      setVal(initialValue);
-    }, [initialValue]);
-
-    const handleChange = (e: any) => {
-      const newVal = e.target.value;
-      setVal(newVal); // Actualiza la UI al instante
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        onChange(newVal);
-      }, 500); // Propaga al padre despues de medio segundo sin escribir
-    };
-
-    return (
-      <textarea
-        value={val}
-        onChange={handleChange}
-        placeholder={placeholder}
-        className={className}
-        rows={3}
-      />
-    );
-  };
 
   return (
     <div className="space-y-6 pb-12">
