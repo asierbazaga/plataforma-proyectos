@@ -298,10 +298,24 @@ class StorageService {
         const { data, error } = await supabase.from('profiles').select('*');
         if (!error && data && data.length > 0) {
           const map = this.getPasswordMap();
-          const merged = (data as UserProfile[]).map(p => ({
+          const formatted = (data as UserProfile[]).map(p => ({
             ...p,
             password: map[p.email.toLowerCase()] || map[p.id] || p.password || (p.role === 'admin' ? 'admin' : '123456')
           }));
+
+          const local = this.getLocal<UserProfile[]>('profiles', []);
+          const merged: UserProfile[] = [...formatted];
+          for (const l of local) {
+            if (!merged.find(m => m.id === l.id || m.email.toLowerCase() === l.email.toLowerCase())) {
+              merged.push(l);
+              // Sincronización automática a Supabase (Upsert en background)
+              const { status, last_login, ...supabaseProfile } = l as any;
+              supabase.from('profiles').upsert(supabaseProfile).then(({ error }) => {
+                if (error) console.error('Error auto-syncing profile:', error);
+              });
+            }
+          }
+
           this.setLocal('profiles', merged);
           return merged;
         }
@@ -315,8 +329,26 @@ class StorageService {
       try {
         const { data, error } = await supabase.from('app_permissions').select('*');
         if (!error && data && data.length > 0) {
-          this.setLocal('permissions', data as AppPermission[]);
-          return data as AppPermission[];
+          const formatted = data as AppPermission[];
+          const local = this.getLocal<AppPermission[]>('permissions', []);
+          const merged = [...formatted];
+          for (const l of local) {
+            if (!merged.find(m => m.user_id === l.user_id && m.app_id === l.app_id)) {
+              merged.push(l);
+              // Sincronización automática a Supabase (Upsert en background)
+              supabase.from('app_permissions').upsert({
+                user_id: l.user_id,
+                app_id: l.app_id,
+                can_access: l.can_access,
+                can_edit: l.can_edit,
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'user_id,app_id' }).then(({ error }) => {
+                if (error) console.error('Error auto-syncing permission:', error);
+              });
+            }
+          }
+          this.setLocal('permissions', merged);
+          return merged;
         }
       } catch (e) {}
     }
@@ -391,8 +423,12 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('profiles').upsert(newProfile);
-      } catch (e) {}
+        const { status, last_login, ...supabaseProfile } = newProfile as any;
+        const { error } = await supabase.from('profiles').upsert(supabaseProfile);
+        if (error) console.error('Supabase createProfile error:', error);
+      } catch (e) {
+        console.error('Supabase createProfile exception:', e);
+      }
     }
 
     const defaultApps: import('../types').AppId[] = ['fitness', 'gastos', 'libros-juegos', 'lore', 'entrevistas'];
@@ -427,8 +463,14 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('profiles').update(updates).eq('id', id);
-      } catch (e) {}
+        const { status, last_login, ...supabaseUpdates } = updates as any;
+        if (Object.keys(supabaseUpdates).length > 0) {
+          const { error } = await supabase.from('profiles').update(supabaseUpdates).eq('id', id);
+          if (error) console.error('Supabase updateProfile error:', error);
+        }
+      } catch (e) {
+        console.error('Supabase updateProfile exception:', e);
+      }
     }
     return updatedProfile;
   }
