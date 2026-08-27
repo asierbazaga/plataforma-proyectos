@@ -1125,7 +1125,7 @@ class StorageService {
   }
 
   // ==========================================
-  // 4. LIBROS & JUEGOS (GLOBAL UNIFICADO)
+  // 4. LIBROS, JUEGOS, PELIS Y SERIES (GLOBAL UNIFICADO)
   // ==========================================
   async getLibrary(): Promise<LibraryItem[]> {
     if (isSupabaseConfigured && supabase) {
@@ -1136,11 +1136,21 @@ class StorageService {
             id: row.id,
             user_id: row.user_id,
             title: row.title,
-            media_type: row.media_type,
-            genre: row.genre,
-            status: row.status,
+            media_type: row.media_type || 'book',
+            genre: row.genre || 'General',
+            status: row.status || 'in_progress',
             rating: Number(row.rating) || 5,
-            progress_percentage: Number(row.progress_percentage) || 0
+            progress_percentage: Number(row.progress_percentage) || 0,
+            author_creator: row.author_creator,
+            cover_url: row.cover_url,
+            year: row.year ? Number(row.year) : undefined,
+            user_review: row.user_review,
+            tags: Array.isArray(row.tags) ? row.tags : (row.tags ? JSON.parse(row.tags) : []),
+            total_units: row.total_units ? Number(row.total_units) : undefined,
+            current_unit: row.current_unit ? Number(row.current_unit) : undefined,
+            completed_date: row.completed_date,
+            started_date: row.started_date,
+            created_at: row.created_at
           }));
           this.setLocal('library', list);
           return list;
@@ -1155,6 +1165,7 @@ class StorageService {
       ...item,
       rating: Number(item.rating) || 5,
       progress_percentage: Number(item.progress_percentage) || 0,
+      created_at: item.created_at || new Date().toISOString(),
       id: generateId('lib')
     };
     const current = this.getLocal<LibraryItem[]>('library', []);

@@ -269,15 +269,28 @@ export interface CategoryBudget {
   color?: string;
 }
 
+export type MediaType = 'book' | 'game' | 'movie' | 'series';
+export type MediaStatus = 'in_progress' | 'completed' | 'wishlist' | 'abandoned';
+
 export interface LibraryItem {
   id: string;
   user_id?: string;
   title: string;
-  media_type: 'book' | 'game';
+  media_type: MediaType;
   genre: string;
-  status: 'in_progress' | 'completed' | 'wishlist';
+  status: MediaStatus;
   rating: number;
   progress_percentage: number;
+  author_creator?: string;
+  cover_url?: string;
+  year?: number;
+  user_review?: string;
+  tags?: string[];
+  total_units?: number;
+  current_unit?: number;
+  completed_date?: string;
+  started_date?: string;
+  created_at?: string;
 }
 
 // Módulo Lore: Clientes y Rutas

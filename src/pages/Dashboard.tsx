@@ -109,18 +109,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
       id: 'libros-juegos' as AppId,
       number: '03',
       category: 'Ocio & Cultura',
-      title: 'Libros & Juegos',
-      subtitle: 'Biblioteca personal y catálogo gaming',
-      description: 'Seguimiento de lecturas, archivo de videojuegos completados, valoraciones y progreso.',
+      title: 'Multimedia & Recomendaciones',
+      subtitle: 'Libros, Juegos, Películas y Series',
+      description: 'Diario multimedia, puntuaciones personales, catálogo universal y motor inteligente de recomendaciones.',
       icon: BookOpen,
       glowColor: 'group-hover:shadow-purple-500/20 group-hover:border-purple-500/50',
       iconGradient: 'from-purple-500 to-pink-500 shadow-purple-500/30',
       tagColor: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
       btnGradient: 'from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 shadow-purple-500/25',
       highlights: [
-        { label: 'Biblioteca Digital', icon: BookOpen },
-        { label: 'Registro Gaming', icon: Gamepad2 },
-        { label: 'Valoraciones & Metas', icon: Zap }
+        { label: 'Libros & Gaming', icon: BookOpen },
+        { label: 'Cine & Series', icon: Sparkles },
+        { label: 'Recomendador IA', icon: Zap }
       ]
     },
     {
