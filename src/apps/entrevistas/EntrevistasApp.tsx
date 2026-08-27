@@ -98,7 +98,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
 
   const selectedCandidate = candidates.find(c => c.id === selectedCandidateId) || candidates[0] || null;
 
-  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleUpdateCandidate = (updated: CandidateInterview) => {
     // Optimistic UI update for instant feedback
