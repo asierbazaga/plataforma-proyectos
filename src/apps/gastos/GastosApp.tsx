@@ -32,7 +32,8 @@ import {
   Check,
   BarChart3,
   Scale,
-  Award
+  Award,
+  X
 } from 'lucide-react';
 import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount, WalletConfig } from '../../types';
 import { storageService } from '../../services/storageService';
@@ -1539,15 +1540,30 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: NUEVA TRANSACCIÓN (Bottom Sheet en móvil) */}
+      {/* MODAL: NUEVA TRANSACCIÓN */}
       {/* ========================================================================= */}
       {showTransactionModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 pb-8 sm:pb-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-emerald-400" />
-              <span>Registrar Movimiento</span>
-            </h3>
+        <div 
+          onClick={() => setShowTransactionModal(false)}
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="bg-[#111622] border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn my-auto"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-emerald-400" />
+                <span>Registrar Movimiento</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowTransactionModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleAddTransaction} className="space-y-3 sm:space-y-4">
               {/* Cartera / Cuenta Asignada (Sólo si tiene más de 1 cuenta) */}
@@ -1658,19 +1674,19 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowTransactionModal(false)}
-                  className="px-4 py-2.5 text-slate-400 hover:text-white text-xs font-bold"
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all border border-slate-700 text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25"
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-center"
                 >
-                  Guardar Movimiento
+                  Guardar
                 </button>
               </div>
             </form>
@@ -1679,21 +1695,36 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: CREAR / MODIFICAR OBJETIVO DE AHORRO (Bottom Sheet en móvil) */}
+      {/* MODAL: CREAR / MODIFICAR OBJETIVO DE AHORRO */}
       {/* ========================================================================= */}
       {showGoalModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 pb-8 sm:pb-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center">
-              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+        <div 
+          onClick={() => setShowGoalModal(false)}
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="bg-[#111622] border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn my-auto"
+          >
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-purple-400" />
-                <span>{editingGoal ? 'Modificar Objetivo de Ahorro' : 'Nuevo Objetivo de Ahorro'}</span>
-              </h3>
-              {editingGoal && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  Editando
-                </span>
-              )}
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  {editingGoal ? 'Modificar Objetivo' : 'Nuevo Objetivo'}
+                </h3>
+                {editingGoal && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Editando
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoalModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleSaveGoal} className="space-y-3 sm:space-y-4">
@@ -1792,19 +1823,19 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowGoalModal(false)}
-                  className="px-4 py-2.5 text-slate-400 hover:text-white text-xs font-bold"
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all border border-slate-700 text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/25"
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/25 transition-all text-center"
                 >
-                  {editingGoal ? 'Guardar Cambios' : 'Crear Meta'}
+                  {editingGoal ? 'Guardar' : 'Crear Meta'}
                 </button>
               </div>
             </form>
@@ -1816,16 +1847,31 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {/* MODAL: CONFIGURACIÓN / ONBOARDING DE CUENTAS & CARTERA */}
       {/* ========================================================================= */}
       {showSetupModal && (
-        <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#111622] border border-white/10 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-fadeIn">
-            <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
-                <Wallet className="w-5 h-5" />
+        <div 
+          onClick={() => setShowSetupModal(false)}
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="bg-[#111622] border border-white/10 rounded-2xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn my-auto max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Configura tus Cuentas y Cartera</h3>
+                  <p className="text-xs text-slate-400">Personaliza los nombres y saldos de tus bancos</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-black text-white">Configura tus Cuentas y Cartera</h3>
-                <p className="text-xs text-slate-400">Personaliza los nombres y saldos de tus bancos</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowSetupModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleSaveAccountSetup} className="space-y-4 text-xs">
