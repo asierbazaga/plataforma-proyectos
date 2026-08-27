@@ -30,22 +30,33 @@ interface LiveInterviewViewProps {
   rubrics: MecaluxCompetencyRubric[];
 }
 
-// Componente externo para evitar lag al escribir (Local State) y prevenir la pérdida de foco por recreación
+// Componente externo para evitar saltos al borrar o escribir rápido (Local State robusto)
 const LocalTextArea = ({ initialValue, onChange, placeholder, className }: any) => {
-  const [val, setVal] = useState(initialValue);
+  const [val, setVal] = useState(initialValue || '');
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Guardamos el último valor que le hemos enviado al padre
+  // Esto nos permite distinguir entre "el padre va con retraso" y "cambio externo real" (ej. botón de IA)
+  const lastPropagatedValue = React.useRef(initialValue || '');
 
   React.useEffect(() => {
-    setVal(initialValue);
+    // Solo aceptamos el valor del padre si es distinto al último que nosotros mismos le enviamos.
+    // Así evitamos que un renderizado tardío del padre sobrescriba lo que el usuario está tecleando.
+    if (initialValue !== lastPropagatedValue.current) {
+      setVal(initialValue || '');
+      lastPropagatedValue.current = initialValue || '';
+    }
   }, [initialValue]);
 
   const handleChange = (e: any) => {
     const newVal = e.target.value;
-    setVal(newVal); // Actualiza la UI al instante
+    setVal(newVal); // La UI responde al instante, a 60 FPS
+    
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
+      lastPropagatedValue.current = newVal;
       onChange(newVal);
-    }, 500); // Propaga al padre despues de medio segundo sin escribir
+    }, 500); // Guardamos tras medio segundo
   };
 
   return (
@@ -337,6 +348,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
             </button>
           </div>
           <LocalTextArea
+            key={`notes-${candidate.id}`}
             initialValue={notes}
             onChange={(val: string) => handleNotesChange(val)}
             placeholder="Toma tus apuntes en sucio durante la entrevista... (ej. 'Tiene 3 años de exp en C#, conoce bien los JOINs, pero se ha puesto muy nervioso al explicar su mayor error y ha dudado...')"
@@ -617,6 +629,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
                       Comentarios persona entrevistadora:
                     </label>
                     <LocalTextArea
+                      key={`comments-${candidate.id}-${rubric.id}`}
                       initialValue={evalData.comentarios}
                       onChange={(val: string) => handleCommentsChange(rubric.id, rubric.section, rubric.nombre, val)}
                       placeholder="Escribe aquí tus observaciones, respuestas destacadas del candidato o dudas técnicas..."
