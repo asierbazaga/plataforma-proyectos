@@ -160,12 +160,13 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       }
     };
 
-    // Recalcular puntuación global automáticamente
-    const totalPossible = rubrics.length * 3; // Nivel máximo 'Fuerte' = 3 pts
+    // Recalcular puntuación global automáticamente (excluyendo Preguntas Dinámicas)
+    const evaluableRubrics = rubrics.filter(r => r.section !== 'Preguntas Dinámicas');
+    const totalPossible = evaluableRubrics.length * 3; // Nivel máximo 'Fuerte' = 3 pts
     let totalScore = 0;
     let evaluatedCount = 0;
 
-    rubrics.forEach(r => {
+    evaluableRubrics.forEach(r => {
       const ev = updatedEvaluations[r.id];
       if (ev && ev.evaluacion) {
         evaluatedCount++;
@@ -426,11 +427,15 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       <div className="space-y-6">
         <div className="flex items-center justify-between px-1">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Evaluando {activeSection} ({evaluatedInSection}/{rubricsInSection.length} completadas)
+            {activeSection === 'Preguntas Dinámicas' 
+              ? `Explorando ${activeSection} (${rubricsInSection.length} disponibles)` 
+              : `Evaluando ${activeSection} (${evaluatedInSection}/${rubricsInSection.length} completadas)`}
           </p>
-          <span className="text-xs text-slate-500">
-            Escala oficial: Inexistente | Pobre | Bueno | Fuerte
-          </span>
+          {activeSection !== 'Preguntas Dinámicas' && (
+            <span className="text-xs text-slate-500">
+              Escala oficial: Inexistente | Pobre | Bueno | Fuerte
+            </span>
+          )}
         </div>
 
         {rubricsInSection.map((rubric) => {
@@ -462,19 +467,21 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
                 <div className="flex items-center gap-3">
                   {/* Badge de Nivel Actual */}
-                  {currentLevel ? (
-                    <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
-                      currentLevel === 'Fuerte' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
-                      currentLevel === 'Bueno' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' :
-                      currentLevel === 'Pobre' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-                      'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                    }`}>
-                      {currentLevel}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700">
-                      Sin calificar
-                    </span>
+                  {rubric.section !== 'Preguntas Dinámicas' && (
+                    currentLevel ? (
+                      <span className={`text-xs font-extrabold px-3 py-1 rounded-xl border ${
+                        currentLevel === 'Fuerte' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                        currentLevel === 'Bueno' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' :
+                        currentLevel === 'Pobre' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                        'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                      }`}>
+                        {currentLevel}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700">
+                        Sin calificar
+                      </span>
+                    )
                   )}
 
                   <button className="text-slate-400 hover:text-white p-1 rounded-lg">
@@ -487,6 +494,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
               {isExpanded && (
                 <div className="p-5 sm:p-6 space-y-6">
                   {/* Tabla de 4 Niveles / Criterios de Evaluación */}
+                  {rubric.section !== 'Preguntas Dinámicas' && (
                   <div className="space-y-2">
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                       Criterios de evaluación:
@@ -593,6 +601,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
                       </div>
                     </div>
                   </div>
+                  )}
 
                   {/* Disparadores (Preguntas dinámicas a realizar) */}
                   {rubric.disparadores && rubric.disparadores.length > 0 && (
