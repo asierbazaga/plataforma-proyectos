@@ -119,7 +119,7 @@ const MainLayout: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Navigation Bar (Visible only on Mobile screens) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0B0F19]/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0B0F19]/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around">
         <button
           onClick={() => handleSelectTab('dashboard')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${

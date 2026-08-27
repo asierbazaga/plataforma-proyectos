@@ -1542,8 +1542,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {/* MODAL: NUEVA TRANSACCIÓN (Bottom Sheet en móvil) */}
       {/* ========================================================================= */}
       {showTransactionModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 pb-8 sm:pb-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
             <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <Plus className="w-5 h-5 text-emerald-400" />
               <span>Registrar Movimiento</span>
@@ -1682,8 +1682,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {/* MODAL: CREAR / MODIFICAR OBJETIVO DE AHORRO (Bottom Sheet en móvil) */}
       {/* ========================================================================= */}
       {showGoalModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="glass-panel bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 sm:p-6 pb-8 sm:pb-6 space-y-4 shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                 <Target className="w-5 h-5 text-purple-400" />
@@ -1816,7 +1816,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       {/* MODAL: CONFIGURACIÓN / ONBOARDING DE CUENTAS & CARTERA */}
       {/* ========================================================================= */}
       {showSetupModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#111622] border border-white/10 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-fadeIn">
             <div className="flex items-center gap-3 border-b border-white/5 pb-3">
               <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
