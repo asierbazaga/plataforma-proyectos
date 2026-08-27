@@ -30,39 +30,30 @@ interface LiveInterviewViewProps {
   rubrics: MecaluxCompetencyRubric[];
 }
 
-// Componente externo para evitar saltos al borrar o escribir rápido (Local State robusto)
+// Componente externo ultra-estable: guarda solo al perder el foco (onBlur)
 const LocalTextArea = ({ initialValue, onChange, placeholder, className }: any) => {
   const [val, setVal] = useState(initialValue || '');
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  // Guardamos el último valor que le hemos enviado al padre
-  // Esto nos permite distinguir entre "el padre va con retraso" y "cambio externo real" (ej. botón de IA)
-  const lastPropagatedValue = React.useRef(initialValue || '');
 
+  // Sincronizamos cuando cambia el valor desde fuera, pero de forma sencilla
   React.useEffect(() => {
-    // Solo aceptamos el valor del padre si es distinto al último que nosotros mismos le enviamos.
-    // Así evitamos que un renderizado tardío del padre sobrescriba lo que el usuario está tecleando.
-    if (initialValue !== lastPropagatedValue.current) {
-      setVal(initialValue || '');
-      lastPropagatedValue.current = initialValue || '';
-    }
+    setVal(initialValue || '');
   }, [initialValue]);
 
   const handleChange = (e: any) => {
-    const newVal = e.target.value;
-    setVal(newVal); // La UI responde al instante, a 60 FPS
-    
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      lastPropagatedValue.current = newVal;
-      onChange(newVal);
-    }, 500); // Guardamos tras medio segundo
+    setVal(e.target.value);
+  };
+
+  const handleBlur = () => {
+    if (val !== initialValue) {
+      onChange(val);
+    }
   };
 
   return (
     <textarea
       value={val}
       onChange={handleChange}
+      onBlur={handleBlur}
       placeholder={placeholder}
       className={className}
       rows={3}
