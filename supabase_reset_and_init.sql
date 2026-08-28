@@ -211,11 +211,20 @@ CREATE TABLE public.user_library (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT,
     title TEXT NOT NULL,
-    media_type TEXT NOT NULL CHECK (media_type IN ('book', 'game')),
+    media_type TEXT NOT NULL,
     genre TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('in_progress', 'completed', 'wishlist')),
-    rating INT CHECK (rating >= 1 AND rating <= 5),
+    status TEXT NOT NULL,
+    rating INT,
     progress_percentage INT DEFAULT 0,
+    author_creator TEXT,
+    cover_url TEXT,
+    year INT,
+    user_review TEXT,
+    tags JSONB,
+    total_units INT,
+    current_unit INT,
+    completed_date TEXT,
+    started_date TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
