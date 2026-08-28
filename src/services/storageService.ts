@@ -169,12 +169,7 @@ class StorageService {
         }
       });
 
-      // Polling activo suave cada 2 segundos en primer plano
-      setInterval(() => {
-        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-          this.notifySubscribers();
-        }
-      }, 2000);
+      // Removed 2-second polling to save Supabase Egress (realtimeChannel already handles live updates)
     }
   }
 
@@ -202,14 +197,19 @@ class StorageService {
     };
   }
 
+  private notifyTimeout: any = null;
+
   private notifySubscribers() {
-    this.syncCallbacks.forEach(cb => {
-      try {
-        cb();
-      } catch (e) {
-        console.error('Error in sync callback:', e);
-      }
-    });
+    if (this.notifyTimeout) clearTimeout(this.notifyTimeout);
+    this.notifyTimeout = setTimeout(() => {
+      this.syncCallbacks.forEach(cb => {
+        try {
+          cb();
+        } catch (e) {
+          console.error('Error in sync callback:', e);
+        }
+      });
+    }, 300);
   }
 
   private broadcastChange() {
