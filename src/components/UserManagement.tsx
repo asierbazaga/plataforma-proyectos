@@ -169,12 +169,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!addName.trim() || !addEmail.trim()) return;
+    if (!addName.trim()) return;
 
     try {
-      await addUser(addName, addEmail, addRole, addDepartment, addPassword);
+      // Auto-generar un ID único en lugar de un correo
+      const uniqueId = `id_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+      await addUser(addName, uniqueId, addRole, 'General', addPassword);
       setAddName('');
-      setAddEmail('');
       setAddPassword('123456');
       setShowAddModal(false);
       toast.success('Usuario creado exitosamente');
@@ -198,8 +199,6 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     try {
       await updateUser(editingUser.id, {
         full_name: editName.trim(),
-        email: editEmail.trim().toLowerCase(),
-        department: editDepartment.trim(),
         role: editRole
       });
 
@@ -757,41 +756,16 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
               </div>
 
               <div>
-                <label className="text-slate-400 font-medium block mb-1">Correo Electrónico</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="laura@empresa.com"
-                  value={addEmail}
-                  onChange={e => setAddEmail(e.target.value)}
-                  className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none focus:border-[#FF6B00]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-400 font-medium block mb-1">Rol</label>
-                  <select
-                    value={addRole}
-                    onChange={e => setAddRole(e.target.value as Role)}
-                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none"
-                  >
-                    <option value="user">Usuario</option>
-                    <option value="admin">Administrador</option>
-                    <option value="guest">Invitado</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-400 font-medium block mb-1">Departamento</label>
-                  <input
-                    type="text"
-                    required
-                    value={addDepartment}
-                    onChange={e => setAddDepartment(e.target.value)}
-                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none focus:border-[#FF6B00]"
-                  />
-                </div>
+                <label className="text-slate-400 font-medium block mb-1">Rol</label>
+                <select
+                  value={addRole}
+                  onChange={e => setAddRole(e.target.value as Role)}
+                  className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none"
+                >
+                  <option value="user">Usuario</option>
+                  <option value="admin">Administrador</option>
+                  <option value="guest">Invitado</option>
+                </select>
               </div>
 
               <div>
@@ -850,41 +824,18 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
               </div>
 
               <div>
-                <label className="text-slate-400 font-medium block mb-1">Correo Electrónico</label>
-                <input
-                  type="email"
-                  required
-                  value={editEmail}
-                  onChange={e => setEditEmail(e.target.value)}
+              <div>
+                <label className="text-slate-400 font-medium block mb-1">Rol</label>
+                <select
+                  value={editRole}
+                  disabled={currentUser?.id === editingUser.id}
+                  onChange={e => setEditRole(e.target.value as Role)}
                   className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-400 font-medium block mb-1">Rol</label>
-                  <select
-                    value={editRole}
-                    disabled={currentUser?.id === editingUser.id}
-                    onChange={e => setEditRole(e.target.value as Role)}
-                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none"
-                  >
-                    <option value="user">Usuario</option>
-                    <option value="admin">Administrador</option>
-                    <option value="guest">Invitado</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-400 font-medium block mb-1">Departamento</label>
-                  <input
-                    type="text"
-                    required
-                    value={editDepartment}
-                    onChange={e => setEditDepartment(e.target.value)}
-                    className="w-full bg-[#090C15] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-bold focus:outline-none"
-                  />
-                </div>
+                >
+                  <option value="user">Usuario</option>
+                  <option value="admin">Administrador</option>
+                  <option value="guest">Invitado</option>
+                </select>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-white/5">

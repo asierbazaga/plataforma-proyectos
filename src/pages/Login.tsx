@@ -134,8 +134,8 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!regName.trim() || !regEmail.trim()) {
-      setError('Por favor, introduce tu nombre y correo electrónico.');
+    if (!regName.trim()) {
+      setError('Por favor, introduce tu nombre o usuario.');
       return;
     }
 
@@ -151,7 +151,9 @@ export const Login: React.FC = () => {
 
     setLoading(true);
     try {
-      const result = await register(regName, regEmail, regPassword, regDepartment);
+      // Auto-generar un ID único en lugar de un correo
+      const uniqueId = `id_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+      const result = await register(regName, uniqueId, regPassword, 'General');
       if (!result.success) {
         setError(result.error || 'No se pudo completar el registro.');
       }
@@ -256,13 +258,13 @@ export const Login: React.FC = () => {
             {/* Formulario Clásico */}
             <form onSubmit={handleLoginSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-slate-400 font-medium block mb-1">Usuario o Correo Electrónico</label>
+                <label className="text-slate-400 font-medium block mb-1">Nombre de Usuario o ID</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
-                    placeholder="asier.bazaga@plataforma.com"
+                    placeholder="Ej. Carlos Mendoza o id_..."
                     value={loginIdentifier}
                     onChange={e => setLoginIdentifier(e.target.value)}
                     className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
@@ -306,7 +308,7 @@ export const Login: React.FC = () => {
         {authMode === 'register' && (
           <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
             <div>
-              <label className="text-slate-400 font-medium block mb-1">Nombre Completo</label>
+              <label className="text-slate-400 font-medium block mb-1">Nombre Completo o Usuario</label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -315,35 +317,6 @@ export const Login: React.FC = () => {
                   placeholder="Ej. Carlos Mendoza"
                   value={regName}
                   onChange={e => setRegName(e.target.value)}
-                  className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-slate-400 font-medium block mb-1">Correo Electrónico</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  required
-                  placeholder="carlos@empresa.com"
-                  value={regEmail}
-                  onChange={e => setRegEmail(e.target.value)}
-                  className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-slate-400 font-medium block mb-1">Departamento / Área (Opcional)</label>
-              <div className="relative">
-                <Building className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Ej. Finanzas, Marketing, etc."
-                  value={regDepartment}
-                  onChange={e => setRegDepartment(e.target.value)}
                   className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
                 />
               </div>
