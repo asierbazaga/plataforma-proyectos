@@ -69,7 +69,6 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   // Form states para Editar Usuario
   const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
   const [editDepartment, setEditDepartment] = useState('');
   const [editRole, setEditRole] = useState<Role>('user');
 
@@ -169,14 +168,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!addName.trim()) return;
+      if (!addName.trim()) return;
 
-    try {
-      // Auto-generar un ID único en lugar de un correo
-      const uniqueId = `id_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
-      await addUser(addName, uniqueId, addRole, 'General', addPassword);
-      setAddName('');
-      setAddPassword('123456');
+      try {
+        // Auto-generar un ID único en lugar de un correo
+        const uniqueId = `id_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+        await addUser(addName, uniqueId, addRole, 'General', addPassword);
+        setAddName('');
+        setAddPassword('123456');
       setShowAddModal(false);
       toast.success('Usuario creado exitosamente');
     } catch (e: any) {
@@ -187,7 +186,6 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const openEditModal = (user: UserProfile) => {
     setEditingUser(user);
     setEditName(user.full_name);
-    setEditEmail(user.email);
     setEditDepartment(user.department || '');
     setEditRole(user.role);
   };

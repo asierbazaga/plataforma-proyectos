@@ -15,6 +15,8 @@ export interface UserProfile {
   avatar_url?: string;
   created_at?: string;
   last_login?: string;
+  security_question?: string;
+  security_answer?: string;
 }
 
 export interface AppPermission {

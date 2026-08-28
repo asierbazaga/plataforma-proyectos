@@ -21,7 +21,7 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const STORAGE_VERSION = 'v15_sync_fix_and_clear';
+const STORAGE_VERSION = 'v16_sync_fix_admin_pass';
 
 function generateId(prefix: string = 'id'): string {
   try {
@@ -39,7 +39,7 @@ const DEFAULT_PROFILES: UserProfile[] = [
     full_name: 'Asier Bazaga',
     role: 'admin',
     status: 'active',
-    password: 'admin',
+    password: 'admin123',
     department: 'Dirección IT & Super Admin',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     created_at: new Date().toISOString()
@@ -240,8 +240,8 @@ class StorageService {
   // ==========================================
   getPasswordMap(): Record<string, string> {
     return this.getLocal<Record<string, string>>('user_passwords', {
-      'asier.bazaga@plataforma.com': 'admin',
-      'asier': 'admin',
+      'asier.bazaga@plataforma.com': 'admin123',
+      'asier': 'admin123',
       'lore@plataforma.com': 'lore',
       'lore': 'lore'
     });
@@ -256,7 +256,7 @@ class StorageService {
   getPasswordForUser(user: UserProfile): string {
     const map = this.getPasswordMap();
     const fromMap = map[user.email.toLowerCase()] || map[user.id] || map[user.full_name.toLowerCase()] || map[user.full_name.split(' ')[0].toLowerCase()];
-    return user.password || fromMap || (user.role === 'admin' ? 'admin' : '123456');
+    return user.password || fromMap || (user.role === 'admin' ? 'admin123' : '123456');
   }
 
   getProfilesSync(): UserProfile[] {
@@ -264,7 +264,7 @@ class StorageService {
     const map = this.getPasswordMap();
     return profiles.map(p => ({
       ...p,
-      password: p.password || map[p.email.toLowerCase()] || map[p.id] || (p.role === 'admin' ? 'admin' : '123456')
+      password: p.password || map[p.email.toLowerCase()] || map[p.id] || (p.role === 'admin' ? 'admin123' : '123456')
     }));
   }
 
@@ -280,7 +280,7 @@ class StorageService {
           const map = this.getPasswordMap();
           const formatted = (data as UserProfile[]).map(p => ({
             ...p,
-            password: map[p.email.toLowerCase()] || map[p.id] || p.password || (p.role === 'admin' ? 'admin' : '123456')
+            password: map[p.email.toLowerCase()] || map[p.id] || p.password || (p.role === 'admin' ? 'admin123' : '123456')
           }));
 
           const local = this.getLocal<UserProfile[]>('profiles', []);

@@ -23,9 +23,9 @@ import { useAuth } from '../context/AuthContext';
 import { webAuthnService, DeviceBiometricCredential } from '../services/webAuthnService';
 
 export const Login: React.FC = () => {
-  const { login, register, allProfiles } = useAuth();
+  const { login, register, allProfiles, getSecurityQuestion, resetPasswordWithSecurityAnswer } = useAuth();
 
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login');
 
   // Biometría
   const [registeredCredentials, setRegisteredCredentials] = useState<DeviceBiometricCredential[]>([]);
@@ -41,11 +41,21 @@ export const Login: React.FC = () => {
 
   // Register Form
   const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
   const [regDepartment, setRegDepartment] = useState('General');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [regSecurityQuestion, setRegSecurityQuestion] = useState('¿Cuál fue el nombre de tu primera mascota?');
+  const [regSecurityAnswer, setRegSecurityAnswer] = useState('');
+
+  // Recovery Form
+  const [recStep, setRecStep] = useState<1 | 2 | 3>(1);
+  const [recIdentifier, setRecIdentifier] = useState('');
+  const [recQuestion, setRecQuestion] = useState('');
+  const [recAnswer, setRecAnswer] = useState('');
+  const [recNewPassword, setRecNewPassword] = useState('');
+  const [recConfirmPassword, setRecConfirmPassword] = useState('');
+  const [showRecPassword, setShowRecPassword] = useState(false);
 
   // Cargar estado biométrico
   useEffect(() => {
@@ -149,13 +159,86 @@ export const Login: React.FC = () => {
       return;
     }
 
+    if (!regSecurityQuestion.trim() || !regSecurityAnswer.trim()) {
+      setError('Por favor, selecciona una pregunta de seguridad y escribe la respuesta para poder recuperar tu cuenta en el futuro.');
+      return;
+    }
+
     setLoading(true);
     try {
       // Auto-generar un ID único en lugar de un correo
       const uniqueId = `id_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
-      const result = await register(regName, uniqueId, regPassword, 'General');
+      const result = await register(
+        regName, 
+        uniqueId, 
+        regPassword, 
+        'General', 
+        regSecurityQuestion.trim(), 
+        regSecurityAnswer.trim()
+      );
       if (!result.success) {
         setError(result.error || 'No se pudo completar el registro.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecIdentifierSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await getSecurityQuestion(recIdentifier);
+      if (res.success && res.question) {
+        setRecQuestion(res.question);
+        setRecStep(2);
+      } else {
+        setError(res.error || 'No se pudo iniciar la recuperación.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecAnswerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!recAnswer.trim()) {
+      setError('Por favor, escribe una respuesta.');
+      return;
+    }
+    setRecStep(3);
+  };
+
+  const handleRecResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (recNewPassword.length < 4) {
+      setError('La contraseña debe tener al menos 4 caracteres.');
+      return;
+    }
+
+    if (recNewPassword !== recConfirmPassword) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await resetPasswordWithSecurityAnswer(recIdentifier, recAnswer, recNewPassword);
+      if (res.success) {
+        setStatusMessage('¡Contraseña actualizada con éxito! Inicia sesión ahora.');
+        setAuthMode('login');
+        setRecStep(1);
+        setRecIdentifier('');
+        setRecAnswer('');
+        setRecNewPassword('');
+        setRecConfirmPassword('');
+      } else {
+        setError(res.error || 'La respuesta de seguridad es incorrecta.');
       }
     } finally {
       setLoading(false);
@@ -291,6 +374,15 @@ export const Login: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('forgot-password')}
+                    className="text-[11px] text-[#FF6B00] hover:text-[#FA8500] hover:underline"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
               </div>
 
               <button
@@ -353,6 +445,38 @@ export const Login: React.FC = () => {
                 </div>
               </div>
             </div>
+            
+            <div className="pt-2 border-t border-white/5 space-y-3.5">
+              <p className="text-emerald-400 font-medium mb-1">Recuperación de Contraseña</p>
+              <div>
+                <label className="text-slate-400 font-medium block mb-1">Pregunta de Seguridad</label>
+                <select
+                  value={regSecurityQuestion}
+                  onChange={e => setRegSecurityQuestion(e.target.value)}
+                  className="w-full bg-[#070A11] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00] appearance-none"
+                >
+                  <option value="¿Cuál fue el nombre de tu primera mascota?">¿Cuál fue el nombre de tu primera mascota?</option>
+                  <option value="¿En qué ciudad naciste?">¿En qué ciudad naciste?</option>
+                  <option value="¿Cuál es tu color favorito?">¿Cuál es tu color favorito?</option>
+                  <option value="¿Cuál era el nombre de tu mejor amigo en la infancia?">¿Cuál era el nombre de tu mejor amigo en la infancia?</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-medium block mb-1">Tu Respuesta (Secreta)</label>
+                <div className="relative">
+                  <Shield className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Escribe tu respuesta..."
+                    value={regSecurityAnswer}
+                    onChange={e => setRegSecurityAnswer(e.target.value)}
+                    className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="flex items-center justify-between pt-1">
               <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
@@ -375,6 +499,132 @@ export const Login: React.FC = () => {
               {loading ? 'Creando cuenta...' : 'Crear Cuenta y Entrar'}
             </button>
           </form>
+        )}
+
+        {/* 3. MODO RECUPERAR CONTRASEÑA */}
+        {authMode === 'forgot-password' && (
+          <div className="space-y-4 text-xs">
+            {recStep === 1 && (
+              <form onSubmit={handleRecIdentifierSubmit} className="space-y-3.5">
+                <p className="text-slate-400 text-xs mb-4">
+                  Introduce tu usuario o ID para buscar tu pregunta de seguridad.
+                </p>
+                <div>
+                  <label className="text-slate-400 font-medium block mb-1">Nombre de Usuario o ID</label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Carlos Mendoza"
+                      value={recIdentifier}
+                      onChange={e => setRecIdentifier(e.target.value)}
+                      className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-[#FF6B00] hover:bg-[#FA8500] text-white font-black rounded-xl shadow-lg shadow-[#FF6B00]/20 transition-all flex items-center justify-center gap-2 text-sm mt-2"
+                >
+                  {loading ? 'Buscando...' : 'Buscar Usuario'} <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            )}
+
+            {recStep === 2 && (
+              <form onSubmit={handleRecAnswerSubmit} className="space-y-3.5">
+                <div className="bg-[#070A11] p-4 rounded-xl border border-white/5">
+                  <p className="text-slate-400 font-medium mb-1">Pregunta de Seguridad:</p>
+                  <p className="text-white font-bold text-sm">{recQuestion}</p>
+                </div>
+                <div>
+                  <label className="text-slate-400 font-medium block mb-1">Tu Respuesta</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Escribe tu respuesta..."
+                    value={recAnswer}
+                    onChange={e => setRecAnswer(e.target.value)}
+                    className="w-full bg-[#070A11] border border-white/5 rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#FF6B00] hover:bg-[#FA8500] text-white font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm mt-2"
+                >
+                  Continuar <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            )}
+
+            {recStep === 3 && (
+              <form onSubmit={handleRecResetSubmit} className="space-y-3.5">
+                <p className="text-emerald-400 font-medium mb-2">¡Respuesta correcta! Crea tu nueva contraseña.</p>
+                <div>
+                  <label className="text-slate-400 font-medium block mb-1">Nueva Contraseña</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showRecPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Mín. 4 caracteres"
+                      value={recNewPassword}
+                      onChange={e => setRecNewPassword(e.target.value)}
+                      className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-slate-400 font-medium block mb-1">Confirmar Nueva Contraseña</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showRecPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Repite la clave"
+                      value={recConfirmPassword}
+                      onChange={e => setRecConfirmPassword(e.target.value)}
+                      className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showRecPassword}
+                      onChange={e => setShowRecPassword(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-900 text-[#FF6B00]"
+                    />
+                    Mostrar contraseñas
+                  </label>
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-[#30D158] hover:bg-emerald-600 text-black font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm mt-2"
+                >
+                  {loading ? 'Guardando...' : 'Cambiar Contraseña y Entrar'}
+                </button>
+              </form>
+            )}
+            
+            <div className="mt-4 pt-4 border-t border-white/5 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  setRecStep(1);
+                  setRecIdentifier('');
+                }}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                Volver al inicio de sesión
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

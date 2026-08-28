@@ -8,7 +8,7 @@ interface AuthContextType {
   permissions: AppPermission[];
   loading: boolean;
   login: (identifier: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password?: string, department?: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
+  register: (name: string, email: string, password?: string, department?: string, securityQuestion?: string, securityAnswer?: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   logout: () => void;
   switchUser: (user: UserProfile) => void;
   hasAccessToApp: (appId: AppId) => boolean;
@@ -18,6 +18,8 @@ interface AuthContextType {
   updateUser: (id: string, updates: Partial<UserProfile>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
+  getSecurityQuestion: (identifier: string) => Promise<{ success: boolean; question?: string; error?: string }>;
+  resetPasswordWithSecurityAnswer: (identifier: string, answer: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -137,13 +139,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     name: string,
     email: string,
     password?: string,
-    department: string = 'General'
+    department: string = 'General',
+    securityQuestion?: string,
+    securityAnswer?: string
   ): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim().toLowerCase();
     const profiles = await storageService.getProfiles();
 
     if (profiles.some(p => p.email.toLowerCase() === cleanEmail)) {
-      return { success: false, error: 'Ya existe una cuenta registrada con este correo electrónico.' };
+      return { success: false, error: 'Ya existe una cuenta registrada con este identificador.' };
+    }
+
+    if (profiles.some(p => p.full_name.toLowerCase() === cleanName)) {
+      return { success: false, error: 'Este nombre de usuario ya está en uso. Por favor, elige otro.' };
     }
 
     const newProfile = await storageService.createProfile({
@@ -153,7 +162,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       status: 'active',
       password: password || '123456',
       department: department.trim() || 'General',
-      avatar_url: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`
+      avatar_url: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`,
+      security_question: securityQuestion,
+      security_answer: securityAnswer
     });
 
     await refreshData();
@@ -162,6 +173,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storageService.logAction(newProfile.email, 'REGISTER', `Autoregistro de nuevo usuario: ${name} (${cleanEmail})`);
 
     return { success: true, user: newProfile };
+  };
+
+  const getSecurityQuestion = async (identifier: string): Promise<{ success: boolean; question?: string; error?: string }> => {
+    const profiles = await storageService.getProfiles();
+    const cleanId = identifier.trim().toLowerCase();
+
+    const user = profiles.find(p => {
+      const email = p.email.toLowerCase();
+      const name = p.full_name.toLowerCase();
+      const firstName = name.split(' ')[0];
+      return (email === cleanId || name === cleanId || firstName === cleanId);
+    });
+
+    if (!user) {
+      return { success: false, error: 'Usuario no encontrado.' };
+    }
+
+    if (!user.security_question) {
+      return { success: false, error: 'Este usuario no tiene configurada una pregunta de seguridad. Contacta con el administrador.' };
+    }
+
+    return { success: true, question: user.security_question };
+  };
+
+  const resetPasswordWithSecurityAnswer = async (identifier: string, answer: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    const profiles = await storageService.getProfiles();
+    const cleanId = identifier.trim().toLowerCase();
+
+    const user = profiles.find(p => {
+      const email = p.email.toLowerCase();
+      const name = p.full_name.toLowerCase();
+      const firstName = name.split(' ')[0];
+      return (email === cleanId || name === cleanId || firstName === cleanId);
+    });
+
+    if (!user) {
+      return { success: false, error: 'Usuario no encontrado.' };
+    }
+
+    if (!user.security_question || !user.security_answer) {
+      return { success: false, error: 'Este usuario no tiene configurada una pregunta de seguridad.' };
+    }
+
+    const cleanAnswer = answer.trim().toLowerCase();
+    const storedAnswer = user.security_answer.trim().toLowerCase();
+
+    if (cleanAnswer !== storedAnswer) {
+      return { success: false, error: 'La respuesta no es correcta.' };
+    }
+
+    await storageService.updateProfile(user.id, {
+      password: newPassword.trim()
+    });
+    
+    // Also update passwords local map in storageService
+    if (typeof window !== 'undefined') {
+       const userPasswordsStr = localStorage.getItem('plataforma_user_passwords') || '{}';
+       try {
+         const userPasswords = JSON.parse(userPasswordsStr);
+         userPasswords[user.email] = newPassword.trim();
+         localStorage.setItem('plataforma_user_passwords', JSON.stringify(userPasswords));
+       } catch (e) {}
+    }
+
+    storageService.logAction(user.email, 'RESET_PASSWORD', `Contrasea restablecida mediante pregunta de seguridad.`);
+
+    return { success: true };
   };
 
   const logout = () => {
@@ -221,6 +299,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     department: string,
     password?: string
   ): Promise<UserProfile> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim().toLowerCase();
+    const profiles = await storageService.getProfiles();
+
+    if (profiles.some(p => p.email.toLowerCase() === cleanEmail)) {
+      throw new Error('Ya existe un usuario con ese identificador o correo.');
+    }
+    if (profiles.some(p => p.full_name.toLowerCase() === cleanName)) {
+      throw new Error('Ya existe un usuario con ese nombre.');
+    }
+
     const newProfile = await storageService.createProfile({
       full_name: name.trim(),
       email: email.trim().toLowerCase(),
@@ -239,6 +328,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = async (id: string, updates: Partial<UserProfile>): Promise<void> => {
+    if (updates.full_name) {
+      const cleanName = updates.full_name.trim().toLowerCase();
+      const profiles = await storageService.getProfiles();
+      const existing = profiles.find(p => p.full_name.toLowerCase() === cleanName && p.id !== id);
+      if (existing) {
+        throw new Error('Ya existe otro usuario con ese nombre.');
+      }
+    }
     await storageService.updateProfile(id, updates);
     await refreshData();
     if (currentUser && currentUser.id === id) {
@@ -274,7 +371,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addUser,
         updateUser,
         deleteUser,
-        refreshData
+        refreshData,
+        getSecurityQuestion,
+        resetPasswordWithSecurityAnswer
       }}
     >
       {children}
