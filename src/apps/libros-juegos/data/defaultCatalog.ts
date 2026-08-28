@@ -122,6 +122,45 @@ export const MASTER_CATALOG: CatalogItem[] = [
     tags: ['Hard Sci-Fi', 'Física', 'Extraterrestres', 'Misterio', 'Trilogía'],
     platform_or_pages: '416 págs'
   },
+  {
+    id: 'book_cien_anos',
+    title: 'Cien años de soledad',
+    media_type: 'book',
+    genre: 'Realismo Mágico',
+    author_creator: 'Gabriel García Márquez',
+    year: 1967,
+    cover_url: 'https://images.unsplash.com/photo-1455390582262-044cdead27d8?w=400&q=80',
+    description: 'La historia de la familia Buendía a lo largo de siete generaciones en el pueblo ficticio de Macondo.',
+    rating_global: 9.7,
+    tags: ['Realismo Mágico', 'Latinoamérica', 'Clásico', 'Nobel', 'Familia'],
+    platform_or_pages: '417 págs'
+  },
+  {
+    id: 'book_harry_potter_1',
+    title: 'Harry Potter y la piedra filosofal',
+    media_type: 'book',
+    genre: 'Fantasía Juvenil',
+    author_creator: 'J.K. Rowling',
+    year: 1997,
+    cover_url: 'https://images.unsplash.com/photo-1618666012174-83b441c0bc76?w=400&q=80',
+    description: 'Un niño huérfano descubre que es un mago y asiste a la escuela de magia Hogwarts, donde hace amigos y enemigos mágicos.',
+    rating_global: 9.0,
+    tags: ['Fantasía', 'Magia', 'Juvenil', 'Hogwarts', 'Clásico Moderno'],
+    platform_or_pages: '223 págs'
+  },
+  {
+    id: 'book_el_principito',
+    title: 'El Principito',
+    media_type: 'book',
+    genre: 'Fábula / Ficción Filosófica',
+    author_creator: 'Antoine de Saint-Exupéry',
+    year: 1943,
+    cover_url: 'https://images.unsplash.com/photo-1555627771-46ce78d5ca0d?w=400&q=80',
+    description: 'Un piloto perdido en el Sahara se encuentra con un joven príncipe que visita la Tierra desde un pequeño asteroide.',
+    rating_global: 9.6,
+    tags: ['Filosofía', 'Infantil', 'Clásico', 'Reflexión', 'Fábula'],
+    platform_or_pages: '96 págs'
+  },
 
   // ==========================================
   // VIDEOJUEGOS 🎮
@@ -230,6 +269,45 @@ export const MASTER_CATALOG: CatalogItem[] = [
     tags: ['Metroidvania', 'Indie', 'Música Increíble', 'Desafío', 'Plataformas'],
     platform_or_pages: '40+ horas'
   },
+  {
+    id: 'game_mario_odyssey',
+    title: 'Super Mario Odyssey',
+    media_type: 'game',
+    genre: 'Plataformas 3D',
+    author_creator: 'Nintendo',
+    year: 2017,
+    cover_url: 'https://images.unsplash.com/photo-1612282131720-70cb88f72534?w=400&q=80',
+    description: 'Únete a Mario en una aventura masiva en 3D que te llevará por todo el mundo para rescatar a la princesa Peach.',
+    rating_global: 9.5,
+    tags: ['Nintendo', 'Plataformas', 'Switch', 'Mario', 'Aventura'],
+    platform_or_pages: '20+ horas'
+  },
+  {
+    id: 'game_the_last_of_us',
+    title: 'The Last of Us Part I',
+    media_type: 'game',
+    genre: 'Acción-Aventura / Survival Horror',
+    author_creator: 'Naughty Dog',
+    year: 2013,
+    cover_url: 'https://images.unsplash.com/photo-1605901309584-818e25960b8f?w=400&q=80',
+    description: 'En una civilización devastada por una pandemia, Joel es contratado para sacar de contrabando a Ellie, una niña de 14 años, de una zona de cuarentena.',
+    rating_global: 9.8,
+    tags: ['Narrativa', 'Zombis', 'Drama', 'Supervivencia', 'PlayStation'],
+    platform_or_pages: '15+ horas'
+  },
+  {
+    id: 'game_minecraft',
+    title: 'Minecraft',
+    media_type: 'game',
+    genre: 'Sandbox / Supervivencia',
+    author_creator: 'Mojang Studios',
+    year: 2011,
+    cover_url: 'https://images.unsplash.com/photo-1607519965158-b615bcf074c5?w=400&q=80',
+    description: 'Explora mundos generados procedimentalmente, extrae materias primas, fabrica herramientas y construye estructuras en un entorno infinito.',
+    rating_global: 9.4,
+    tags: ['Sandbox', 'Creatividad', 'Supervivencia', 'Multijugador', 'Construcción'],
+    platform_or_pages: 'Infinito'
+  },
 
   // ==========================================
   // PELÍCULAS 🎬
@@ -324,6 +402,45 @@ export const MASTER_CATALOG: CatalogItem[] = [
     rating_global: 9.7,
     tags: ['Cyberpunk', 'Simulación', 'Artes Marciales', 'Clásico', 'Keanu Reeves'],
     platform_or_pages: '136 min'
+  },
+  {
+    id: 'movie_lotr_return_king',
+    title: 'El Señor de los Anillos: El Retorno del Rey',
+    media_type: 'movie',
+    genre: 'Fantasía Épica / Aventura',
+    author_creator: 'Peter Jackson',
+    year: 2003,
+    cover_url: 'https://images.unsplash.com/photo-1606709848529-6798e3b2e597?w=400&q=80',
+    description: 'Gandalf y Aragorn lideran el mundo de los hombres contra el ejército de Sauron, mientras Frodo y Sam se acercan al Monte del Destino con el Anillo Único.',
+    rating_global: 9.8,
+    tags: ['Fantasía', 'Épico', 'Oscars', 'Tolkien', 'Tierra Media'],
+    platform_or_pages: '201 min'
+  },
+  {
+    id: 'movie_dark_knight',
+    title: 'El Caballero Oscuro (The Dark Knight)',
+    media_type: 'movie',
+    genre: 'Acción / Thriller',
+    author_creator: 'Christopher Nolan',
+    year: 2008,
+    cover_url: 'https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=400&q=80',
+    description: 'Cuando la amenaza conocida como el Joker emerge de su misterioso pasado, causa estragos y caos en la ciudad de Gotham.',
+    rating_global: 9.6,
+    tags: ['Batman', 'Joker', 'Acción', 'Nolan', 'Superhéroes'],
+    platform_or_pages: '152 min'
+  },
+  {
+    id: 'movie_parasite',
+    title: 'Parásitos (Parasite)',
+    media_type: 'movie',
+    genre: 'Thriller / Comedia Negra',
+    author_creator: 'Bong Joon Ho',
+    year: 2019,
+    cover_url: 'https://images.unsplash.com/photo-1549480112-9c17df3764af?w=400&q=80',
+    description: 'La codicia y la discriminación de clase amenazan la relación simbiótica recién formada entre la adinerada familia Park y el empobrecido clan Kim.',
+    rating_global: 9.5,
+    tags: ['Cine Coreano', 'Sociedad', 'Oscar', 'Suspense', 'Humor Negro'],
+    platform_or_pages: '132 min'
   },
 
   // ==========================================
@@ -432,5 +549,44 @@ export const MASTER_CATALOG: CatalogItem[] = [
     rating_global: 9.3,
     tags: ['Fantasía', 'Dragones', 'Poniente', 'Traición', 'HBO'],
     platform_or_pages: '8 Temporadas (73 eps)'
+  },
+  {
+    id: 'series_the_sopranos',
+    title: 'Los Soprano',
+    media_type: 'series',
+    genre: 'Drama / Crimen',
+    author_creator: 'David Chase',
+    year: 1999,
+    cover_url: 'https://images.unsplash.com/photo-1550927312-3fa2a74c7e6c?w=400&q=80',
+    description: 'Tony Soprano, el jefe de la mafia de Nueva Jersey, lidia con problemas personales y profesionales que afectan su estado mental, obligándolo a buscar asesoramiento psiquiátrico.',
+    rating_global: 9.7,
+    tags: ['Mafia', 'Psicología', 'HBO', 'Clásico', '6 Temporadas'],
+    platform_or_pages: '6 Temporadas (86 eps)'
+  },
+  {
+    id: 'series_stranger_things',
+    title: 'Stranger Things',
+    media_type: 'series',
+    genre: 'Ciencia Ficción / Terror',
+    author_creator: 'The Duffer Brothers',
+    year: 2016,
+    cover_url: 'https://images.unsplash.com/photo-1629851722883-eb9eb86d63bb?w=400&q=80',
+    description: 'Cuando un niño desaparece, un pequeño pueblo descubre un misterio que involucra experimentos secretos, fuerzas sobrenaturales aterradoras y a una niña muy extraña.',
+    rating_global: 9.1,
+    tags: ['Años 80', 'Misterio', 'Monstruos', 'Amistad', 'Netflix'],
+    platform_or_pages: '4 Temporadas (34 eps)'
+  },
+  {
+    id: 'series_the_office',
+    title: 'The Office (US)',
+    media_type: 'series',
+    genre: 'Comedia / Falso Documental',
+    author_creator: 'Greg Daniels',
+    year: 2005,
+    cover_url: 'https://images.unsplash.com/photo-1551009175-15bdf9dcb580?w=400&q=80',
+    description: 'Un falso documental que detalla la vida cotidiana de los empleados de la sucursal de Scranton, Pensilvania, de la empresa papelera Dunder Mifflin.',
+    rating_global: 9.4,
+    tags: ['Comedia', 'Sitcom', 'Falso Documental', 'Trabajo', '9 Temporadas'],
+    platform_or_pages: '9 Temporadas (201 eps)'
   }
 ];

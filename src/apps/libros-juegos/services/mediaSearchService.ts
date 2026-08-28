@@ -95,7 +95,93 @@ async function searchTVMaze(query: string): Promise<SearchResultItem[]> {
   }
 }
 
-// 3. Search Master Local Catalog
+// 3. Search TMDB (Movies) - Requires Free API Key
+async function searchTMDB(query: string): Promise<SearchResultItem[]> {
+  // Configura tu API Key gratuita de TMDB aquí o en un archivo .env (.env.local) como VITE_TMDB_API_KEY
+  const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || 'TU_API_KEY_TMDB_AQUI'; 
+  
+  if (!TMDB_API_KEY || TMDB_API_KEY === 'TU_API_KEY_TMDB_AQUI') return [];
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}&api_key=${TMDB_API_KEY}&language=es-ES`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.results || !Array.isArray(data.results)) return [];
+
+    return data.results.slice(0, 8).map((movie: any) => {
+      const coverUrl = movie.poster_path 
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+        : 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=400&q=80';
+      const year = movie.release_date ? parseInt(movie.release_date.substring(0, 4), 10) : undefined;
+
+      return {
+        id: `tmdb_${movie.id}`,
+        title: movie.title || query,
+        media_type: 'movie' as MediaType,
+        genre: 'Película', // TMDB usa IDs de género, requeriría otro fetch mapearlo, lo dejamos genérico o mapeamos algunos.
+        author_creator: 'Producción Cinematográfica',
+        year: year,
+        cover_url: coverUrl,
+        description: movie.overview || '',
+        rating_global: movie.vote_average ? Number(movie.vote_average.toFixed(1)) : undefined,
+        tags: ['Cine'],
+        source: 'custom'
+      };
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+// 4. Search RAWG (Video Games) - Requires Free API Key
+async function searchRAWG(query: string): Promise<SearchResultItem[]> {
+  // Configura tu API Key gratuita de RAWG aquí o en un archivo .env (.env.local) como VITE_RAWG_API_KEY
+  const RAWG_API_KEY = import.meta.env.VITE_RAWG_API_KEY || 'TU_API_KEY_RAWG_AQUI';
+
+  if (!RAWG_API_KEY || RAWG_API_KEY === 'TU_API_KEY_RAWG_AQUI') return [];
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`https://api.rawg.io/api/games?search=${encodeURIComponent(query)}&key=${RAWG_API_KEY}&page_size=8`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.results || !Array.isArray(data.results)) return [];
+
+    return data.results.map((game: any) => {
+      const coverUrl = game.background_image || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80';
+      const year = game.released ? parseInt(game.released.substring(0, 4), 10) : undefined;
+      const genres = Array.isArray(game.genres) && game.genres.length > 0 ? game.genres.map((g: any) => g.name).join(' / ') : 'Videojuego';
+
+      return {
+        id: `rawg_${game.id}`,
+        title: game.name || query,
+        media_type: 'game' as MediaType,
+        genre: genres,
+        author_creator: 'Desarrolladora', // RAWG trae desarrolladores en otra ruta, simplificamos aquí
+        year: year,
+        cover_url: coverUrl,
+        rating_global: game.rating ? Number(game.rating.toFixed(1)) : undefined,
+        tags: Array.isArray(game.genres) ? game.genres.map((g: any) => g.name) : ['Videojuego'],
+        source: 'custom'
+      };
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+// 5. Search Master Local Catalog
 function searchCatalog(query: string, mediaType?: MediaType | 'all'): SearchResultItem[] {
   const q = query.toLowerCase().trim();
   return MASTER_CATALOG.filter(item => {
@@ -106,7 +192,7 @@ function searchCatalog(query: string, mediaType?: MediaType | 'all'): SearchResu
       item.title.toLowerCase().includes(q) ||
       item.genre.toLowerCase().includes(q) ||
       item.author_creator.toLowerCase().includes(q) ||
-      item.tags.some(t => t.toLowerCase().includes(q))
+      (item.tags && item.tags.some(t => t.toLowerCase().includes(q)))
     );
   }).map(item => ({
     id: item.id,
@@ -142,6 +228,12 @@ export const mediaSearchService = {
     }
     if (mediaType === 'all' || mediaType === 'series') {
       promises.push(searchTVMaze(trimmed));
+    }
+    if (mediaType === 'all' || mediaType === 'movie') {
+      promises.push(searchTMDB(trimmed));
+    }
+    if (mediaType === 'all' || mediaType === 'game') {
+      promises.push(searchRAWG(trimmed));
     }
 
     const apiResultsArrays = await Promise.all(promises);

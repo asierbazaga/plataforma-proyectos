@@ -96,8 +96,9 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
           attributionControl: false
         }).setView([userCoords.lat, userCoords.lng], 10);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
-          maxZoom: 19
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
         mapRef.current = map;
