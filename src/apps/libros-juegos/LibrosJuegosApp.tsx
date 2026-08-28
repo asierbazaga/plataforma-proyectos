@@ -42,7 +42,7 @@ interface LibrosJuegosAppProps {
 type ActiveTab = 'history' | 'explore' | 'recommendations' | 'stats';
 
 export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
-  const { canEditApp } = useAuth();
+  const { canEditApp, currentUser } = useAuth();
   const canEdit = canEditApp('libros-juegos');
 
   // State
@@ -85,7 +85,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
   const [liveSuggestions, setLiveSuggestions] = useState<SearchResultItem[]>([]);
 
   const loadData = async () => {
-    const list = await storageService.getLibrary();
+    const list = await storageService.getLibrary(currentUser?.id);
     setItems(list);
   };
 
@@ -192,7 +192,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
     if (editingItem) {
       await storageService.updateLibraryItem(editingItem.id, itemData);
     } else {
-      await storageService.addLibraryItem(itemData);
+      await storageService.addLibraryItem(itemData, currentUser?.id);
     }
 
     setShowModal(false);
@@ -225,7 +225,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       progress_percentage: status === 'completed' ? 100 : status === 'in_progress' ? 50 : 0,
       tags: item.tags || [],
       completed_date: status === 'completed' ? new Date().toISOString().substring(0, 10) : undefined
-    });
+    }, currentUser?.id);
 
     await loadData();
   };

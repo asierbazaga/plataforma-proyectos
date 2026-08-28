@@ -189,6 +189,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setCurrentUser(null);
     localStorage.removeItem('plataforma_active_email');
+    if (typeof window !== 'undefined') {
+      const keysToKeep = ['plataforma_active_email', 'plataforma_profiles', 'plataforma_permissions', 'plataforma_user_passwords', 'plataforma_storage_ver', 'plataforma_interview_candidates'];
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (key.startsWith('plataforma_') && !keysToKeep.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
   };
 
   const switchUser = (user: UserProfile) => {

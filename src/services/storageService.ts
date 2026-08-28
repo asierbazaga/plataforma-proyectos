@@ -106,7 +106,7 @@ const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
   carb_cycling_enabled: false,
   training_day_carbs: 220,
   rest_day_carbs: 150,
-  onboarding_completed: true,
+  onboarding_completed: false,
   updated_at: new Date().toISOString()
 };
 
@@ -518,10 +518,10 @@ class StorageService {
   // ==========================================
   // 2. GASTOS & FINANZAS (GLOBAL UNIFICADO)
   // ==========================================
-  async getWalletConfig(_userId?: string): Promise<WalletConfig> {
+  async getWalletConfig(userId?: string): Promise<WalletConfig> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('wallet_config').select('*').limit(1);
+        const { data, error } = await supabase.from('wallet_config').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').limit(1);
         if (!error && data && data.length > 0) {
           const raw = data[0];
           const cfg: WalletConfig = {
@@ -543,16 +543,16 @@ class StorageService {
       account_2_name: 'ING Conjunta',
       account_2_initial_balance: 0,
       has_account_2: true,
-      onboarding_completed: true
+      onboarding_completed: false
     });
   }
 
-  async updateWalletConfig(updates: Partial<WalletConfig>, _userId?: string): Promise<WalletConfig> {
+  async updateWalletConfig(updates: Partial<WalletConfig>, userId?: string): Promise<WalletConfig> {
     const current = await this.getWalletConfig();
     const updated: WalletConfig = {
       ...current,
       ...updates,
-      user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
     } as any;
 
     this.setLocal('wallet_config', updated);
@@ -561,7 +561,7 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('wallet_config').upsert({
-          user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           account_1_name: updated.account_1_name,
           account_1_initial_balance: Number(updated.account_1_initial_balance) || 0,
           account_2_name: updated.account_2_name,
@@ -575,10 +575,10 @@ class StorageService {
     return updated;
   }
 
-  async getExpenses(_userId?: string): Promise<ExpenseItem[]> {
+  async getExpenses(userId?: string): Promise<ExpenseItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('expenses').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
         if (error) {
           console.error('Supabase getExpenses error:', error);
         } else if (data) {
@@ -623,7 +623,7 @@ class StorageService {
     const item: ExpenseItem = {
       ...expense,
       amount: Number(expense.amount) || 0,
-      user_id: userId || expense.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || expense.user_id || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('exp'),
       created_at: new Date().toISOString()
     };
@@ -659,7 +659,7 @@ class StorageService {
     return item;
   }
 
-  async deleteExpense(id: string, _userId?: string): Promise<void> {
+  async deleteExpense(id: string, userId?: string): Promise<void> {
     const current = this.getLocal<ExpenseItem[]>('expenses', []);
     this.setLocal('expenses', current.filter(e => e.id !== id));
     this.broadcastChange();
@@ -671,7 +671,7 @@ class StorageService {
     }
   }
 
-  async clearAllExpenses(_userId?: string): Promise<void> {
+  async clearAllExpenses(userId?: string): Promise<void> {
     this.setLocal('expenses', []);
     this.broadcastChange();
 
@@ -682,10 +682,10 @@ class StorageService {
     }
   }
 
-  async getSavingsGoals(_userId?: string): Promise<SavingsGoal[]> {
+  async getSavingsGoals(userId?: string): Promise<SavingsGoal[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('savings_goals').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('savings_goals').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
         if (!error && data) {
           const list: SavingsGoal[] = (data as any[]).map(row => ({
             id: row.id,
@@ -711,7 +711,7 @@ class StorageService {
       ...goal,
       target_amount: Number(goal.target_amount) || 0,
       current_amount: Number(goal.current_amount) || 0,
-      user_id: userId || goal.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || goal.user_id || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('goal'),
       created_at: new Date().toISOString()
     };
@@ -736,7 +736,7 @@ class StorageService {
     return item;
   }
 
-  async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>, _userId?: string): Promise<void> {
+  async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>, userId?: string): Promise<void> {
     const current = this.getLocal<SavingsGoal[]>('savings_goals', []);
     this.setLocal('savings_goals', current.map(g => g.id === id ? { ...g, ...updates } : g));
     this.broadcastChange();
@@ -748,7 +748,7 @@ class StorageService {
     }
   }
 
-  async deleteSavingsGoal(id: string, _userId?: string): Promise<void> {
+  async deleteSavingsGoal(id: string, userId?: string): Promise<void> {
     const current = this.getLocal<SavingsGoal[]>('savings_goals', []);
     this.setLocal('savings_goals', current.filter(g => g.id !== id));
     this.broadcastChange();
@@ -760,7 +760,7 @@ class StorageService {
     }
   }
 
-  async getCategoryBudgets(_userId?: string): Promise<CategoryBudget[]> {
+  async getCategoryBudgets(userId?: string): Promise<CategoryBudget[]> {
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('category_budgets').select('*');
@@ -781,7 +781,7 @@ class StorageService {
     return this.getLocal<CategoryBudget[]>('category_budgets', DEFAULT_CATEGORY_BUDGETS);
   }
 
-  async updateCategoryBudget(category: string, monthlyLimit: number, _userId?: string): Promise<void> {
+  async updateCategoryBudget(category: string, monthlyLimit: number, userId?: string): Promise<void> {
     const current = await this.getCategoryBudgets();
     const updated = current.map(c => c.category === category ? { ...c, monthly_limit: monthlyLimit } : c);
     this.setLocal('category_budgets', updated);
@@ -801,10 +801,10 @@ class StorageService {
   // ==========================================
   // 3. FITNESS & SALUD INTEGRAL (GLOBAL UNIFICADO)
   // ==========================================
-  async getFitnessProfile(_userId?: string): Promise<FitnessProfile> {
+  async getFitnessProfile(userId?: string): Promise<FitnessProfile> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('fitness_profiles').select('*').limit(1);
+        const { data, error } = await supabase.from('fitness_profiles').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').limit(1);
         if (!error && data && data.length > 0) {
           const raw = data[0];
           const prof: FitnessProfile = {
@@ -837,18 +837,18 @@ class StorageService {
     }
     return this.getLocal('fitness_profile', {
       ...DEFAULT_FITNESS_PROFILE,
-      user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      onboarding_completed: true,
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      onboarding_completed: false,
       current_weight: 95.7
     });
   }
 
-  async updateFitnessProfile(updates: Partial<FitnessProfile>, _userId?: string): Promise<FitnessProfile> {
+  async updateFitnessProfile(updates: Partial<FitnessProfile>, userId?: string): Promise<FitnessProfile> {
     const current = await this.getFitnessProfile();
     const updated: FitnessProfile & { id?: string } = {
       ...current,
       ...updates,
-      user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       updated_at: new Date().toISOString()
     };
     this.setLocal('fitness_profile', updated);
@@ -862,10 +862,10 @@ class StorageService {
     return updated;
   }
 
-  async getWorkouts(_userId?: string): Promise<FitnessWorkout[]> {
+  async getWorkouts(userId?: string): Promise<FitnessWorkout[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('fitness_workouts').select('*').order('workout_date', { ascending: false });
+        const { data, error } = await supabase.from('fitness_workouts').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('workout_date', { ascending: false });
         if (!error && data) {
           const list: FitnessWorkout[] = (data as any[]).map(row => ({
             id: row.id,
@@ -899,7 +899,7 @@ class StorageService {
       ...workout,
       duration_minutes: Number(workout.duration_minutes) || 0,
       calories_burned: Number(workout.calories_burned) || 0,
-      user_id: userId || workout.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || workout.user_id || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('wk')
     };
     const current = this.getLocal<FitnessWorkout[]>('workouts', []);
@@ -932,7 +932,7 @@ class StorageService {
     return item;
   }
 
-  async deleteWorkout(id: string, _userId?: string): Promise<void> {
+  async deleteWorkout(id: string, userId?: string): Promise<void> {
     const current = this.getLocal<FitnessWorkout[]>('workouts', []);
     this.setLocal('workouts', current.filter(w => w.id !== id));
     this.broadcastChange();
@@ -944,10 +944,10 @@ class StorageService {
     }
   }
 
-  async getDailyNutritionLogs(_userId?: string): Promise<DailyNutritionLog[]> {
+  async getDailyNutritionLogs(userId?: string): Promise<DailyNutritionLog[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('fitness_nutrition_logs').select('*').order('date', { ascending: false });
+        const { data, error } = await supabase.from('fitness_nutrition_logs').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('date', { ascending: false });
         if (!error && data) {
           const list: DailyNutritionLog[] = (data as any[]).map(row => ({
             id: row.id,
@@ -972,7 +972,7 @@ class StorageService {
 
     return {
       id: 'nut_' + (userId || 'asier').slice(0, 8) + '_' + date,
-      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       date,
       water_ml: 0,
       meals: []
@@ -983,7 +983,7 @@ class StorageService {
     const logWithUser: DailyNutritionLog = {
       ...log,
       water_ml: Number(log.water_ml) || 0,
-      user_id: userId || log.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+      user_id: userId || log.user_id || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
     };
     const logs = this.getLocal<DailyNutritionLog[]>('nutrition_logs', []);
     const existingIndex = logs.findIndex(l => l.date === log.date);
@@ -1026,10 +1026,10 @@ class StorageService {
     await this.saveDailyNutrition({ ...log, water_ml: Math.max(0, Number(amountMl) || 0) }, userId);
   }
 
-  async getBodyProgress(_userId?: string): Promise<BodyProgressEntry[]> {
+  async getBodyProgress(userId?: string): Promise<BodyProgressEntry[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('fitness_body_progress').select('*').order('date', { ascending: false });
+        const { data, error } = await supabase.from('fitness_body_progress').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('date', { ascending: false });
         if (!error && data) {
           const list: BodyProgressEntry[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1058,7 +1058,7 @@ class StorageService {
     const item: BodyProgressEntry = {
       ...entry,
       weight: Number(entry.weight) || 0,
-      user_id: userId || entry.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || entry.user_id || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('bp')
     };
     const current = this.getLocal<BodyProgressEntry[]>('body_progress', []);
@@ -1074,7 +1074,7 @@ class StorageService {
     return item;
   }
 
-  async deleteBodyProgress(id: string, _userId?: string): Promise<void> {
+  async deleteBodyProgress(id: string, userId?: string): Promise<void> {
     const current = this.getLocal<BodyProgressEntry[]>('body_progress', []);
     this.setLocal('body_progress', current.filter(c => c.id !== id));
     this.broadcastChange();
@@ -1086,10 +1086,10 @@ class StorageService {
     }
   }
 
-  async getPolarMetrics(_userId?: string): Promise<PolarGritMetrics[]> {
+  async getPolarMetrics(userId?: string): Promise<PolarGritMetrics[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('fitness_polar_metrics').select('*').order('date', { ascending: false });
+        const { data, error } = await supabase.from('fitness_polar_metrics').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('date', { ascending: false });
         if (!error && data) {
           const list: PolarGritMetrics[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1127,7 +1127,7 @@ class StorageService {
       max_hr: Number(metric.max_hr) || 0,
       daily_steps: Number(metric.daily_steps) || 0,
       polar_calories: Number(metric.polar_calories) || 0,
-      user_id: userId || metric.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || metric.user_id || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       id: generateId('pol')
     };
     const current = this.getLocal<PolarGritMetrics[]>('polar_metrics', []);
@@ -1142,10 +1142,10 @@ class StorageService {
     return item;
   }
 
-  async resetFitnessData(_userId?: string): Promise<void> {
+  async resetFitnessData(userId?: string): Promise<void> {
     const defaultProfile: FitnessProfile = {
       ...DEFAULT_FITNESS_PROFILE,
-      user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       onboarding_completed: false
     };
     this.setLocal('fitness_profile', defaultProfile);
@@ -1169,10 +1169,10 @@ class StorageService {
   // ==========================================
   // 4. LIBROS, JUEGOS, PELIS Y SERIES (GLOBAL UNIFICADO)
   // ==========================================
-  async getLibrary(): Promise<LibraryItem[]> {
+  async getLibrary(userId?: string): Promise<LibraryItem[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('user_library').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('user_library').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
         if (!error && data) {
           const list: LibraryItem[] = (data as any[]).map(row => ({
             id: row.id,
@@ -1202,9 +1202,10 @@ class StorageService {
     return this.getLocal<LibraryItem[]>('library', []);
   }
 
-  async addLibraryItem(item: Omit<LibraryItem, 'id'>): Promise<LibraryItem> {
+  async addLibraryItem(item: Omit<LibraryItem, 'id'>, userId?: string): Promise<LibraryItem> {
     const newItem: LibraryItem = {
       ...item,
+      user_id: userId || item.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       rating: Number(item.rating) || 5,
       progress_percentage: Number(item.progress_percentage) || 0,
       created_at: item.created_at || new Date().toISOString(),
@@ -1529,7 +1530,7 @@ class StorageService {
   // ==========================================
   // 6. MECALUX TALENT & ENTREVISTAS (GLOBAL UNIFICADO)
   // ==========================================
-  async getInterviewCandidates(_userId?: string, forceFetch: boolean = false): Promise<CandidateInterview[]> {
+  async getInterviewCandidates(userId?: string, forceFetch: boolean = false): Promise<CandidateInterview[]> {
     const local = this.getLocal<CandidateInterview[]>('interview_candidates', []);
     
     // Si no forzamos la recarga y ya tenemos datos, devolvemos rápido para no bloquear UI
@@ -1539,7 +1540,7 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('interview_candidates').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('interview_candidates').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
           const list: CandidateInterview[] = (data as any[]).map(c => ({
             id: c.id,
@@ -1579,7 +1580,7 @@ class StorageService {
     const current = this.getLocal<CandidateInterview[]>('interview_candidates', []);
     const candidateToSave: CandidateInterview = {
       ...candidate,
-      user_id: userId || candidate.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      user_id: userId || candidate.user_id || userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       updatedAt: new Date().toISOString()
     };
     const index = current.findIndex(c => c.id === candidate.id);
@@ -1625,7 +1626,7 @@ class StorageService {
     return candidateToSave;
   }
 
-  async deleteInterviewCandidate(id: string, _userId?: string): Promise<void> {
+  async deleteInterviewCandidate(id: string, userId?: string): Promise<void> {
     const current = await this.getInterviewCandidates();
     this.setLocal('interview_candidates', current.filter(c => c.id !== id));
     this.broadcastChange();

@@ -301,7 +301,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         account: goalAccount,
         target_date: goalDate || undefined,
         notes: goalNotes.trim() || undefined
-      });
+      }, currentUser?.id);
     } else {
       await storageService.addSavingsGoal({
         title: goalTitle.trim(),
@@ -310,7 +310,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         account: goalAccount,
         target_date: goalDate || undefined,
         notes: goalNotes.trim() || undefined
-      });
+      }, currentUser?.id);
     }
 
     setShowGoalModal(false);
@@ -326,7 +326,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     if (!goal) return;
 
     const newAmount = Math.max(0, goal.current_amount + cleanContrib);
-    await storageService.updateSavingsGoal(goalId, { current_amount: newAmount });
+    await storageService.updateSavingsGoal(goalId, { current_amount: newAmount }, currentUser?.id);
     
     setContributeGoalId(null);
     setContributionAmount('');
