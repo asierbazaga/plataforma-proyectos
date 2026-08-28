@@ -53,18 +53,6 @@ const DEFAULT_PROFILES: UserProfile[] = [
     password: 'lore',
     department: 'Operaciones & Gestión',
     avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
-    email: 'invitado@plataforma.com',
-    full_name: 'Invitado Demo',
-    role: 'guest',
-    status: 'active',
-    password: 'demo',
-    department: 'Consultoría Externa',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    created_at: new Date().toISOString()
   }
 ];
 
@@ -79,13 +67,7 @@ const DEFAULT_PERMISSIONS: AppPermission[] = [
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'lore', can_access: true, can_edit: true },
-  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'entrevistas', can_access: false, can_edit: false },
-
-  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'fitness', can_access: false, can_edit: false },
-  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'gastos', can_access: false, can_edit: false },
-  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'libros-juegos', can_access: true, can_edit: false },
-  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'lore', can_access: false, can_edit: false },
-  { user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', app_id: 'entrevistas', can_access: false, can_edit: false }
+  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'entrevistas', can_access: false, can_edit: false }
 ];
 
 const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
@@ -261,9 +243,7 @@ class StorageService {
       'asier.bazaga@plataforma.com': 'admin',
       'asier': 'admin',
       'lore@plataforma.com': 'lore',
-      'lore': 'lore',
-      'invitado@plataforma.com': 'demo',
-      'invitado': 'demo'
+      'lore': 'lore'
     });
   }
 

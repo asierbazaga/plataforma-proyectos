@@ -92,10 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (cleanId === 'lore' && (email.includes('lore') || name.includes('lore'))) {
         return true;
       }
-      if ((cleanId === 'invitado' || cleanId === 'guest' || cleanId === 'demo') &&
-          (email.includes('invitado') || email.includes('guest') || p.role === 'guest')) {
-        return true;
-      }
       return false;
     });
 
