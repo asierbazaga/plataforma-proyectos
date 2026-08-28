@@ -72,7 +72,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
 
     // Eliminamos el listener onSync localmente para evitar que se pisen los datos al escribir (race condition)
     // El optimistic UI ya mantiene la vista actualizada.
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   if (!canAccess) {
     return (
