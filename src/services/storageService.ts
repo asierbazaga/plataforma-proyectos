@@ -21,7 +21,7 @@ import {
 } from '../types';
 import { INITIAL_CANDIDATE_SAMPLE } from '../apps/entrevistas/services/mecaluxRubrics';
 
-const STORAGE_VERSION = 'v16_sync_fix_admin_pass';
+const STORAGE_VERSION = 'v17_sync_fix_admin_pass';
 
 function generateId(prefix: string = 'id'): string {
   try {
@@ -280,7 +280,7 @@ class StorageService {
           const map = this.getPasswordMap();
           const formatted = (data as UserProfile[]).map(p => ({
             ...p,
-            password: map[p.email.toLowerCase()] || map[p.id] || p.password || (p.role === 'admin' ? 'admin123' : '123456')
+            password: p.password || map[p.email.toLowerCase()] || map[p.id] || (p.role === 'admin' ? 'admin123' : '123456')
           }));
 
           const local = this.getLocal<UserProfile[]>('profiles', []);
@@ -289,7 +289,7 @@ class StorageService {
             if (!merged.find(m => m.id === l.id || m.email.toLowerCase() === l.email.toLowerCase())) {
               merged.push(l);
               // Sincronización automática a Supabase (Upsert en background)
-              const { status, last_login, password, ...supabaseProfile } = l as any;
+              const { status, last_login, ...supabaseProfile } = l as any;
               supabase.from('profiles').upsert(supabaseProfile).then(({ error }) => {
                 if (error) console.error('Error auto-syncing profile:', error);
               });
@@ -403,7 +403,7 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { status, last_login, password, ...supabaseProfile } = newProfile as any;
+        const { status, last_login, ...supabaseProfile } = newProfile as any;
         const { error } = await supabase.from('profiles').upsert(supabaseProfile);
         if (error) console.error('Supabase createProfile error:', error);
       } catch (e) {
@@ -443,7 +443,7 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { status, last_login, password, ...supabaseUpdates } = updates as any;
+        const { status, last_login, ...supabaseUpdates } = updates as any;
         if (Object.keys(supabaseUpdates).length > 0) {
           const { error } = await supabase.from('profiles').update(supabaseUpdates).eq('id', id);
           if (error) console.error('Supabase updateProfile error:', error);

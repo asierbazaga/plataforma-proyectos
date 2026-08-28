@@ -79,13 +79,15 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     return () => unsubscribe();
   }, []);
 
+  const [mapReady, setMapReady] = useState(false);
+
   // Inicializar mapa de Leaflet dinámicamente
   useEffect(() => {
-    if (typeof window === 'undefined' || !mapContainerRef.current) return;
+    if (typeof window === 'undefined' || !mapContainerRef.current || activeSubTab !== 'routes') return;
 
     const initMap = () => {
       const L = (window as any).L;
-      if (!L) return;
+      if (!L || !mapContainerRef.current) return;
       LRef.current = L;
 
       if (!mapRef.current) {
@@ -99,6 +101,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
         }).addTo(map);
 
         mapRef.current = map;
+        setMapReady(true);
       }
     };
 
@@ -115,13 +118,23 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     } else {
       initMap();
     }
-  }, []);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markersRef.current = {};
+        polylineRef.current = null;
+        setMapReady(false);
+      }
+    };
+  }, [activeSubTab, userCoords.lat, userCoords.lng]);
 
   // Actualizar marcadores y polilínea de ruta en el mapa
   useEffect(() => {
     const map = mapRef.current;
     const L = LRef.current;
-    if (!map || !L) return;
+    if (!map || !L || activeSubTab !== 'routes') return;
 
     // Limpiar marcadores viejos
     Object.values(markersRef.current).forEach((m: any) => map.removeLayer(m));
@@ -187,7 +200,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
       map.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40] });
     }
-  }, [clientes, routeClientIds, selectedClient]);
+  }, [clientes, routeClientIds, selectedClient, activeSubTab, mapReady]);
 
   // Alternar inclusión de cliente en la ruta activa
   const toggleClientInRoute = (clientId: string) => {
