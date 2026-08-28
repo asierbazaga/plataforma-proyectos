@@ -456,16 +456,21 @@ class StorageService {
   }
 
   async deleteProfile(id: string): Promise<void> {
-    const current = await this.getProfiles();
-    this.setLocal('profiles', current.filter(p => p.id !== id));
-    this.broadcastChange();
-
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('profiles').delete().eq('id', id);
-        await supabase.from('app_permissions').delete().eq('user_id', id);
-      } catch (e) {}
+      // Eliminar dependencias primero para evitar fallos de Foreign Key
+      await supabase.from('app_permissions').delete().eq('user_id', id);
+      
+      const { error } = await supabase.from('profiles').delete().eq('id', id);
+      if (error) {
+        console.error('Error al eliminar en Supabase:', error);
+        throw new Error('No se puede eliminar el usuario. Puede que tenga otros registros asociados en la base de datos.');
+      }
     }
+
+    const current = await this.getProfiles();
+    const updated = current.filter(p => p.id !== id);
+    this.setLocal('profiles', updated);
+    this.broadcastChange();
   }
 
   async getAuditLogs(): Promise<AuditLog[]> {
