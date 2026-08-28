@@ -43,10 +43,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPermissions(perms);
 
       const activeEmail = typeof window !== 'undefined' ? localStorage.getItem('plataforma_active_email') : null;
-      const targetEmail = currentUser?.email || activeEmail;
 
-      if (targetEmail) {
-        const found = profiles.find(p => p.email.toLowerCase() === targetEmail.toLowerCase() || (currentUser && p.id === currentUser.id));
+      if (activeEmail) {
+        const found = profiles.find(p => p.email.toLowerCase() === activeEmail.toLowerCase());
         if (found) {
           if (found.status === 'suspended') {
             setCurrentUser(null);
@@ -54,7 +53,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             setCurrentUser(found);
           }
+        } else {
+          setCurrentUser(null);
         }
+      } else {
+        setCurrentUser(null);
       }
     } catch (err) {
       console.warn('Sincronización de perfiles completada con cache local.');
@@ -175,6 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.removeItem(key);
         }
       }
+      // Forzar recarga limpia de la aplicación para purgar cualquier estado en memoria
+      window.location.reload();
     }
   };
 
