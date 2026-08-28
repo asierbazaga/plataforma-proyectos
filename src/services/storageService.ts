@@ -1194,8 +1194,18 @@ class StorageService {
             started_date: row.started_date,
             created_at: row.created_at
           }));
-          this.setLocal('library', list);
-          return list;
+          
+          const local = this.getLocal<LibraryItem[]>('library', []);
+          const merged = [...list];
+          for (const l of local) {
+            if (!merged.find(m => m.id === l.id)) {
+              merged.push(l);
+            }
+          }
+          merged.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+          
+          this.setLocal('library', merged);
+          return merged;
         }
       } catch (e) {}
     }
@@ -1217,8 +1227,14 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('user_library').upsert(newItem);
-      } catch (e) {}
+        const { error } = await supabase.from('user_library').upsert(newItem);
+        if (error) {
+          console.error('Supabase addLibraryItem upsert error:', error);
+          alert('Error guardando en la nube: ' + error.message);
+        }
+      } catch (e) {
+        console.error('Supabase addLibraryItem exception:', e);
+      }
     }
     return newItem;
   }
