@@ -824,7 +824,6 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
               </div>
 
               <div>
-              <div>
                 <label className="text-slate-400 font-medium block mb-1">Rol</label>
                 <select
                   value={editRole}
