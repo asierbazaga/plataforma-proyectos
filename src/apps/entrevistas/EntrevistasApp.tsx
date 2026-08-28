@@ -22,6 +22,7 @@ import {
 import { CandidateInterview } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { CandidateListView } from './components/CandidateListView';
 import { LiveInterviewView } from './components/LiveInterviewView';
 import { ResultadoSummaryView } from './components/ResultadoSummaryView';
@@ -37,6 +38,7 @@ interface EntrevistasAppProps {
 export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
   const { currentUser, hasAccessToApp } = useAuth();
   const canAccess = hasAccessToApp('entrevistas');
+  const toast = useToast();
 
   const [candidates, setCandidates] = useState<CandidateInterview[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
     // Debounce the storage save to prevent spamming the database and triggering full re-fetches on every keystroke
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
-      storageService.saveInterviewCandidate(updated, currentUser?.id).catch(console.error);
+      storageService.saveInterviewCandidate(updated, currentUser?.id).catch((e) => toast.error('Error al autoguardar candidato: ' + e.message));
     }, 1000);
   };
 
@@ -138,7 +140,9 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
     });
 
     // Guardar en background sin bloquear la interfaz
-    storageService.saveInterviewCandidate(candidate, currentUser?.id).catch(console.error);
+    storageService.saveInterviewCandidate(candidate, currentUser?.id)
+      .then(() => toast.success('Candidato guardado'))
+      .catch((e) => toast.error('Error al guardar candidato: ' + e.message));
   };
 
   const handleImportCandidates = async (imported: Partial<CandidateInterview>[]) => {

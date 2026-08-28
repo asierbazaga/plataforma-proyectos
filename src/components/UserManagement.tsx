@@ -27,6 +27,8 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useDebounce } from '../hooks/useDebounce';
 import { AppId, Role, UserProfile, UserStatus } from '../types';
 
 interface UserManagementProps {
@@ -44,8 +46,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     currentUser
   } = useAuth();
 
+  const toast = useToast();
+
   // Filtros y Búsqueda
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | UserStatus>('all');
 
@@ -91,9 +96,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const filteredProfiles = useMemo(() => {
     return allProfiles.filter(user => {
       const matchesSearch =
-        user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.department || '').toLowerCase().includes(searchTerm.toLowerCase());
+        user.full_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (user.department || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       const userStatus = user.status || 'active';
@@ -101,56 +106,81 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [allProfiles, searchTerm, roleFilter, statusFilter]);
+  }, [allProfiles, debouncedSearchTerm, roleFilter, statusFilter]);
 
   const handleToggleAccess = async (userId: string, appId: AppId, currentAccess: boolean, currentEdit: boolean) => {
-    const newAccess = !currentAccess;
-    const newEdit = newAccess ? currentEdit : false;
+    try {
+      const newAccess = !currentAccess;
+      const newEdit = newAccess ? currentEdit : false;
 
-    const userPerms = appsList.map(a => {
-      if (a.id === appId) {
-        return { user_id: userId, app_id: a.id, can_access: newAccess, can_edit: newEdit };
-      }
-      const existing = permissions.find(p => p.user_id === userId && p.app_id === a.id);
-      return existing || { user_id: userId, app_id: a.id, can_access: false, can_edit: false };
-    });
+      const userPerms = appsList.map(a => {
+        if (a.id === appId) {
+          return { user_id: userId, app_id: a.id, can_access: newAccess, can_edit: newEdit };
+        }
+        const existing = permissions.find(p => p.user_id === userId && p.app_id === a.id);
+        return existing || { user_id: userId, app_id: a.id, can_access: false, can_edit: false };
+      });
 
-    await updatePermissions(userId, userPerms);
+      await updatePermissions(userId, userPerms);
+      toast.success(`Permiso de acceso actualizado`);
+    } catch (e: any) {
+      toast.error(e.message || 'Error actualizando permisos');
+    }
   };
 
   const handleToggleEdit = async (userId: string, appId: AppId, currentAccess: boolean, currentEdit: boolean) => {
     if (!currentAccess) return;
-    const newEdit = !currentEdit;
+    try {
+      const newEdit = !currentEdit;
 
-    const userPerms = appsList.map(a => {
-      if (a.id === appId) {
-        return { user_id: userId, app_id: a.id, can_access: true, can_edit: newEdit };
-      }
-      const existing = permissions.find(p => p.user_id === userId && p.app_id === a.id);
-      return existing || { user_id: userId, app_id: a.id, can_access: false, can_edit: false };
-    });
+      const userPerms = appsList.map(a => {
+        if (a.id === appId) {
+          return { user_id: userId, app_id: a.id, can_access: true, can_edit: newEdit };
+        }
+        const existing = permissions.find(p => p.user_id === userId && p.app_id === a.id);
+        return existing || { user_id: userId, app_id: a.id, can_access: false, can_edit: false };
+      });
 
-    await updatePermissions(userId, userPerms);
+      await updatePermissions(userId, userPerms);
+      toast.success(`Permiso de edición actualizado`);
+    } catch (e: any) {
+      toast.error(e.message || 'Error actualizando permisos');
+    }
   };
 
   const handleStatusChange = async (userId: string, currentStatus: UserStatus) => {
-    const nextStatus: UserStatus = currentStatus === 'active' ? 'suspended' : 'active';
-    await updateUser(userId, { status: nextStatus });
+    try {
+      const nextStatus: UserStatus = currentStatus === 'active' ? 'suspended' : 'active';
+      await updateUser(userId, { status: nextStatus });
+      toast.success(`Estado del usuario actualizado a ${nextStatus}`);
+    } catch (e: any) {
+      toast.error(e.message || 'Error actualizando estado');
+    }
   };
 
   const handleRoleChange = async (userId: string, newRole: Role) => {
-    await updateUser(userId, { role: newRole });
+    try {
+      await updateUser(userId, { role: newRole });
+      toast.success(`Rol actualizado a ${newRole}`);
+    } catch (e: any) {
+      toast.error(e.message || 'Error actualizando rol');
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addName.trim() || !addEmail.trim()) return;
 
-    await addUser(addName, addEmail, addRole, addDepartment, addPassword);
-    setAddName('');
-    setAddEmail('');
-    setAddPassword('123456');
-    setShowAddModal(false);
+    try {
+      await addUser(addName, addEmail, addRole, addDepartment, addPassword);
+      setAddName('');
+      setAddEmail('');
+      setAddPassword('123456');
+      setShowAddModal(false);
+      toast.success('Usuario creado exitosamente');
+    } catch (e: any) {
+      toast.error(e.message || 'Error creando el usuario');
+    }
   };
 
   const openEditModal = (user: UserProfile) => {
@@ -165,32 +195,47 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     e.preventDefault();
     if (!editingUser) return;
 
-    await updateUser(editingUser.id, {
-      full_name: editName.trim(),
-      email: editEmail.trim().toLowerCase(),
-      department: editDepartment.trim(),
-      role: editRole
-    });
+    try {
+      await updateUser(editingUser.id, {
+        full_name: editName.trim(),
+        email: editEmail.trim().toLowerCase(),
+        department: editDepartment.trim(),
+        role: editRole
+      });
 
-    setEditingUser(null);
+      setEditingUser(null);
+      toast.success('Perfil de usuario actualizado');
+    } catch (e: any) {
+      toast.error(e.message || 'Error actualizando perfil');
+    }
   };
 
   const handleSaveResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetPasswordUser || !newPassword.trim()) return;
 
-    await updateUser(resetPasswordUser.id, {
-      password: newPassword.trim()
-    });
+    try {
+      await updateUser(resetPasswordUser.id, {
+        password: newPassword.trim()
+      });
 
-    setResetPasswordUser(null);
-    setNewPassword('');
+      setResetPasswordUser(null);
+      setNewPassword('');
+      toast.success('Contraseña actualizada');
+    } catch (e: any) {
+      toast.error(e.message || 'Error cambiando contraseña');
+    }
   };
 
   const handleConfirmDelete = async () => {
     if (!userToDelete) return;
-    await deleteUser(userToDelete.id);
-    setUserToDelete(null);
+    try {
+      await deleteUser(userToDelete.id);
+      setUserToDelete(null);
+      toast.success('Usuario eliminado permanentemente');
+    } catch (e: any) {
+      toast.error(e.message || 'Error eliminando usuario');
+    }
   };
 
   return (

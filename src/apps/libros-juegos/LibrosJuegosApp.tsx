@@ -34,6 +34,7 @@ import { useAuth } from '../../context/AuthContext';
 import { mediaSearchService, SearchResultItem } from './services/mediaSearchService';
 import { recommendationEngine, RecommendationReason, UserTasteProfile } from './services/recommendationEngine';
 import { CatalogItem } from './data/defaultCatalog';
+import { useToast } from '../../context/ToastContext';
 
 interface LibrosJuegosAppProps {
   onBack?: () => void;
@@ -44,6 +45,7 @@ type ActiveTab = 'history' | 'explore' | 'recommendations' | 'stats';
 export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
   const { canEditApp, currentUser } = useAuth();
   const canEdit = canEditApp('libros-juegos');
+  const toast = useToast();
 
   // State
   const [items, setItems] = useState<LibraryItem[]>([]);
@@ -112,7 +114,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       const results = await mediaSearchService.search(query, type);
       setExploreResults(results);
     } catch (e) {
-      console.error(e);
+      toast.error('Error buscando medios: ' + (e as Error).message);
     } finally {
       setIsSearching(false);
     }
@@ -191,8 +193,10 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
 
     if (editingItem) {
       await storageService.updateLibraryItem(editingItem.id, itemData);
+      toast.success('Registro actualizado exitosamente');
     } else {
       await storageService.addLibraryItem(itemData, currentUser?.id);
+      toast.success('Añadido exitosamente al histórico');
     }
 
     setShowModal(false);
@@ -202,6 +206,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
   const handleDelete = async (id: string) => {
     if (confirm('¿Eliminar este registro de tu histórico?')) {
       await storageService.deleteLibraryItem(id);
+      toast.success('Registro eliminado');
       await loadData();
     }
   };
@@ -209,14 +214,14 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
   const handleQuickAddFromCatalog = async (item: SearchResultItem | CatalogItem, status: MediaStatus = 'completed') => {
     const existing = items.find(i => i.title.toLowerCase() === item.title.toLowerCase());
     if (existing) {
-      alert(`"${item.title}" ya está en tu histórico.`);
+      toast.warning(`"${item.title}" ya está en tu histórico.`);
       return;
     }
 
     await storageService.addLibraryItem({
       title: item.title,
       media_type: item.media_type,
-      genre: item.genre,
+      genre: item.genre || 'Desconocido',
       author_creator: item.author_creator,
       year: item.year,
       cover_url: item.cover_url,
@@ -227,6 +232,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       completed_date: status === 'completed' ? new Date().toISOString().substring(0, 10) : undefined
     }, currentUser?.id);
 
+    toast.success(`Añadido "${item.title}" a tu lista`);
     await loadData();
   };
 

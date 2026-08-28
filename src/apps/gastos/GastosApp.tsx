@@ -38,6 +38,7 @@ import {
 import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount, WalletConfig } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 interface GastosAppProps {
   onBack?: () => void;
@@ -59,6 +60,7 @@ const CATEGORY_META: Record<string, { icon: string; color: string }> = {
 export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const { canEditApp, currentUser } = useAuth();
   const canEdit = canEditApp('gastos');
+  const toast = useToast();
 
   // Sub-pestañas: 1. Movimientos & Cuentas | 2. Distribución & Presupuestos | 3. Metas Ahorro
   const [activeTab, setActiveTab] = useState<'movements' | 'analytics' | 'goals'>('movements');
@@ -211,45 +213,60 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     const rawVal = String(amount).replace(',', '.');
     const parsedAmount = Math.abs(parseFloat(rawVal));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      alert('Por favor, introduce un importe numérico válido.');
+      toast.error('Por favor, introduce un importe numérico válido.');
       return;
     }
 
     const finalDescription = description.trim() || (type === 'expense' ? 'Gasto' : 'Ingreso');
 
-    const saved = await storageService.addExpense({
-      description: finalDescription,
-      amount: parsedAmount,
-      type,
-      category,
-      account: transactionAccount,
-      transaction_date: new Date().toISOString().split('T')[0]
-    }, currentUser?.id);
+    try {
+      const saved = await storageService.addExpense({
+        description: finalDescription,
+        amount: parsedAmount,
+        type,
+        category,
+        account: transactionAccount,
+        transaction_date: new Date().toISOString().split('T')[0]
+      }, currentUser?.id);
 
-    // Actualización inmediata optimista en el estado de React
-    setExpenses(prev => [saved, ...prev.filter(x => x.id !== saved.id)]);
+      // Actualización inmediata optimista en el estado de React
+      setExpenses(prev => [saved, ...prev.filter(x => x.id !== saved.id)]);
 
-    setDescription('');
-    setAmount('');
-    setShowTransactionModal(false);
-    await loadData();
+      setDescription('');
+      setAmount('');
+      setShowTransactionModal(false);
+      toast.success('Movimiento registrado exitosamente');
+      await loadData();
+    } catch (e: any) {
+      toast.error('Error al guardar movimiento');
+    }
   };
 
   // Eliminar transacción individual
   const handleDeleteTransaction = async (id: string) => {
     if (confirm('¿Eliminar este movimiento?')) {
-      setExpenses(prev => prev.filter(e => e.id !== id));
-      await storageService.deleteExpense(id, currentUser?.id);
-      await loadData();
+      try {
+        setExpenses(prev => prev.filter(e => e.id !== id));
+        await storageService.deleteExpense(id, currentUser?.id);
+        toast.success('Movimiento eliminado');
+        await loadData();
+      } catch (e: any) {
+        toast.error('Error al eliminar movimiento');
+      }
     }
   };
 
   // Limpiar todos los movimientos
   const handleClearAllExpenses = async () => {
     if (confirm('¿Estás seguro de que quieres borrar todos los movimientos de tu cartera para empezar desde cero?')) {
-      setExpenses([]);
-      await storageService.clearAllExpenses(currentUser?.id);
-      await loadData();
+      try {
+        setExpenses([]);
+        await storageService.clearAllExpenses(currentUser?.id);
+        toast.success('Todos los movimientos fueron borrados');
+        await loadData();
+      } catch (e: any) {
+        toast.error('Error borrando movimientos');
+      }
     }
   };
 

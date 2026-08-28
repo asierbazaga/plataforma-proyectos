@@ -9,6 +9,7 @@ import {
 import { CandidateInterview } from '../../../types';
 import { analyzeCvText, ParsedCvResult } from '../services/cvAnalysisEngine';
 import { extractTextFromPdfFile } from '../services/pdfExtractor';
+import { useToast } from '../../../context/ToastContext';
 
 interface CandidateModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   onClose,
   onSave
 }) => {
+  const toast = useToast();
   if (!isOpen) return null;
 
   const [cvText, setCvText] = useState(candidateToEdit?.cvText || '');
@@ -117,7 +119,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
         setCvText(text);
         applyAnalysis(text, file.name);
       } catch (err: any) {
-        alert(err.message || 'Error al procesar el archivo PDF');
+        toast.error(err.message || 'Error al procesar el archivo PDF');
       } finally {
         setUploadingPdf(false);
         setAnalyzing(false);

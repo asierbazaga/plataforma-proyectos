@@ -21,6 +21,7 @@ import { EVALUATION_LEVELS } from '../services/mecaluxRubrics';
 import { ExcelInterviewService } from '../services/excelService';
 import { CandidatePreviewModal } from './CandidatePreviewModal';
 import { aiEvaluatorService } from '../services/aiEvaluatorService';
+import { useToast } from '../../../context/ToastContext';
 
 interface LiveInterviewViewProps {
   candidate: CandidateInterview;
@@ -68,6 +69,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   onBackToList,
   rubrics
 }) => {
+  const toast = useToast();
   const [activeSection, setActiveSection] = useState<MecaluxCompetencySection>('Competencias Profesionales');
   const [expandedRubrics, setExpandedRubrics] = useState<Record<string, boolean>>({});
   const [autoSaveToast, setAutoSaveToast] = useState<boolean>(false);
@@ -87,15 +89,16 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
   const handleGeneratePromptClick = () => {
     if (!notes.trim()) {
-      alert("Por favor, escribe algunas notas primero.");
+      toast.error("Por favor, escribe algunas notas primero.");
       return;
     }
     const promptText = aiEvaluatorService.generatePrompt(notes, rubrics);
     navigator.clipboard.writeText(promptText).then(() => {
       setManualAiResponse('');
       setManualAiPromptOpen(true);
+      toast.success("Prompt copiado al portapapeles.");
     }).catch(err => {
-      alert("No se pudo copiar al portapapeles. Cópialo manualmente.");
+      toast.error("No se pudo copiar al portapapeles. Cópialo manualmente.");
       console.error(err);
     });
   };
@@ -103,7 +106,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   const applyManualAiResponse = () => {
     try {
       if (!manualAiResponse.trim()) {
-        alert("Pega la respuesta JSON primero.");
+        toast.error("Pega la respuesta JSON primero.");
         return;
       }
       
@@ -154,9 +157,9 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       });
       
       setManualAiPromptOpen(false);
-      alert("Evaluación completada con éxito. Revisa las pestañas.");
+      toast.success("Evaluación completada con éxito. Revisa las pestañas.");
     } catch (err: any) {
-      alert("Error al procesar la respuesta. Asegúrate de pegar un JSON válido: " + err.message);
+      toast.error("Error al procesar la respuesta. Asegúrate de pegar un JSON válido: " + err.message);
     }
   };
 

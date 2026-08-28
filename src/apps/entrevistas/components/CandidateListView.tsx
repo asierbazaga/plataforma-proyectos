@@ -23,6 +23,7 @@ import {
 import { CandidateInterview } from '../../../types';
 import { ExcelInterviewService } from '../services/excelService';
 import { CandidatePreviewModal } from './CandidatePreviewModal';
+import { useToast } from '../../../context/ToastContext';
 
 interface CandidateListViewProps {
   candidates: CandidateInterview[];
@@ -41,6 +42,7 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
   onDeleteCandidate,
   onImportCandidates
 }) => {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -89,7 +91,7 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
       const imported = await ExcelInterviewService.importCandidatesFromExcel(file);
       onImportCandidates(imported);
     } catch (err) {
-      alert('Error al importar el archivo Excel. Verifica el formato de columnas.');
+      toast.error('Error al importar el archivo Excel. Verifica el formato de columnas.');
     }
   };
 

@@ -1,14 +1,12 @@
 /// <reference types="vite/client" />
 import { createClient } from '@supabase/supabase-js';
 
-// URL y clave de Supabase con fallback directo para asegurar que la app en móvil y web se conecte siempre a la misma base de datos
-const supabaseUrl = 
-  import.meta.env.VITE_SUPABASE_URL || 
-  'https://xmxrywztdmjzffgdknpd.supabase.co';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-const supabaseAnonKey = 
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhteHJ5d3p0ZG1qemZmZ2RrbnBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MjY3OTksImV4cCI6MjEwMjMwMjc5OX0.4I17qZhFFrKdcn3nXxYuudNCevEFw4FLs_wf9nvHwqY';
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Faltan las variables de entorno de Supabase. La aplicación funcionará en modo local o demo.');
+}
 
 export const isSupabaseConfigured = Boolean(supabaseUrl) && Boolean(supabaseAnonKey);
 

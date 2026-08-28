@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
+import { useToast } from '../../context/ToastContext';
 
 export type PurchaseTrend = 'En crecimiento' | 'Estable' | 'Dejando de comprar' | 'Potencial de subida';
 export type ProspectStatus = 'Sin contactar' | 'Contactado' | 'Visita realizada' | 'Interesado' | 'Cliente cerrado';
@@ -323,6 +324,7 @@ const INITIAL_CRM_DATA: PharmacyCRMItem[] = [
 export const LorePharmaciesCRM: React.FC = () => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('lore');
+  const toast = useToast();
 
   // Sub-secciones guiadas por el Excel
   const [activeSection, setActiveSection] = useState<'clientes' | 'prospeccion' | 'pendientes'>('clientes');
@@ -401,6 +403,7 @@ export const LorePharmaciesCRM: React.FC = () => {
       return item;
     });
     persistItems(updated);
+    toast.success('Promovido a Cliente con éxito');
   };
 
   // Alternar acción completada en Pendientes
@@ -421,7 +424,10 @@ export const LorePharmaciesCRM: React.FC = () => {
   // Agregar farmacia rápida de 1 línea
   const handleAddQuickRow = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickNombre.trim()) return;
+    if (!quickNombre.trim()) {
+      toast.warning('El nombre es obligatorio');
+      return;
+    }
 
     const newItem: PharmacyCRMItem = {
       id: `pharm_${Date.now()}`,
@@ -450,6 +456,7 @@ export const LorePharmaciesCRM: React.FC = () => {
     };
 
     persistItems([newItem, ...items]);
+    toast.success('Registro añadido exitosamente');
 
     // Limpiar inputs rápidos
     setQuickNombre('');
@@ -462,6 +469,7 @@ export const LorePharmaciesCRM: React.FC = () => {
   const handleDelete = (id: string) => {
     if (window.confirm('¿Seguro que deseas eliminar esta farmacia?')) {
       persistItems(items.filter(item => item.id !== id));
+      toast.success('Farmacia eliminada');
     }
   };
 
@@ -480,6 +488,7 @@ export const LorePharmaciesCRM: React.FC = () => {
     persistItems(updated);
     setModalOpen(false);
     setEditingItem(null);
+    toast.success('Datos de la farmacia actualizados');
   };
 
   // Exportar a CSV
@@ -505,6 +514,7 @@ export const LorePharmaciesCRM: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Archivo CSV exportado');
   };
 
   // Filtrado de la sección activa
