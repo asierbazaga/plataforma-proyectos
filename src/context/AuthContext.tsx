@@ -107,32 +107,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Tu cuenta ha sido suspendida por el administrador.' };
     }
 
-    // Comprobación flexible y robusta de contraseña
+    // Comprobación estricta de contraseña
     if (password) {
       const cleanPass = password.trim();
       const storedPass = storageService.getPasswordForUser(user);
-      const isAsierAdmin = user.role === 'admin' || user.id.includes('asier') || user.email.toLowerCase().includes('asier');
-
-      // Si es Asier (Super Admin), aceptar la clave cambiada en el panel O claves maestras autorizadas
-      if (isAsierAdmin) {
-        const validAdminPass = cleanPass === storedPass || 
-                               cleanPass === user.password || 
-                               cleanPass.toLowerCase() === 'admin' || 
-                               cleanPass.toLowerCase() === 'asier' || 
-                               cleanPass === '123456' || 
-                               cleanPass.toLowerCase() === 'mecalux';
-        if (!validAdminPass) {
-          return { success: false, error: 'Contraseña incorrecta.' };
-        }
-        // Guardar la contraseña introducida para mantenerla actualizada
-        user.password = cleanPass;
-      } else {
-        // Otros usuarios
-        const validUserPass = cleanPass === storedPass || cleanPass === user.password || cleanPass === '123456';
-        if (!validUserPass) {
-          return { success: false, error: 'Contraseña incorrecta.' };
-        }
-        user.password = cleanPass;
+      
+      const isValidPass = cleanPass === storedPass || cleanPass === user.password;
+      
+      if (!isValidPass) {
+        return { success: false, error: 'Contraseña incorrecta.' };
       }
     }
 
@@ -141,8 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       last_login: new Date().toISOString()
     };
     await storageService.updateProfile(user.id, { 
-      last_login: updatedUser.last_login,
-      password: user.password || 'admin'
+      last_login: updatedUser.last_login
     });
 
     setCurrentUser(updatedUser);
