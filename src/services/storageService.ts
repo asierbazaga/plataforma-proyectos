@@ -1332,7 +1332,7 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('lore_crm_pharmacies').select('*');
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           const list: PharmacyCRMItem[] = (data as any[]).map(row => ({
             id: row.id,
             category_type: row.category_type || 'cliente',
