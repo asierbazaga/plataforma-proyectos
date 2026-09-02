@@ -107,8 +107,14 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
         const jitterLat = radius * Math.cos(angle);
         const jitterLng = radius * Math.sin(angle) * 1.5; // * 1.5 por compensación de aspecto del mapa
 
-        const finalLat = isNaN(baseCoords[0] + jitterLat) ? 43.3614 : baseCoords[0] + jitterLat;
-        const finalLng = isNaN(baseCoords[1] + jitterLng) ? -5.8593 : baseCoords[1] + jitterLng;
+        // Usar coordenadas reales si existen en la BD, si no, generar espiral
+        let finalLat = Number(item.latitud);
+        let finalLng = Number(item.longitud);
+
+        if (!finalLat || !finalLng || isNaN(finalLat) || isNaN(finalLng)) {
+          finalLat = isNaN(baseCoords[0] + jitterLat) ? 43.3614 : baseCoords[0] + jitterLat;
+          finalLng = isNaN(baseCoords[1] + jitterLng) ? -5.8593 : baseCoords[1] + jitterLng;
+        }
 
         return {
           id: item.id,

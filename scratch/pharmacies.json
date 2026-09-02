@@ -1,0 +1,410 @@
+[
+  {
+    "id": "imported_1788347774583_1",
+    "farmacia_nombre": "FARMACIA LLARANES",
+    "ciudad": "AVILES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_2",
+    "farmacia_nombre": "FARMACIA IVAN BERNARDO FERNANDEZ",
+    "ciudad": "AVILES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_3",
+    "farmacia_nombre": "FARMACIA LA CARRIONA",
+    "ciudad": "AVILES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_4",
+    "farmacia_nombre": "FARMACIA JIMENEZ DEL VALLE",
+    "ciudad": "BIMENES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_5",
+    "farmacia_nombre": "FARMACIA LUIS PRADO GARCI",
+    "ciudad": "CANDAS",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_6",
+    "farmacia_nombre": "FARMACIA LAURA GARCIA REY",
+    "ciudad": "CASTROPOL",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_7",
+    "farmacia_nombre": "FARMACIA CUADRADO",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_8",
+    "farmacia_nombre": "FARMACIA SOLA MARIÑO",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_9",
+    "farmacia_nombre": "FARMACIA ATENEO",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_10",
+    "farmacia_nombre": "FARMACIA ORAN",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_11",
+    "farmacia_nombre": "FARMACIA BATTIKHI PRADOS",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_12",
+    "farmacia_nombre": "FARMACIA ISASI",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_13",
+    "farmacia_nombre": "FARMACIA NOEMI DIAZ DIAZ",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_14",
+    "farmacia_nombre": "FARMACIA DEL PARQUE",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_15",
+    "farmacia_nombre": "FARMACIA BADA",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_16",
+    "farmacia_nombre": "FARMACIA CASTILLO GRANDA S.L.",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_17",
+    "farmacia_nombre": "FARMACIA CECILIO DIAZ LLAMEDO",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_18",
+    "farmacia_nombre": "FARMACIA JORGE JUNCO DIEZ",
+    "ciudad": "GIJON",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_19",
+    "farmacia_nombre": "FARMACIA LOS CAMPONES",
+    "ciudad": "HEVIA, SIERO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_20",
+    "farmacia_nombre": "FARMACIA SAN MIGUEL INFIESTO",
+    "ciudad": "INFIESTO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_21",
+    "farmacia_nombre": "FARMACIA EL PUENTE",
+    "ciudad": "INFIESTO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_22",
+    "farmacia_nombre": "FARMACIA ANTONIO MENDEZ VELASCO",
+    "ciudad": "LA ARA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_23",
+    "farmacia_nombre": "FARMACIA LA POMAR",
+    "ciudad": "LA FELGUERA - LANGREO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_24",
+    "farmacia_nombre": "FARMACIA LA FRESNEDA",
+    "ciudad": "LA FRESNEDA - SIERO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_25",
+    "farmacia_nombre": "FARMACIA LIERES",
+    "ciudad": "LIERES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_26",
+    "farmacia_nombre": "FARMACIA LLANO",
+    "ciudad": "LLANES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_27",
+    "farmacia_nombre": "FARMACIA JAVIER FERNANDEZ VIGIL",
+    "ciudad": "LUANCO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_28",
+    "farmacia_nombre": "FARMACIA SANTA ISABEL",
+    "ciudad": "LUGONES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_29",
+    "farmacia_nombre": "FARMACIA FUEYO",
+    "ciudad": "MIERES",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_30",
+    "farmacia_nombre": "FARMACIA ARTURO MOTTO REVILLA",
+    "ciudad": "NAVA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_31",
+    "farmacia_nombre": "FARMACIA I. SUAREZ FIDALGO VALDES",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_32",
+    "farmacia_nombre": "FARMACIA COLLADO",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_33",
+    "farmacia_nombre": "FARMACIA AGUIRRE",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_34",
+    "farmacia_nombre": "FARMACIA CALVO",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_35",
+    "farmacia_nombre": "FARMACIA COVADONGA LOPEZ FANJUL",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_36",
+    "farmacia_nombre": "FARMACIA NESTARES",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_37",
+    "farmacia_nombre": "FARMACIA ALBERTO COLLAR BRAÑA",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_38",
+    "farmacia_nombre": "FARMACIA ROBERTO PEREZ-REQUEIJO PEREZ",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_39",
+    "farmacia_nombre": "FARMACIA ORDIALES",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_40",
+    "farmacia_nombre": "FARMACIA BARAJA",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_41",
+    "farmacia_nombre": "FARMACIA OXFORD",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_42",
+    "farmacia_nombre": "FARMACIA ORDIALES",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_43",
+    "farmacia_nombre": "FARMACIA CORREDORIA",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_44",
+    "farmacia_nombre": "FARMACIA MATILDE ISABEL NUÑEZ",
+    "ciudad": "OVIEDO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_45",
+    "farmacia_nombre": "FARMACIA CORRAL",
+    "ciudad": "POLA DE LAVIANA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_46",
+    "farmacia_nombre": "FARMACIA JUAN BARTHE FERNANDEZ",
+    "ciudad": "POLA DE LENA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_47",
+    "farmacia_nombre": "FARMACIA ENRIQUE SANCHEZ CARRASACO",
+    "ciudad": "RIBADESELLA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_48",
+    "farmacia_nombre": "FARMACIA LA PLAYA",
+    "ciudad": "RIBADESELLA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_49",
+    "farmacia_nombre": "FARMACIA RIOTURBIO",
+    "ciudad": "RIOTURBIO",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_50",
+    "farmacia_nombre": "FARMACIA SAN ESTEBAN",
+    "ciudad": "SAN ESTEBAN DE PRAVIA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_51",
+    "farmacia_nombre": "FARMACIA TRASONA",
+    "ciudad": "TRASONA, CORVERA",
+    "provincia": "Asturias"
+  },
+  {
+    "id": "imported_1788347774583_52",
+    "farmacia_nombre": "FARMACIA JACOBO PULGAR",
+    "ciudad": "CABEZON DE LA SAL",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_53",
+    "farmacia_nombre": "FARMACIA MENDARO",
+    "ciudad": "PUENTE SAN MIGUEL",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_54",
+    "farmacia_nombre": "FARMACIA GALLO",
+    "ciudad": "PUENTE SAN MIGUEL",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_55",
+    "farmacia_nombre": "FARMACIA RASINEST",
+    "ciudad": "RASINES",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_56",
+    "farmacia_nombre": "FARMACIA JOSE FRANCISCO AMOROS GONZALEZ",
+    "ciudad": "RENEDO DE PIELAGOS",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_57",
+    "farmacia_nombre": "FARMACIA LA PEÑA",
+    "ciudad": "SANTANDER",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_58",
+    "farmacia_nombre": "FARMACIA BEATRIZ VILLEGAS",
+    "ciudad": "SANTANDER",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_59",
+    "farmacia_nombre": "FARMACIA VALDES GALLO",
+    "ciudad": "SANTANDER",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_60",
+    "farmacia_nombre": "FARMACIA Mª DOLORES MARTINEZ",
+    "ciudad": "SANTANDER",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_61",
+    "farmacia_nombre": "FARMACIA MARIA PILAR SAEZ CIUDAD",
+    "ciudad": "SANTANDER",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_62",
+    "farmacia_nombre": "FARMACIA SONIA MOLINA",
+    "ciudad": "SANTILLANA DEL MAR",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_63",
+    "farmacia_nombre": "FARMACIA AURORA ALVARADO PACHECO",
+    "ciudad": "SUANCES",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_64",
+    "farmacia_nombre": "FARMA2GO",
+    "ciudad": "TORRELAVEGA",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_65",
+    "farmacia_nombre": "PARAFARMACIA FARMALYV",
+    "ciudad": "TORRELAVEGA",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_66",
+    "farmacia_nombre": "FARMACIA MONICA CALDERON CIRIZA",
+    "ciudad": "TORRELAVEGA",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_67",
+    "farmacia_nombre": "FARMACIA JAVIER LOMBILLA",
+    "ciudad": "TORRELAVEGA",
+    "provincia": "Cantabria"
+  },
+  {
+    "id": "imported_1788347774583_68",
+    "farmacia_nombre": "FARMACIA ANA MARIA ORTEGA AJA",
+    "ciudad": "TRECEÑO",
+    "provincia": "Cantabria"
+  }
+]

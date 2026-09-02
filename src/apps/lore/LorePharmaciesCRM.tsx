@@ -48,6 +48,8 @@ export interface PharmacyCRMItem {
   provincia: string;
   ciudad: string;
   direccion?: string;
+  latitud?: number;
+  longitud?: number;
   farmacia_nombre: string;
   contacto: string;
   telefono: string;
