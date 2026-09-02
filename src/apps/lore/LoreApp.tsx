@@ -87,14 +87,25 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
   const loadData = async () => {
     const crmItems = await storageService.getLoreCRMItems();
+    
+    // Contador para hacer la espiral determinista por ciudad
+    const cityCounts: Record<string, number> = {};
+
     const mappedClients: LoreClient[] = crmItems
       .filter(item => item.category_type === 'cliente')
       .map(item => {
+        const cityKey = (item.ciudad || '').toLowerCase().trim();
         const baseCoords = getCityBaseCoords(item.ciudad);
         
-        const idHash = hashString(item.id || 'default');
-        const jitterLat = ((idHash % 100) - 50) * 0.0003;
-        const jitterLng = (((idHash >> 8) % 100) - 50) * 0.0003;
+        if (!cityCounts[cityKey]) cityCounts[cityKey] = 0;
+        const index = cityCounts[cityKey]++;
+        
+        // Espiral de Fermat (Golden Angle) para distribuir marcadores estéticamente sin solaparse
+        const angle = index * 137.5 * (Math.PI / 180);
+        const radius = 0.0006 * Math.sqrt(index);
+        
+        const jitterLat = radius * Math.cos(angle);
+        const jitterLng = radius * Math.sin(angle) * 1.5; // * 1.5 por compensación de aspecto del mapa
 
         const finalLat = isNaN(baseCoords[0] + jitterLat) ? 43.3614 : baseCoords[0] + jitterLat;
         const finalLng = isNaN(baseCoords[1] + jitterLng) ? -5.8593 : baseCoords[1] + jitterLng;
@@ -214,7 +225,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
       const isInRoute = routeClientIds.includes(c.id);
       const isSelected = selectedClient?.id === c.id;
 
-      const decilColor = c.decil === 'D10' ? '#10B981' : c.decil === 'D09' ? '#6366F1' : c.decil === 'D08' ? '#A855F7' : '#F59E0B';
+      const decilColor = c.decil === 'D10' || c.decil === 'D010' ? '#10B981' : c.decil === 'D09' ? '#6366F1' : c.decil === 'D08' ? '#A855F7' : '#F59E0B';
 
       const routeIndex = routeClientIds.indexOf(c.id);
       const displayText = routeIndex !== -1 ? (routeIndex + 1).toString() : (c.decil || 'D');
@@ -292,79 +303,19 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     return R * c;
   };
 
-  const findOptimalStopsForAnchor = (anchor: LoreClient, candidatesList: LoreClient[], maxStopsCount: number): LoreClient[] => {
-    const isHighDecile = (decil: string | undefined): boolean => {
-      return !!(decil && /D0[7-9]|D10/.test(decil));
-    };
-
-    const anchorDecil = anchor.decil || '';
-    const anchorHighDecil = isHighDecile(anchorDecil) ? anchorDecil : null;
-
-    const highDecileSubsets = [
-      ['D07', 'D08'], ['D07', 'D09'], ['D07', 'D10'],
-      ['D08', 'D09'], ['D08', 'D10'], ['D09', 'D10'],
-      ['D07'], ['D08'], ['D09'], ['D10']
-    ];
-
-    const candidateSubsets = anchorHighDecil
-      ? highDecileSubsets.filter(subset => subset.includes(anchorHighDecil))
-      : highDecileSubsets;
-
-    let bestSubset: LoreClient[] = [];
-    let minTotalDistance = Infinity;
-
-    for (const subset of candidateSubsets) {
-      const allowed = candidatesList.filter(c => {
-        if (c.id === anchor.id) return false;
-        const dec = c.decil || '';
-        if (!isHighDecile(dec)) return true;
-        return subset.includes(dec);
-      });
-
-      const withDist = allowed.map(c => {
-        const dist = getDistanceInMeters(anchor.latitud || 0, anchor.longitud || 0, c.latitud || 0, c.longitud || 0);
-        return { client: c, dist };
-      });
-
-      withDist.sort((a, b) => a.dist - b.dist);
-      const sliceStops = withDist.slice(0, maxStopsCount).map(item => item.client);
-
-      if (sliceStops.length > 0) {
-        const totalDist = withDist.slice(0, maxStopsCount).reduce((sum, item) => sum + item.dist, 0);
-        const penalty = (maxStopsCount - sliceStops.length) * 100000;
-        const finalMetric = totalDist + penalty;
-
-        if (finalMetric < minTotalDistance) {
-          minTotalDistance = finalMetric;
-          bestSubset = sliceStops;
-        }
-      }
-    }
-
-    if (bestSubset.length === 0 && candidatesList.length > 0) {
-      const fallbackList = candidatesList.filter(c => c.id !== anchor.id);
-      const withDist = fallbackList.map(c => {
-        const dist = getDistanceInMeters(anchor.latitud || 0, anchor.longitud || 0, c.latitud || 0, c.longitud || 0);
-        return { client: c, dist };
-      }).sort((a, b) => a.dist - b.dist);
-      bestSubset = withDist.slice(0, maxStopsCount).map(item => item.client);
-    }
-
-    return bestSubset;
-  };
-
-  // Generador de Ruta Inteligente Recomendada basado en la APP LORE original
+  // Generador de Ruta Inteligente (Prioridad: D10 más cercano + 7 más cercanos a él)
   const generateRecommendedRoute = async () => {
     if (clientes.length === 0) return;
 
-    // Forzar petición GPS si está disponible
+    toast.info('Calculando posición GPS exacta...');
+
     const getCoords = (): Promise<{ lat: number; lng: number }> => {
       return new Promise((resolve) => {
         if (!navigator.geolocation) return resolve(userCoords);
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
           () => resolve(userCoords),
-          { enableHighAccuracy: true, timeout: 5000 }
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
       });
     };
@@ -373,29 +324,40 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     try {
       currentPos = await getCoords();
       setUserCoords(currentPos);
+      if (currentPos.lat !== 40.4168) {
+        toast.success('¡Ruta trazada desde tu posición actual!');
+      } else {
+        toast.error('Usando ubicación por defecto (GPS denegado).');
+      }
     } catch (e) {
-      // Ignorar fallback estricto
+      toast.error('Error al obtener GPS.');
     }
 
-    // Filtrar clientes con coordenadas válidas
     const validClients = clientes.filter(c => c.latitud && c.longitud);
     if (validClients.length === 0) return;
 
-    // Encontrar el ancla (más cercano a la ubicación del usuario)
-    const sortedForAnchor = [...validClients].sort((x, y) => {
-      const dist_x = getDistanceInMeters(currentPos.lat, currentPos.lng, x.latitud, x.longitud);
-      const dist_y = getDistanceInMeters(currentPos.lat, currentPos.lng, y.latitud, y.longitud);
-      return dist_x - dist_y;
+    // 1. Encontrar el D10 (o D010) más cercano al comercial
+    const d10Clients = validClients.filter(c => c.decil === 'D10' || c.decil === 'D010');
+    const vipCandidates = d10Clients.length > 0 ? d10Clients : validClients;
+
+    const closestD10 = [...vipCandidates].sort((a, b) => {
+      return getDistanceInMeters(currentPos.lat, currentPos.lng, a.latitud, a.longitud) - 
+             getDistanceInMeters(currentPos.lat, currentPos.lng, b.latitud, b.longitud);
+    })[0];
+
+    if (!closestD10) return;
+
+    // 2. Coger las 7 farmacias más cercanas absolutamente a ese D10
+    const others = validClients.filter(c => c.id !== closestD10.id);
+    others.sort((a, b) => {
+      return getDistanceInMeters(closestD10.latitud, closestD10.longitud, a.latitud, a.longitud) - 
+             getDistanceInMeters(closestD10.latitud, closestD10.longitud, b.latitud, b.longitud);
     });
 
-    const anchor = sortedForAnchor[0];
-    
-    // Buscar paradas óptimas usando la lógica avanzada (8 paradas)
-    const optimalStops = findOptimalStopsForAnchor(anchor, validClients, 8);
-    
-    const chosenSubset = [anchor, ...optimalStops];
+    const closest7 = others.slice(0, 7);
+    const chosenSubset = [closestD10, ...closest7];
 
-    // Algoritmo "Nearest Neighbor" para trazar la ruta de forma secuencial
+    // 3. Ordenarlas con Nearest Neighbor para que el recorrido visual (la línea) sea lógico
     const unvisited = [...chosenSubset];
     const firstNode = unvisited.shift()!;
     const finalRoute = [firstNode];
