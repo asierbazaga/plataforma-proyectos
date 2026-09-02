@@ -36,6 +36,7 @@ import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { useToast } from '../../context/ToastContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
+import * as XLSX from 'xlsx';
 
 export type PurchaseTrend = 'En crecimiento' | 'Estable' | 'Dejando de comprar' | 'Potencial de subida';
 export type ProspectStatus = 'Sin contactar' | 'Contactado' | 'Visita realizada' | 'Interesado' | 'Cliente cerrado';
@@ -266,72 +267,90 @@ export const LorePharmaciesCRM: React.FC = () => {
     toast.success('Archivo CSV exportado');
   };
 
-  // Importar desde CSV
+  // Importar desde Excel / CSV
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        const rows = text.split('\n').filter(row => row.trim().length > 0);
-        
-        if (rows.length < 2) {
-          toast.warning('El archivo CSV está vacío o no tiene el formato correcto');
-          return;
-        }
-
-        const newItems: PharmacyCRMItem[] = [];
-        for (let i = 1; i < rows.length; i++) {
-          const cols = rows[i].split(';').map(col => col.replace(/^"|"$/g, '').trim());
-          if (cols.length < 7) continue; 
-
-          newItems.push({
-            id: `imported_${Date.now()}_${i}`,
-            category_type: (cols[0] as ClientCategory) || 'cliente',
-            provincia: cols[1] || '',
-            ciudad: cols[2] || '',
-            farmacia_nombre: cols[3] || '',
-            contacto: cols[4] || '',
-            telefono: cols[5] || '',
-            decil: cols[6] || 'D05',
-            ventas_anuales: parseFloat(cols[7]) || 0,
-            ultima_visita: cols[8] || '',
-            proxima_accion: cols[9] || '',
-            fecha_proxima_accion: cols[10] || '',
-            frecuencia_visita: cols[11] || '15 días',
-            estado_cliente: (cols[0] === 'cliente' ? cols[12] : 'Pendiente') as any,
-            estado_prospeccion: (cols[0] === 'prospeccion' ? cols[12] : 'Cliente cerrado') as any,
-            tendencia_compra: (cols[13] as PurchaseTrend) || 'Potencial de subida',
-            notas: cols[14] || '',
-            le_interesa: '',
-            no_le_interesa: '',
-            marcas_competencia: '',
-            detalles_competencia: '',
-            prioridad: 'Media',
-            accion_completada: false
-          });
-        }
-
-        if (newItems.length > 0) {
-          persistItems([...newItems, ...items]);
-          toast.success(`Se importaron ${newItems.length} registros correctamente`);
-        } else {
-          toast.warning('No se encontraron registros válidos para importar');
-        }
-      } catch (error) {
-        toast.error('Error al procesar el archivo CSV');
-        console.error(error);
-      }
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      // header: 1 devuelve un array de arrays, sin mapear a objetos por la primera fila
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
       
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      if (rows.length < 2) {
+        toast.warning('El archivo está vacío o no tiene el formato correcto');
+        return;
       }
-    };
-    reader.readAsText(file);
+
+      const newItems: PharmacyCRMItem[] = [];
+      let lastProvincia = '';
+      let lastCiudad = '';
+
+      // Saltamos la fila 0 asumiendo que son las cabeceras (Provincia, Ciudad, Cliente...)
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        // A=0, B=1, C=2, D=3, E=4
+        const colProvincia = row[0]?.toString().trim();
+        const colCiudad = row[1]?.toString().trim();
+        // C suele estar oculta, D es el nombre del cliente
+        const colFarmacia = row[3]?.toString().trim();
+        const colDecil = row[4]?.toString().trim();
+
+        // Si la celda de Provincia o Ciudad no está vacía, actualizamos el "arrastre"
+        if (colProvincia) lastProvincia = colProvincia;
+        if (colCiudad) lastCiudad = colCiudad;
+
+        // Si no hay nombre de farmacia, ignoramos la fila (puede ser un total o fila vacía)
+        if (!colFarmacia) continue;
+
+        newItems.push({
+          id: `imported_${Date.now()}_${i}`,
+          category_type: 'cliente',
+          provincia: lastProvincia,
+          ciudad: lastCiudad,
+          farmacia_nombre: colFarmacia,
+          contacto: '',
+          telefono: '',
+          decil: colDecil || 'D05',
+          ventas_anuales: 0,
+          ultima_visita: '',
+          proxima_accion: '',
+          fecha_proxima_accion: '',
+          frecuencia_visita: '15 días',
+          estado_cliente: 'Activo',
+          estado_prospeccion: 'Cliente cerrado',
+          tendencia_compra: 'Estable',
+          notas: '',
+          le_interesa: '',
+          no_le_interesa: '',
+          marcas_competencia: '',
+          detalles_competencia: '',
+          prioridad: 'Media',
+          accion_completada: false
+        });
+      }
+
+      if (newItems.length > 0) {
+        persistItems([...items, ...newItems]);
+        toast.success(`Se importaron ${newItems.length} farmacias correctamente`);
+      } else {
+        toast.warning('No se encontraron registros válidos para importar');
+      }
+    } catch (error) {
+      toast.error('Error al procesar el archivo Excel');
+      console.error(error);
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // Filtrado de la sección activa
@@ -427,16 +446,16 @@ export const LorePharmaciesCRM: React.FC = () => {
           <div className="flex items-center gap-2">
             <input 
               type="file" 
-              accept=".csv" 
+              accept=".csv, .xlsx, .xls" 
               ref={fileInputRef} 
-              onChange={handleImportCSV} 
+              onChange={handleImportExcel} 
               className="hidden" 
-              id="import-csv-input"
+              id="import-excel-input"
             />
             <button
-              onClick={() => document.getElementById('import-csv-input')?.click()}
+              onClick={() => document.getElementById('import-excel-input')?.click()}
               className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all shadow-sm"
-              title="Importar datos desde CSV"
+              title="Importar datos desde Excel"
             >
               <Upload className="w-4 h-4 text-blue-400" />
               <span>Importar Excel</span>
