@@ -366,7 +366,7 @@ export const LorePharmaciesCRM: React.FC = () => {
 
   // Filtrado de la sección activa
   const displayItems = useMemo(() => {
-    return items.filter(item => {
+    const filtered = items.filter(item => {
       // Filtro por sección
       if (activeSection === 'clientes' && item.category_type !== 'cliente') return false;
       if (activeSection === 'prospeccion' && item.category_type !== 'prospeccion') return false;
