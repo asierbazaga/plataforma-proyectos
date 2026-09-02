@@ -353,6 +353,17 @@ export const LorePharmaciesCRM: React.FC = () => {
     }
   };
 
+  const handleDeleteAllData = async () => {
+    const pwd = window.prompt('Introduce la clave de seguridad (2222) para borrar todos los datos:');
+    if (pwd === '2222') {
+      await storageService.deleteAllLoreCRMItems();
+      setItems([]);
+      toast.success('Todos los datos han sido borrados correctamente.');
+    } else if (pwd !== null) {
+      toast.error('Clave incorrecta. Operación cancelada.');
+    }
+  };
+
   // Filtrado de la sección activa
   const displayItems = useMemo(() => {
     return items.filter(item => {
@@ -467,6 +478,14 @@ export const LorePharmaciesCRM: React.FC = () => {
             >
               <Download className="w-4 h-4 text-emerald-400" />
               <span>Exportar Excel</span>
+            </button>
+            <button
+              onClick={handleDeleteAllData}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white text-xs font-bold rounded-xl border border-rose-600/20 hover:border-rose-600 transition-all shadow-sm"
+              title="Borrar todos los datos actuales"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Borrar Datos</span>
             </button>
           </div>
         </div>

@@ -1415,6 +1415,16 @@ class StorageService {
     }
   }
 
+  async deleteAllLoreCRMItems(): Promise<void> {
+    this.setLocal('lore_crm_items', []);
+    this.broadcastChange();
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('lore_crm_pharmacies').delete().neq('id', '___NON_EXISTENT_ID___');
+      } catch (e) {}
+    }
+  }
+
   async getLoreGoalsConfig(): Promise<LoreGoalsConfig> {
     if (isSupabaseConfigured && supabase) {
       try {
