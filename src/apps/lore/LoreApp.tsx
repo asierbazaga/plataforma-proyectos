@@ -238,18 +238,19 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
       const customHtml = `
         <div style="
-          background: ${isSelected ? '#EC4899' : isInRoute ? '#3B82F6' : decilColor};
+          background: ${isSelected ? '#EC4899' : decilColor};
           width: ${isSelected || isInRoute ? '28px' : '22px'};
           height: ${isSelected || isInRoute ? '28px' : '22px'};
           border-radius: 50%;
-          border: 3px solid #0B0F19;
-          box-shadow: 0 0 12px ${decilColor};
+          border: ${isInRoute ? '3px solid #FFFFFF' : '3px solid #0B0F19'};
+          box-shadow: ${isInRoute ? '0 0 0 3px #3B82F6, 0 0 12px ' + decilColor : '0 0 12px ' + decilColor};
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           font-weight: bold;
           font-size: 11px;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         ">
           ${displayText}
         </div>
@@ -614,8 +615,18 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                           {index + 1}
                         </span>
                         <div>
-                          <p className="text-xs font-bold text-white">{client.nombre}</p>
-                          <p className="text-[10px] text-slate-400">{client.direccion}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-bold text-white">{client.nombre}</p>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                              client.decil === 'D10' || client.decil === 'D010' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                              client.decil === 'D09' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' :
+                              client.decil === 'D08' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
+                              'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                            }`}>
+                              {client.decil || 'D07'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{client.direccion}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
