@@ -381,11 +381,26 @@ export const LorePharmaciesCRM: React.FC = () => {
         item.notas.toLowerCase().includes(search.toLowerCase()) ||
         item.le_interesa.toLowerCase().includes(search.toLowerCase());
 
-      const matchProv = filterProvincia === 'all' || item.provincia === filterProvincia;
+      const matchProv = filterProvincia === 'all' || item.provincia.toLowerCase() === filterProvincia.toLowerCase();
       const matchDecil = filterDecil === 'all' || item.decil === filterDecil;
       const matchTend = filterTendencia === 'all' || item.tendencia_compra === filterTendencia;
 
       return matchSearch && matchProv && matchDecil && matchTend;
+    });
+
+    // Ordenar por Comunidad (Provincia) > Ciudad > Nombre
+    return filtered.sort((a, b) => {
+      const provA = a.provincia.toLowerCase();
+      const provB = b.provincia.toLowerCase();
+      if (provA < provB) return -1;
+      if (provA > provB) return 1;
+
+      const ciudA = a.ciudad.toLowerCase();
+      const ciudB = b.ciudad.toLowerCase();
+      if (ciudA < ciudB) return -1;
+      if (ciudA > ciudB) return 1;
+
+      return a.farmacia_nombre.localeCompare(b.farmacia_nombre);
     });
   }, [items, activeSection, search, filterProvincia, filterDecil, filterTendencia]);
 
@@ -692,6 +707,17 @@ export const LorePharmaciesCRM: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Filter Provincia */}
+          <select
+            value={filterProvincia}
+            onChange={e => setFilterProvincia(e.target.value)}
+            className="bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500"
+          >
+            <option value="all">Todas las Zonas</option>
+            <option value="Asturias">Asturias</option>
+            <option value="Cantabria">Cantabria</option>
+          </select>
+
           {/* Filter Decil */}
           <select
             value={filterDecil}
