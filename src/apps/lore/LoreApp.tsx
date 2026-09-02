@@ -106,7 +106,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
           nombre: item.farmacia_nombre,
           tipo: 'Farmacia',
           contacto_nombre: item.contacto || '---',
-          direccion: item.ciudad + (item.provincia ? ` (${item.provincia})` : ''),
+          direccion: item.direccion ? `${item.direccion}, ${item.ciudad}` : item.ciudad + (item.provincia ? ` (${item.provincia})` : ''),
           latitud: finalLat,
           longitud: finalLng,
           ultima_visita_at: item.ultima_visita || null,
@@ -281,32 +281,35 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     }
   };
 
-  // Generador de Ruta Inteligente (Prioridad por Decil y agrupado por Población/Cercanía)
+  // Generador de Ruta Inteligente (Prioridad por Cercanía al Usuario + Decil)
   const generateRecommendedRoute = () => {
     if (clientes.length === 0) {
       alert('No hay clientes disponibles para generar una ruta.');
       return;
     }
 
-    // 1. Encontrar el mejor cliente (D10)
-    const sortedDesc = [...clientes].sort((a, b) => {
-      const rank = (c: LoreClient) => parseInt((c.decil || 'D00').replace('D', ''), 10) || 0;
-      return rank(b) - rank(a); // Mayor decil primero
-    });
+    // 1. Encontrar el cliente D10 más cercano a la ubicación actual del usuario
+    const d10Clients = clientes.filter(c => c.decil === 'D10');
+    // Si no hay D10, usar D09, etc.
+    const candidates = d10Clients.length > 0 ? d10Clients : clientes;
 
-    // Selecciona el primer D10, si no hay, selecciona el de mayor rango disponible
-    const vipClient = sortedDesc.find(c => c.decil === 'D10') || sortedDesc[0];
-    if (!vipClient) return;
+    const closestVip = [...candidates].sort((a, b) => {
+      const distA = getDistanceInKm(userCoords.lat, userCoords.lng, a.latitud, a.longitud);
+      const distB = getDistanceInKm(userCoords.lat, userCoords.lng, b.latitud, b.longitud);
+      return distA - distB;
+    })[0];
 
-    // 2. Filtrar el resto de farmacias que sean de la misma población
+    if (!closestVip) return;
+
+    // 2. Filtrar el resto de farmacias que sean de la misma población que ese VIP cercano
     const sameCityClients = clientes.filter(c => 
-      (c.ciudad || '').toLowerCase().trim() === (vipClient.ciudad || '').toLowerCase().trim()
+      (c.ciudad || '').toLowerCase().trim() === (closestVip.ciudad || '').toLowerCase().trim()
     );
 
     // 3. Ordenarlas por cercanía exacta desde la VIP usando la fórmula Haversine
     sameCityClients.sort((a, b) => {
-      const distA = getDistanceInKm(vipClient.latitud, vipClient.longitud, a.latitud, a.longitud);
-      const distB = getDistanceInKm(vipClient.latitud, vipClient.longitud, b.latitud, b.longitud);
+      const distA = getDistanceInKm(closestVip.latitud, closestVip.longitud, a.latitud, a.longitud);
+      const distB = getDistanceInKm(closestVip.latitud, closestVip.longitud, b.latitud, b.longitud);
       return distA - distB;
     });
 

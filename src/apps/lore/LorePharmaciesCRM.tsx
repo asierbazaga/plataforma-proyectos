@@ -47,6 +47,7 @@ export interface PharmacyCRMItem {
   category_type: ClientCategory; // 'cliente' (cartera activa) o 'prospeccion' (leads/nuevos)
   provincia: string;
   ciudad: string;
+  direccion?: string;
   farmacia_nombre: string;
   contacto: string;
   telefono: string;
@@ -1076,21 +1077,28 @@ export const LorePharmaciesCRM: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-400">Ciudad / Provincia</label>
+                  <label className="text-xs font-semibold text-slate-400">Ciudad / Provincia / Dirección</label>
                   <div className="flex gap-2 mt-1">
                     <input
                       type="text"
                       placeholder="Ciudad"
                       value={editingItem.ciudad}
                       onChange={e => setEditingItem({ ...editingItem, ciudad: e.target.value })}
-                      className="w-1/2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                      className="w-1/3 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
                     />
                     <input
                       type="text"
                       placeholder="Provincia"
                       value={editingItem.provincia}
                       onChange={e => setEditingItem({ ...editingItem, provincia: e.target.value })}
-                      className="w-1/2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                      className="w-1/3 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Dirección exacta (Opcional)"
+                      value={editingItem.direccion || ''}
+                      onChange={e => setEditingItem({ ...editingItem, direccion: e.target.value })}
+                      className="w-1/3 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>

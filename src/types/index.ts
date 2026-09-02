@@ -334,6 +334,7 @@ export interface PharmacyCRMItem {
   category_type: ClientCategory;
   provincia: string;
   ciudad: string;
+  direccion?: string;
   farmacia_nombre: string;
   contacto: string;
   telefono: string;
