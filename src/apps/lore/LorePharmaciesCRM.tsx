@@ -29,11 +29,13 @@ import {
   RefreshCw,
   PhoneCall,
   Flame,
-  ArrowUpRight
+  ArrowUpRight,
+  Target
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { useToast } from '../../context/ToastContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 
 export type PurchaseTrend = 'En crecimiento' | 'Estable' | 'Dejando de comprar' | 'Potencial de subida';
 export type ProspectStatus = 'Sin contactar' | 'Contactado' | 'Visita realizada' | 'Interesado' | 'Cliente cerrado';
@@ -620,6 +622,34 @@ export const LorePharmaciesCRM: React.FC = () => {
     return { totalClientes, totalProspeccion, totalPendientes, enCrecimiento };
   }, [items]);
 
+  // Datos para gráficos
+  const chartData = useMemo(() => {
+    const tendencias = items.reduce((acc, item) => {
+      acc[item.tendencia_compra] = (acc[item.tendencia_compra] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const tendenciasData = Object.keys(tendencias).map(key => ({
+      name: key,
+      value: tendencias[key],
+      color: key === 'En crecimiento' ? '#10B981' : 
+             key === 'Potencial de subida' ? '#3B82F6' : 
+             key === 'Estable' ? '#F59E0B' : '#EF4444'
+    }));
+
+    const estadosProspeccion = items.filter(i => i.category_type === 'prospeccion').reduce((acc, item) => {
+      acc[item.estado_prospeccion] = (acc[item.estado_prospeccion] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const prospeccionData = Object.keys(estadosProspeccion).map(key => ({
+      name: key,
+      value: estadosProspeccion[key]
+    }));
+
+    return { tendenciasData, prospeccionData };
+  }, [items]);
+
   return (
     <div className="space-y-6">
       {/* Header Container CRM con Secciones del Excel */}
@@ -722,6 +752,68 @@ export const LorePharmaciesCRM: React.FC = () => {
               {counts.totalPendientes}
             </span>
           </button>
+        </div>
+      </div>
+
+      {/* Dashboard Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-700/50 flex flex-col h-64">
+          <h3 className="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            Tendencias de Compra (General)
+          </h3>
+          <div className="flex-1 w-full min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData.tendenciasData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
+                  cursor={{ fill: '#334155', opacity: 0.4 }}
+                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {chartData.tendenciasData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-700/50 flex flex-col h-64">
+          <h3 className="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+            <Target className="w-4 h-4 text-purple-400" />
+            Estado de Prospecciones
+          </h3>
+          <div className="flex-1 w-full min-h-0">
+            {chartData.prospeccionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData.prospeccionData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {chartData.prospeccionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#8B5CF6', '#10B981', '#3B82F6', '#F59E0B', '#EF4444'][index % 5]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }} />
+                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-xs text-slate-500">
+                No hay datos de prospección
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -848,11 +940,11 @@ export const LorePharmaciesCRM: React.FC = () => {
       </div>
 
       {/* Tabla Interactiva con Edición en Línea */}
-      <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-900/95 text-slate-400 border-b border-slate-800 font-bold uppercase tracking-wider text-[11px]">
+      <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden shadow-2xl h-[500px] flex flex-col">
+        <div className="overflow-x-auto flex-1 overflow-y-auto">
+          <table className="w-full text-left border-collapse text-xs relative">
+            <thead className="sticky top-0 z-20">
+              <tr className="bg-slate-900/95 text-slate-400 border-b border-slate-800 font-bold uppercase tracking-wider text-[11px] shadow-sm backdrop-blur-md">
                 {activeSection === 'pendientes' && <th className="py-3.5 px-3 text-center">Hecho</th>}
                 <th className="py-3.5 px-4">Farmacia</th>
                 <th className="py-3.5 px-3">Ubicación</th>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft, Target, Sparkles } from 'lucide-react';
+import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft, Target, Sparkles, ArrowUp, ArrowDown, Share2 } from 'lucide-react';
 import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
@@ -152,11 +152,14 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
       const decilColor = c.decil === 'D10' ? '#10B981' : c.decil === 'D09' ? '#6366F1' : c.decil === 'D08' ? '#A855F7' : '#F59E0B';
 
+      const routeIndex = routeClientIds.indexOf(c.id);
+      const displayText = routeIndex !== -1 ? (routeIndex + 1).toString() : (c.decil || 'D');
+
       const customHtml = `
         <div style="
           background: ${isSelected ? '#EC4899' : isInRoute ? '#3B82F6' : decilColor};
-          width: ${isSelected ? '28px' : '22px'};
-          height: ${isSelected ? '28px' : '22px'};
+          width: ${isSelected || isInRoute ? '28px' : '22px'};
+          height: ${isSelected || isInRoute ? '28px' : '22px'};
           border-radius: 50%;
           border: 3px solid #0B0F19;
           box-shadow: 0 0 12px ${decilColor};
@@ -165,9 +168,9 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
           justify-content: center;
           color: white;
           font-weight: bold;
-          font-size: 10px;
+          font-size: 11px;
         ">
-          ${c.decil || 'D'}
+          ${displayText}
         </div>
       `;
 
@@ -248,6 +251,30 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
       }
     }
     return Number(dist.toFixed(1));
+  };
+
+  const moveClientInRoute = (index: number, direction: 'up' | 'down') => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === routeClientIds.length - 1)) return;
+    const newRoute = [...routeClientIds];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newRoute[index], newRoute[targetIndex]] = [newRoute[targetIndex], newRoute[index]];
+    setRouteClientIds(newRoute);
+  };
+
+  const handleExportRoute = () => {
+    if (routeClientIds.length === 0) return;
+    let exportText = `Ruta Comercial - ${new Date().toLocaleDateString()}\n`;
+    exportText += `Distancia total: ${calculateRouteDistance()} km\n\n`;
+    routeClientIds.forEach((id, index) => {
+      const c = clientes.find(c => c.id === id);
+      if (c) {
+        exportText += `${index + 1}. ${c.nombre} (${c.decil})\n   📍 ${c.direccion}\n`;
+      }
+    });
+    
+    navigator.clipboard.writeText(exportText).then(() => {
+      alert('Ruta copiada al portapapeles. ¡Lista para pegar en WhatsApp o Email!');
+    });
   };
 
   const filteredClientes = clientes.filter(c => {
@@ -396,9 +423,61 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                 >
                   <Save className="w-4 h-4" /> Guardar Ruta
                 </button>
+                <button
+                  onClick={handleExportRoute}
+                  disabled={routeClientIds.length === 0}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <Share2 className="w-4 h-4" /> Exportar / Copiar
+                </button>
               </div>
             )}
           </div>
+
+          {/* Route Order List (Drag & Drop alternative with Arrows) */}
+          {routeClientIds.length > 0 && (
+            <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Route className="w-4 h-4 text-emerald-400" />
+                Orden de Visita
+              </h3>
+              <div className="flex flex-col gap-2">
+                {routeClientIds.map((id, index) => {
+                  const client = clientes.find(c => c.id === id);
+                  if (!client) return null;
+                  return (
+                    <div key={id} className="flex items-center justify-between p-2 rounded-xl bg-slate-900/50 border border-slate-700/50">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold text-[11px] border border-indigo-500/30">
+                          {index + 1}
+                        </span>
+                        <div>
+                          <p className="text-xs font-bold text-white">{client.nombre}</p>
+                          <p className="text-[10px] text-slate-400">{client.direccion}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => moveClientInRoute(index, 'up')}
+                          disabled={index === 0}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-30 transition-all"
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => moveClientInRoute(index, 'down')}
+                          disabled={index === routeClientIds.length - 1}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-30 transition-all"
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Directory & Client Selection Sidebar (1 col) */}
