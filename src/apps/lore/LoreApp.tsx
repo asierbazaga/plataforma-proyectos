@@ -64,18 +64,42 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     'bimenes': [43.3323, -5.5670]
   };
 
+  const hashString = (str: string) => {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+    }
+    return Math.abs(h);
+  };
+
+  const getCityBaseCoords = (city: string): [number, number] => {
+    const cityKey = (city || '').toLowerCase().trim();
+    if (CITY_COORDS[cityKey]) return CITY_COORDS[cityKey];
+    
+    // Si la ciudad no está hardcodeada, generamos coordenadas fijas basadas en el nombre
+    // Para que todas las farmacias de esa ciudad caigan agrupadas en un mismo lugar
+    const h = hashString(cityKey);
+    const lat = 43.1 + ((h % 500) / 1000); // Rango 43.1 a 43.6 (Norte de España)
+    const lng = -6.5 + (((h >> 4) % 300) / 100); // Rango -6.5 a -3.5 (Asturias/Cantabria)
+    return [lat, lng];
+  };
+
   const loadData = async () => {
     // Usar directamente los clientes del CRM recién importados
     const crmItems = await storageService.getLoreCRMItems();
     const mappedClients: LoreClient[] = crmItems
       .filter(item => item.category_type === 'cliente')
       .map(item => {
-        const cityKey = (item.ciudad || '').toLowerCase().trim();
-        // Coordenadas base o Oviedo por defecto
-        const baseCoords = CITY_COORDS[cityKey] || [43.3614, -5.8593]; 
+        const baseCoords = getCityBaseCoords(item.ciudad);
+        
         // Dispersión determinista basada en el ID (evita temblores al recargar)
-        const jitterLat = (parseInt(item.id.substring(0, 8), 16) % 100 - 50) * 0.0003;
-        const jitterLng = (parseInt(item.id.substring(8, 16), 16) % 100 - 50) * 0.0003;
+        const idHash = hashString(item.id || 'default');
+        const jitterLat = ((idHash % 100) - 50) * 0.0003;
+        const jitterLng = (((idHash >> 8) % 100) - 50) * 0.0003;
+
+        // Asegurar que lat y lng nunca son NaN
+        const finalLat = isNaN(baseCoords[0] + jitterLat) ? 43.3614 : baseCoords[0] + jitterLat;
+        const finalLng = isNaN(baseCoords[1] + jitterLng) ? -5.8593 : baseCoords[1] + jitterLng;
 
         return {
           id: item.id,
@@ -83,8 +107,8 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
           tipo: 'Farmacia',
           contacto_nombre: item.contacto || '---',
           direccion: item.ciudad + (item.provincia ? ` (${item.provincia})` : ''),
-          latitud: baseCoords[0] + jitterLat,
-          longitud: baseCoords[1] + jitterLng,
+          latitud: finalLat,
+          longitud: finalLng,
           ultima_visita_at: item.ultima_visita || null,
           decil: item.decil,
           ciudad: item.ciudad,
