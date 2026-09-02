@@ -3,6 +3,7 @@ import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Foot
 import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { LoreGoalsCalculator } from './LoreGoalsCalculator';
 import { LorePharmaciesCRM } from './LorePharmaciesCRM';
 
@@ -26,6 +27,7 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
 export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('lore');
+  const toast = useToast();
 
   // Sub-pestañas: Objetivos Drasanvi vs Seguimiento CRM vs Rutas Mapa
   const [activeSubTab, setActiveSubTab] = useState<'goals' | 'crm' | 'routes'>('goals');
@@ -282,20 +284,54 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   };
 
   // Generador de Ruta Inteligente (Prioridad por Cercanía al Usuario + Decil)
-  const generateRecommendedRoute = () => {
+  const generateRecommendedRoute = async () => {
     if (clientes.length === 0) {
-      alert('No hay clientes disponibles para generar una ruta.');
+      toast.error('No hay clientes disponibles para generar una ruta.');
       return;
     }
 
-    // 1. Encontrar el cliente D10 más cercano a la ubicación actual del usuario
+    toast.info('Calculando posición GPS exacta...');
+
+    // Forzar la petición de coordenadas en el momento
+    const getCoords = (): Promise<{ lat: number; lng: number }> => {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve(userCoords);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve(userCoords),
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+      });
+    };
+
+    let currentPos = userCoords;
+    try {
+      currentPos = await getCoords();
+      // Si sigue siendo Madrid (por fallo de permisos/tiempo)
+      if (currentPos.lat === 40.4168 && currentPos.lng === -3.7038) {
+        // Fallback inteligente: usamos la primera farmacia del array para que al menos busque en el norte
+        currentPos = { lat: clientes[0].latitud, lng: clientes[0].longitud };
+        toast.error('Permiso GPS denegado. Usando zona base.');
+      } else {
+        toast.success('¡Ruta trazada desde tu posición actual!');
+      }
+      setUserCoords(currentPos);
+    } catch (e) {
+      currentPos = { lat: clientes[0].latitud, lng: clientes[0].longitud };
+      toast.error('Error al detectar GPS.');
+    }
+
+    // 1. Encontrar el cliente D10 más cercano a la ubicación calculada
     const d10Clients = clientes.filter(c => c.decil === 'D10');
     // Si no hay D10, usar D09, etc.
     const candidates = d10Clients.length > 0 ? d10Clients : clientes;
 
     const closestVip = [...candidates].sort((a, b) => {
-      const distA = getDistanceInKm(userCoords.lat, userCoords.lng, a.latitud, a.longitud);
-      const distB = getDistanceInKm(userCoords.lat, userCoords.lng, b.latitud, b.longitud);
+      const distA = getDistanceInKm(currentPos.lat, currentPos.lng, a.latitud, a.longitud);
+      const distB = getDistanceInKm(currentPos.lat, currentPos.lng, b.latitud, b.longitud);
       return distA - distB;
     })[0];
 
@@ -306,14 +342,14 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
       (c.ciudad || '').toLowerCase().trim() === (closestVip.ciudad || '').toLowerCase().trim()
     );
 
-    // 3. Ordenarlas por cercanía exacta desde la VIP usando la fórmula Haversine
+    // 3. Ordenarlas por cercanía exacta desde la VIP
     sameCityClients.sort((a, b) => {
       const distA = getDistanceInKm(closestVip.latitud, closestVip.longitud, a.latitud, a.longitud);
       const distB = getDistanceInKm(closestVip.latitud, closestVip.longitud, b.latitud, b.longitud);
       return distA - distB;
     });
 
-    // 4. Tomar hasta 8 clientes de esa población para crear una ruta de un día realista
+    // 4. Tomar hasta 8 clientes de esa población para crear una ruta
     const recommendedIds = sameCityClients.slice(0, 8).map(c => c.id);
     
     setRouteClientIds(recommendedIds);
