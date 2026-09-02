@@ -48,14 +48,56 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   const markersRef = useRef<{ [key: string]: any }>({});
   const polylineRef = useRef<any>(null);
 
+  const CITY_COORDS: Record<string, [number, number]> = {
+    'gijon': [43.5322, -5.6611],
+    'gijón': [43.5322, -5.6611],
+    'oviedo': [43.3614, -5.8593],
+    'santander': [43.4623, -3.8099],
+    'aviles': [43.5562, -5.9248],
+    'avilés': [43.5562, -5.9248],
+    'torrelavega': [43.3499, -4.0479],
+    'mieres': [43.2505, -5.7744],
+    'siero': [43.3917, -5.6611],
+    'langreo': [43.2965, -5.6833],
+    'castropol': [43.5431, -7.0272],
+    'candas': [43.5900, -5.7651],
+    'bimenes': [43.3323, -5.5670]
+  };
+
   const loadData = async () => {
-    const list = await storageService.getLoreClients();
+    // Usar directamente los clientes del CRM recién importados
+    const crmItems = await storageService.getLoreCRMItems();
+    const mappedClients: LoreClient[] = crmItems
+      .filter(item => item.category_type === 'cliente')
+      .map(item => {
+        const cityKey = (item.ciudad || '').toLowerCase().trim();
+        // Coordenadas base o Oviedo por defecto
+        const baseCoords = CITY_COORDS[cityKey] || [43.3614, -5.8593]; 
+        // Dispersión determinista basada en el ID (evita temblores al recargar)
+        const jitterLat = (parseInt(item.id.substring(0, 8), 16) % 100 - 50) * 0.0003;
+        const jitterLng = (parseInt(item.id.substring(8, 16), 16) % 100 - 50) * 0.0003;
+
+        return {
+          id: item.id,
+          nombre: item.farmacia_nombre,
+          tipo: 'Farmacia',
+          contacto_nombre: item.contacto || '---',
+          direccion: item.ciudad + (item.provincia ? ` (${item.provincia})` : ''),
+          latitud: baseCoords[0] + jitterLat,
+          longitud: baseCoords[1] + jitterLng,
+          ultima_visita_at: item.ultima_visita || null,
+          decil: item.decil,
+          ciudad: item.ciudad,
+          provincia: item.provincia
+        };
+      });
+
     const routes = await storageService.getSavedRoutes();
-    setClientes(list);
+    setClientes(mappedClients);
     setSavedRoutes(routes);
 
-    if (list.length > 0 && !selectedClient) {
-      setSelectedClient(list[0]);
+    if (mappedClients.length > 0 && !selectedClient) {
+      setSelectedClient(mappedClients[0]);
     }
   };
 
@@ -215,16 +257,38 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     }
   };
 
-  // Generador de Ruta Inteligente Recomendada (Prioridad por Deciles D10 -> D09)
+  // Generador de Ruta Inteligente (Prioridad por Decil y agrupado por Población/Cercanía)
   const generateRecommendedRoute = () => {
-    const sorted = [...clientes].sort((a, b) => {
-      const decilScore: { [key: string]: number } = { D10: 4, D09: 3, D08: 2, D07: 1 };
-      const scoreA = decilScore[a.decil || 'D07'] || 0;
-      const scoreB = decilScore[b.decil || 'D07'] || 0;
-      return scoreB - scoreA;
+    if (clientes.length === 0) {
+      alert('No hay clientes disponibles para generar una ruta.');
+      return;
+    }
+
+    // 1. Encontrar el mejor cliente (D10)
+    const sortedDesc = [...clientes].sort((a, b) => {
+      const rank = (c: LoreClient) => parseInt((c.decil || 'D00').replace('D', ''), 10) || 0;
+      return rank(b) - rank(a); // Mayor decil primero
     });
 
-    const recommendedIds = sorted.slice(0, 4).map(c => c.id);
+    // Selecciona el primer D10, si no hay, selecciona el de mayor rango disponible
+    const vipClient = sortedDesc.find(c => c.decil === 'D10') || sortedDesc[0];
+    if (!vipClient) return;
+
+    // 2. Filtrar el resto de farmacias que sean de la misma población
+    const sameCityClients = clientes.filter(c => 
+      (c.ciudad || '').toLowerCase().trim() === (vipClient.ciudad || '').toLowerCase().trim()
+    );
+
+    // 3. Ordenarlas por cercanía exacta desde la VIP usando la fórmula Haversine
+    sameCityClients.sort((a, b) => {
+      const distA = getDistanceInKm(vipClient.latitud, vipClient.longitud, a.latitud, a.longitud);
+      const distB = getDistanceInKm(vipClient.latitud, vipClient.longitud, b.latitud, b.longitud);
+      return distA - distB;
+    });
+
+    // 4. Tomar hasta 8 clientes de esa población para crear una ruta de un día realista
+    const recommendedIds = sameCityClients.slice(0, 8).map(c => c.id);
+    
     setRouteClientIds(recommendedIds);
   };
 
