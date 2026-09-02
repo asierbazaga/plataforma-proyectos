@@ -324,11 +324,14 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
       toast.error('Error al detectar GPS.');
     }
 
-    // 1. Encontrar el cliente D10 más cercano a la ubicación calculada
-    const d10Clients = clientes.filter(c => c.decil === 'D10');
-    // Si no hay D10, usar D09, etc.
+    // 1. Encontrar obligatoriamente los clientes VIP (D10 o D010)
+    // El usuario especificó "siempre tiene que haber un D10 en cada ruta"
+    const d10Clients = clientes.filter(c => c.decil === 'D10' || c.decil === 'D010');
+    
+    // Si realmente no existe ningún D10 en toda la base de datos, usamos D09 u otros como fallback
     const candidates = d10Clients.length > 0 ? d10Clients : clientes;
 
+    // 2. Encontrar el D10 que esté más cerca de la posición actual del usuario (GPS)
     const closestVip = [...candidates].sort((a, b) => {
       const distA = getDistanceInKm(currentPos.lat, currentPos.lng, a.latitud, a.longitud);
       const distB = getDistanceInKm(currentPos.lat, currentPos.lng, b.latitud, b.longitud);
@@ -336,20 +339,21 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     })[0];
 
     if (!closestVip) return;
+    const targetCity = (closestVip.ciudad || '').toLowerCase().trim();
 
-    // 2. Filtrar el resto de farmacias que sean de la misma población que ese VIP cercano
+    // 3. Obtener el resto de farmacias que estén en la misma ciudad que ese D10
     const sameCityClients = clientes.filter(c => 
-      (c.ciudad || '').toLowerCase().trim() === (closestVip.ciudad || '').toLowerCase().trim()
+      (c.ciudad || '').toLowerCase().trim() === targetCity
     );
 
-    // 3. Ordenarlas por cercanía exacta desde la VIP
+    // 4. Ordenarlas por cercanía exacta al D10 para hacer un recorrido lógico desde ese ancla
     sameCityClients.sort((a, b) => {
       const distA = getDistanceInKm(closestVip.latitud, closestVip.longitud, a.latitud, a.longitud);
       const distB = getDistanceInKm(closestVip.latitud, closestVip.longitud, b.latitud, b.longitud);
       return distA - distB;
     });
 
-    // 4. Tomar hasta 8 clientes de esa población para crear una ruta
+    // 5. Tomar hasta 8 clientes de esa población para crear la ruta
     const recommendedIds = sameCityClients.slice(0, 8).map(c => c.id);
     
     setRouteClientIds(recommendedIds);
