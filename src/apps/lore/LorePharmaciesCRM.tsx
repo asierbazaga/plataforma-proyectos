@@ -656,6 +656,7 @@ export const LorePharmaciesCRM: React.FC = () => {
           <option value="D04">D04</option>
           <option value="D03">D03</option>
           <option value="D02">D02</option>
+          <option value="D01">D01</option>
         </select>
 
         <select
@@ -706,6 +707,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             <option value="D04">D04</option>
             <option value="D03">D03</option>
             <option value="D02">D02</option>
+            <option value="D01">D01</option>
           </select>
 
           {/* Filter Tendencia */}
@@ -731,17 +733,17 @@ export const LorePharmaciesCRM: React.FC = () => {
               <tr className="bg-slate-900/95 text-slate-400 border-b border-slate-800 font-bold uppercase tracking-wider text-[11px] shadow-sm backdrop-blur-md">
                 {activeSection === 'pendientes' && <th className="py-3.5 px-3 text-center">Hecho</th>}
                 <th className="py-3.5 px-4">Farmacia</th>
-                <th className="py-3.5 px-3">Ubicación</th>
-                <th className="py-3.5 px-3">Contacto</th>
-                {activeSection === 'prospeccion' && <th className="py-3.5 px-3">Teléfono</th>}
+                <th className="py-3.5 px-3 hidden sm:table-cell">Ubicación</th>
+                <th className="py-3.5 px-3 hidden md:table-cell">Contacto</th>
+                {activeSection === 'prospeccion' && <th className="py-3.5 px-3 hidden sm:table-cell">Teléfono</th>}
                 <th className="py-3.5 px-3">Decil</th>
-                {activeSection === 'clientes' && <th className="py-3.5 px-3">Ventas 2026</th>}
-                {activeSection === 'clientes' && <th className="py-3.5 px-3">Frecuencia</th>}
-                <th className="py-3.5 px-3">Última Visita</th>
-                <th className="py-3.5 px-3">Próxima Acción</th>
-                <th className="py-3.5 px-3">Fecha Acción</th>
-                <th className="py-3.5 px-3">Tendencia Compra</th>
-                <th className="py-3.5 px-3">Notas / Interés</th>
+                {activeSection === 'clientes' && <th className="py-3.5 px-3 hidden lg:table-cell">Ventas</th>}
+                {activeSection === 'clientes' && <th className="py-3.5 px-3 hidden xl:table-cell">Frecuencia</th>}
+                <th className="py-3.5 px-3 hidden xl:table-cell">Última Visita</th>
+                <th className="py-3.5 px-3 hidden lg:table-cell">Próxima Acción</th>
+                <th className="py-3.5 px-3 hidden md:table-cell">Fecha Acción</th>
+                <th className="py-3.5 px-3 hidden xl:table-cell">Tendencia Compra</th>
+                <th className="py-3.5 px-3 hidden lg:table-cell">Notas / Interés</th>
                 <th className="py-3.5 px-3 text-right">Acciones</th>
               </tr>
             </thead>
@@ -775,7 +777,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                   </td>
 
                   {/* Ciudad */}
-                  <td className="py-3 px-3 whitespace-nowrap">
+                  <td className="py-3 px-3 whitespace-nowrap hidden sm:table-cell">
                     <input
                       type="text"
                       value={item.ciudad}
@@ -785,7 +787,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                   </td>
 
                   {/* Contacto */}
-                  <td className="py-3 px-3 whitespace-nowrap">
+                  <td className="py-3 px-3 whitespace-nowrap hidden md:table-cell">
                     <input
                       type="text"
                       value={item.contacto}
@@ -797,7 +799,7 @@ export const LorePharmaciesCRM: React.FC = () => {
 
                   {/* Teléfono con botón llamar si es prospección */}
                   {activeSection === 'prospeccion' && (
-                    <td className="py-3 px-3 whitespace-nowrap">
+                    <td className="py-3 px-3 whitespace-nowrap hidden sm:table-cell">
                       <div className="flex items-center gap-1.5">
                         <input
                           type="text"
@@ -834,12 +836,13 @@ export const LorePharmaciesCRM: React.FC = () => {
                       <option value="D04">D04</option>
                       <option value="D03">D03</option>
                       <option value="D02">D02</option>
+                      <option value="D01">D01</option>
                     </select>
                   </td>
 
                   {/* Ventas Anuales */}
                   {activeSection === 'clientes' && (
-                    <td className="py-3 px-3 whitespace-nowrap font-mono text-slate-200">
+                    <td className="py-3 px-3 whitespace-nowrap font-mono text-slate-200 hidden lg:table-cell">
                       <input
                         type="number"
                         step="10"
@@ -852,7 +855,7 @@ export const LorePharmaciesCRM: React.FC = () => {
 
                   {/* Frecuencia de Visita */}
                   {activeSection === 'clientes' && (
-                    <td className="py-3 px-3 whitespace-nowrap">
+                    <td className="py-3 px-3 whitespace-nowrap hidden xl:table-cell">
                       <select
                         value={item.frecuencia_visita}
                         onChange={e => handleUpdateField(item.id, 'frecuencia_visita', e.target.value)}
@@ -867,7 +870,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                   )}
 
                   {/* Última Visita */}
-                  <td className="py-3 px-3 whitespace-nowrap">
+                  <td className="py-3 px-3 whitespace-nowrap hidden xl:table-cell">
                     <input
                       type="text"
                       placeholder="DD/MM/AAAA"
@@ -878,7 +881,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                   </td>
 
                   {/* Próxima Acción (Dropdown directo) */}
-                  <td className="py-3 px-3 whitespace-nowrap">
+                  <td className="py-3 px-3 whitespace-nowrap hidden lg:table-cell">
                     <select
                       value={item.proxima_accion}
                       onChange={e => handleUpdateField(item.id, 'proxima_accion', e.target.value)}
@@ -893,7 +896,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                   </td>
 
                   {/* Fecha Próxima Acción */}
-                  <td className="py-3 px-3 whitespace-nowrap">
+                  <td className="py-3 px-3 whitespace-nowrap hidden md:table-cell">
                     <input
                       type="text"
                       placeholder="DD/MM/AAAA"
@@ -904,7 +907,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                   </td>
 
                   {/* Tendencia de Compra (Dropdown interactivo con iconos) */}
-                  <td className="py-3 px-3 whitespace-nowrap">
+                  <td className="py-3 px-3 whitespace-nowrap hidden xl:table-cell">
                     <select
                       value={item.tendencia_compra}
                       onChange={e => handleUpdateField(item.id, 'tendencia_compra', e.target.value as PurchaseTrend)}
@@ -923,7 +926,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                   </td>
 
                   {/* Notas / Interés directo editable */}
-                  <td className="py-3 px-3 max-w-[200px]">
+                  <td className="py-3 px-3 max-w-[200px] hidden lg:table-cell">
                     <input
                       type="text"
                       placeholder="Añadir notas..."
@@ -1081,6 +1084,7 @@ export const LorePharmaciesCRM: React.FC = () => {
                     <option value="D04">D04</option>
                     <option value="D03">D03</option>
                     <option value="D02">D02</option>
+                    <option value="D01">D01</option>
                   </select>
                 </div>
               </div>
