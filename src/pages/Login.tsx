@@ -17,13 +17,17 @@ import {
   EyeOff,
   UserPlus,
   Mail,
-  Building
+  Building,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { webAuthnService, DeviceBiometricCredential } from '../services/webAuthnService';
 
 export const Login: React.FC = () => {
   const { login, register, allProfiles, getSecurityQuestion, resetPasswordWithSecurityAnswer } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login');
 
@@ -246,25 +250,52 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#070A11] text-white flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className={`min-h-screen transition-colors duration-200 ${isDark ? 'bg-[#070A11] text-white' : 'bg-slate-50 text-slate-900'} flex items-center justify-center p-4 relative overflow-hidden font-sans`}>
+      {/* Botón flotante para cambiar de tema (Modo Claro / Oscuro) */}
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          onClick={toggleTheme}
+          type="button"
+          title={isDark ? "Quitar modo oscuro (Modo claro)" : "Activar modo oscuro"}
+          aria-label={isDark ? "Quitar modo oscuro" : "Activar modo oscuro"}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-md ${
+            isDark
+              ? 'bg-slate-900/80 hover:bg-slate-800 text-amber-300 border-slate-700/80 hover:border-amber-400/50'
+              : 'bg-white hover:bg-slate-50 text-indigo-600 border-slate-200 hover:border-indigo-400/50'
+          }`}
+        >
+          {isDark ? (
+            <>
+              <Sun className="w-4 h-4 text-amber-400" />
+              <span>Modo Claro</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-4 h-4 text-indigo-600" />
+              <span>Modo Oscuro</span>
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Luces de ambiente sutiles */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#FF6B00]/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="bg-[#0F1422] border border-white/10 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl space-y-6 relative z-10">
+      <div className={`${isDark ? 'bg-[#0F1422] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xl'} border rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl space-y-6 relative z-10`}>
         {/* Logo & Header */}
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#FF6B00] to-indigo-600 p-0.5 mx-auto shadow-xl shadow-[#FF6B00]/20">
-            <div className="w-full h-full bg-[#0F1422] rounded-[14px] flex items-center justify-center">
+            <div className={`w-full h-full ${isDark ? 'bg-[#0F1422]' : 'bg-white'} rounded-[14px] flex items-center justify-center`}>
               <ShieldCheck className="w-7 h-7 text-[#FF6B00]" />
             </div>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">PLATAFORMA UNIFICADA</h1>
+          <h1 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tight`}>PLATAFORMA UNIFICADA</h1>
           <p className="text-xs text-slate-400">Control de Acceso Seguro & Ecosistema de Apps</p>
         </div>
 
         {/* Selector de Modo: Login vs Registro */}
-        <div className="grid grid-cols-2 p-1 bg-[#070A11] rounded-2xl border border-white/5 text-xs font-bold">
+        <div className={`grid grid-cols-2 p-1 ${isDark ? 'bg-[#070A11] border-white/5' : 'bg-slate-100 border-slate-200'} rounded-2xl border text-xs font-bold`}>
           <button
             type="button"
             onClick={() => {

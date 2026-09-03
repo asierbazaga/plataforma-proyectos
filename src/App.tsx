@@ -1,5 +1,6 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useTheme } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
@@ -27,11 +28,12 @@ const ModuleLoader: React.FC = () => (
 
 const MainLayout: React.FC = () => {
   const { currentUser, loading, hasAccessToApp } = useAuth();
+  const { isDark } = useTheme();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0F19] text-white flex items-center justify-center">
+      <div className={`min-h-screen ${isDark ? 'bg-[#0B0F19] text-white' : 'bg-slate-50 text-slate-900'} flex items-center justify-center`}>
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-semibold">Cargando Plataforma Unificada...</span>
@@ -107,7 +109,7 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col pb-16 md:pb-0">
+    <div className={`min-h-screen transition-colors duration-200 ${isDark ? 'bg-[#0B0F19] text-slate-100' : 'bg-slate-50 text-slate-900'} flex flex-col pb-16 md:pb-0`}>
       <Navbar currentTab={currentTab} onSelectTab={handleSelectTab} />
       <div className="flex flex-1">
         <Sidebar currentTab={currentTab} onSelectTab={handleSelectTab} />
@@ -119,13 +121,13 @@ const MainLayout: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Navigation Bar (Visible only on Mobile screens) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0B0F19]/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around">
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-30 transition-colors duration-200 ${isDark ? 'bg-[#0B0F19]/95 border-slate-800/80' : 'bg-white/95 border-slate-200 shadow-lg'} backdrop-blur-xl border-t px-2 py-1.5 flex items-center justify-around`}>
         <button
           onClick={() => handleSelectTab('dashboard')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
             currentTab === 'dashboard'
-              ? 'text-indigo-400 font-bold'
-              : 'text-slate-400 hover:text-white font-medium'
+              ? (isDark ? 'text-indigo-400 font-bold' : 'text-indigo-600 font-bold')
+              : (isDark ? 'text-slate-400 hover:text-white font-medium' : 'text-slate-500 hover:text-slate-900 font-medium')
           }`}
         >
           <Home className="w-4 h-4" />

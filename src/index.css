@@ -7,6 +7,12 @@
     @apply bg-[#0B0F19] text-slate-100 antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+
+  html.light body,
+  body.light {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+  }
 }
 
 /* Glassmorphism Styles */
@@ -52,3 +58,215 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #374151;
 }
+
+/* ========================================================
+   MODO CLARO (LIGHT THEME OVERRIDES)
+   ======================================================== */
+html.light .bg-\[\#0B0F19\],
+body.light .bg-\[\#0B0F19\] {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-\[\#0B0F19\]\/90,
+html.light .bg-\[\#0B0F19\]\/95,
+body.light .bg-\[\#0B0F19\]\/90,
+body.light .bg-\[\#0B0F19\]\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Light Glass Panel */
+html.light .glass-panel,
+body.light .glass-panel {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .glass-panel-hover:hover,
+body.light .glass-panel-hover:hover {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  box-shadow: 0 12px 24px -8px rgba(99, 102, 241, 0.12) !important;
+}
+
+html.light .glass-card-selected,
+body.light .glass-card-selected {
+  background: rgba(238, 242, 255, 0.9) !important;
+  border-color: rgba(99, 102, 241, 0.6) !important;
+}
+
+/* Light Backgrounds */
+html.light .bg-slate-950,
+body.light .bg-slate-950,
+html.light .bg-slate-900,
+body.light .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-900\/40,
+body.light .bg-slate-900\/90,
+body.light .bg-slate-900\/80,
+body.light .bg-slate-900\/70,
+body.light .bg-slate-900\/60,
+body.light .bg-slate-900\/50,
+body.light .bg-slate-900\/40 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+html.light .bg-slate-800,
+body.light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .bg-slate-800\/90,
+html.light .bg-slate-800\/80,
+html.light .bg-slate-800\/70,
+html.light .bg-slate-800\/60,
+html.light .bg-slate-800\/50,
+body.light .bg-slate-800\/90,
+body.light .bg-slate-800\/80,
+body.light .bg-slate-800\/70,
+body.light .bg-slate-800\/60,
+body.light .bg-slate-800\/50 {
+  background-color: rgba(241, 245, 249, 0.95) !important;
+}
+
+html.light .bg-slate-700,
+body.light .bg-slate-700 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Light Hover States */
+html.light .hover\:bg-slate-900:hover,
+html.light .hover\:bg-slate-900\/80:hover,
+body.light .hover\:bg-slate-900:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .hover\:bg-slate-800:hover,
+html.light .hover\:bg-slate-800\/90:hover,
+body.light .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+}
+
+html.light .hover\:bg-slate-700:hover,
+body.light .hover\:bg-slate-700:hover {
+  background-color: #cbd5e1 !important;
+}
+
+/* Light Borders */
+html.light .border-slate-800,
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/90,
+body.light .border-slate-800,
+body.light .border-slate-800\/80,
+body.light .border-slate-800\/90 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .border-slate-700,
+html.light .border-slate-700\/60,
+html.light .border-slate-700\/50,
+body.light .border-slate-700,
+body.light .border-slate-700\/60,
+body.light .border-slate-700\/50 {
+  border-color: #cbd5e1 !important;
+}
+
+html.light .border-slate-600,
+body.light .border-slate-600 {
+  border-color: #94a3b8 !important;
+}
+
+/* Light Typography */
+html.light .text-slate-100,
+body.light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-200,
+body.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-300,
+body.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400,
+body.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Text white adaptation in light mode */
+html.light .text-white,
+body.light .text-white {
+  color: #0f172a;
+}
+
+/* Preserve White Text on Gradient / Colored Action Buttons & Badges */
+html.light [class*="from-"] *,
+html.light [class*="bg-gradient-"] *,
+html.light [class*="from-"],
+html.light [class*="bg-gradient-"],
+html.light button[class*="from-"] span,
+html.light button[class*="bg-indigo-"] span,
+html.light button[class*="bg-emerald-"] span,
+html.light button[class*="bg-rose-"] span,
+html.light button[class*="bg-amber-"] span,
+html.light .text-white[class*="bg-indigo-"],
+html.light .text-white[class*="bg-emerald-"],
+html.light .text-white[class*="bg-rose-"],
+html.light .text-white[class*="bg-amber-"],
+html.light [class*="bg-indigo-600"] *,
+html.light [class*="bg-emerald-600"] *,
+html.light [class*="bg-rose-600"] *,
+html.light [class*="bg-amber-600"] *,
+body.light [class*="from-"] *,
+body.light [class*="bg-gradient-"] *,
+body.light [class*="from-"],
+body.light [class*="bg-gradient-"] {
+  color: #ffffff !important;
+}
+
+/* Form inputs in light mode */
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html.light textarea,
+html.light select,
+body.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.light textarea,
+body.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder,
+body.light input::placeholder,
+body.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Scrollbar in Light Mode */
+html.light ::-webkit-scrollbar-track,
+body.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+html.light ::-webkit-scrollbar-thumb,
+body.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover,
+body.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
