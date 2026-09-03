@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { LoreGoalsCalculator } from './LoreGoalsCalculator';
 import { LorePharmaciesCRM } from './LorePharmaciesCRM';
+import { useTheme } from '../../context/ThemeContext';
 
 interface LoreAppProps {
   onBack?: () => void;
@@ -28,6 +29,8 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   const { canEditApp } = useAuth();
   const canEdit = canEditApp('lore');
   const toast = useToast();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // Sub-pestañas: Objetivos Drasanvi vs Seguimiento CRM vs Rutas Mapa
   const [activeSubTab, setActiveSubTab] = useState<'goals' | 'crm' | 'routes'>('goals');
@@ -451,25 +454,25 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   return (
     <div className="space-y-6">
       {/* Sub-Navigation Tabs Bar (Cuadro de Mandos Drasanvi vs Mapa Rutas) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md">
+      <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-2xl border backdrop-blur-md ${isLight ? 'bg-white border-pink-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'}`}>
         <div className="flex items-center gap-2">
           {onBack && (
             <button
               onClick={onBack}
               title="Volver a la Plataforma"
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all flex items-center justify-center group"
+              className={`p-2.5 rounded-xl border transition-all flex items-center justify-center group ${isLight ? 'bg-pink-50 hover:bg-pink-100 text-pink-700 border-pink-200' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700'}`}
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             </button>
           )}
 
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-slate-800/80 w-full sm:w-auto">
+          <div className={`flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 rounded-xl border w-full sm:w-auto ${isLight ? 'bg-pink-50/50 border-pink-100' : 'bg-slate-950/60 border-slate-800/80'}`}>
             <button
               onClick={() => setActiveSubTab('goals')}
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSubTab === 'goals'
                   ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : isLight ? 'text-pink-700 hover:text-pink-900 hover:bg-pink-100/50' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               <span>🌸</span>
@@ -481,7 +484,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSubTab === 'crm'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : isLight ? 'text-pink-700 hover:text-pink-900 hover:bg-pink-100/50' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               <span>🏥</span>
@@ -493,7 +496,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSubTab === 'routes'
                   ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : isLight ? 'text-pink-700 hover:text-pink-900 hover:bg-pink-100/50' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               <Navigation className="w-3.5 h-3.5" />
