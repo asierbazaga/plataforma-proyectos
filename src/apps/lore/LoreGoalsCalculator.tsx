@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
+import { useTheme } from '../../context/ThemeContext';
 
 // Tabla oficial de incentivos según imagen R/O MES Drasanvi
 const INCENTIVE_SCALE: { [key: number]: number } = {
@@ -27,6 +28,8 @@ const INCENTIVE_SCALE: { [key: number]: number } = {
 export const LoreGoalsCalculator: React.FC = () => {
   const { canEditApp } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // Función para calcular automáticamente días laborables (Lunes a Viernes) desde hoy hasta fin de mes
   const calculateAutoWorkDays = (): number => {
@@ -169,23 +172,25 @@ export const LoreGoalsCalculator: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Container Principal Drasanvi Style */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[#131B2E] to-[#0B0F19] border border-pink-500/30 p-6 sm:p-8 shadow-2xl space-y-6">
+      <div className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 shadow-2xl space-y-6 ${
+        isLight ? 'bg-gradient-to-br from-pink-50 via-white to-pink-50 border-pink-200' : 'bg-gradient-to-br from-slate-900 via-[#131B2E] to-[#0B0F19] border-pink-500/30'
+      }`}>
         {/* Glow ambient background spots */}
-        <div className="absolute top-0 right-1/4 w-80 h-80 bg-pink-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className={`absolute top-0 right-1/4 w-80 h-80 rounded-full blur-3xl pointer-events-none ${isLight ? 'bg-pink-300/20' : 'bg-pink-500/15'}`} />
+        <div className={`absolute bottom-0 right-0 w-80 h-80 rounded-full blur-3xl pointer-events-none ${isLight ? 'bg-purple-300/20' : 'bg-purple-500/15'}`} />
 
         {/* Title Header */}
-        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-pink-500/20">
+        <div className={`relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b ${isLight ? 'border-pink-200' : 'border-pink-500/20'}`}>
           <div className="flex items-center gap-3.5">
             <span className="text-3xl filter drop-shadow-md">🌸</span>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+              <h1 className={`text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2 ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 <span>Cuadro de Mandos - Lore</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-extrabold text-xl sm:text-2xl">
                   (Drasanvi)
                 </span>
               </h1>
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+              <p className={`text-xs font-medium uppercase tracking-widest mt-0.5 flex items-center gap-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 <Sparkles className="w-3.5 h-3.5 text-pink-400" />
                 Control de Objetivos y Ventas
               </p>
@@ -205,7 +210,7 @@ export const LoreGoalsCalculator: React.FC = () => {
 
         {/* Sub-Header: Control de Objetivos y Ventas */}
         <div className="relative z-10 space-y-4">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <h2 className={`text-base font-bold flex items-center gap-2 ${isLight ? 'text-slate-800' : 'text-white'}`}>
             <span className="text-lg">📊</span>
             <span>Control de Objetivos y Ventas</span>
           </h2>
@@ -214,7 +219,7 @@ export const LoreGoalsCalculator: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Input 1: Objetivo Mensual Total */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+              <label className={`text-xs font-bold flex items-center justify-between ${isLight ? 'text-pink-700' : 'text-slate-300'}`}>
                 <span>Objetivo Mensual Total (€)</span>
               </label>
               <div className="relative">
@@ -227,14 +232,18 @@ export const LoreGoalsCalculator: React.FC = () => {
                     const val = Number(e.target.value) || 0;
                     updateAndSaveGoals({ objetivoMensual: val });
                   }}
-                  className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
+                  className={`w-full font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner border ${
+                    isLight 
+                      ? 'bg-white hover:bg-pink-50 focus:bg-pink-50 border-pink-200 focus:border-pink-400 text-pink-700'
+                      : 'bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border-emerald-500/30 focus:border-emerald-400 text-emerald-300'
+                  }`}
                 />
               </div>
             </div>
 
             {/* Input 2: Venta Realizada Acumulada */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+              <label className={`text-xs font-bold flex items-center justify-between ${isLight ? 'text-pink-700' : 'text-slate-300'}`}>
                 <span>Venta Realizada Acumulada (€)</span>
               </label>
               <div className="relative">
@@ -247,7 +256,11 @@ export const LoreGoalsCalculator: React.FC = () => {
                     const val = Number(e.target.value) || 0;
                     updateAndSaveGoals({ ventaAcumulada: val });
                   }}
-                  className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
+                  className={`w-full font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner border ${
+                    isLight 
+                      ? 'bg-white hover:bg-pink-50 focus:bg-pink-50 border-pink-200 focus:border-pink-400 text-pink-700'
+                      : 'bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border-emerald-500/30 focus:border-emerald-400 text-emerald-300'
+                  }`}
                 />
               </div>
             </div>
@@ -255,7 +268,7 @@ export const LoreGoalsCalculator: React.FC = () => {
             {/* Input 3: Días Laborables Restantes (Calculado Automáticamente) */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <label className={`text-xs font-bold flex items-center gap-1.5 ${isLight ? 'text-pink-700' : 'text-slate-300'}`}>
                   <Calendar className="w-3.5 h-3.5 text-pink-400" />
                   <span>Días Laborables Restantes</span>
                 </label>
@@ -263,7 +276,9 @@ export const LoreGoalsCalculator: React.FC = () => {
                   type="button"
                   onClick={handleRecalculateDays}
                   title="Recalcular días laborales restantes de este mes"
-                  className="text-[10px] font-bold text-pink-400 hover:text-pink-300 flex items-center gap-1 bg-pink-500/10 px-2 py-0.5 rounded-md border border-pink-500/20"
+                  className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md border ${
+                    isLight ? 'text-pink-600 hover:text-pink-700 bg-pink-100 border-pink-200' : 'text-pink-400 hover:text-pink-300 bg-pink-500/10 border-pink-500/20'
+                  }`}
                 >
                   <RefreshCw className="w-2.5 h-2.5" /> Auto: Hoy a fin de mes
                 </button>
@@ -278,7 +293,11 @@ export const LoreGoalsCalculator: React.FC = () => {
                     const val = Math.max(1, Number(e.target.value) || 1);
                     updateAndSaveGoals({ diasLaborablesRestantes: val });
                   }}
-                  className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
+                  className={`w-full font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner border ${
+                    isLight 
+                      ? 'bg-white hover:bg-pink-50 focus:bg-pink-50 border-pink-200 focus:border-pink-400 text-pink-700'
+                      : 'bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border-emerald-500/30 focus:border-emerald-400 text-emerald-300'
+                  }`}
                 />
               </div>
             </div>
@@ -286,7 +305,9 @@ export const LoreGoalsCalculator: React.FC = () => {
 
           {/* Enhanced Progress Bar with 80% Bono and 100% Goal Threshold Markers */}
           <div className="space-y-2 pt-2">
-            <div className="relative w-full h-8 bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-inner flex items-center">
+            <div className={`relative w-full h-8 rounded-2xl border overflow-hidden shadow-inner flex items-center ${
+              isLight ? 'bg-white border-pink-200' : 'bg-slate-900/90 border-slate-800'
+            }`}>
               {/* Active Progress Fill */}
               <div
                 className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 transition-all duration-700 rounded-l-2xl"
@@ -313,30 +334,34 @@ export const LoreGoalsCalculator: React.FC = () => {
           {/* 3 Outcome Cards (Estado Actual, Ritmo para Bono 80%, Ritmo para 100%) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
             {/* Card 1: Estado Actual */}
-            <div className="glass-panel bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center space-y-2 shadow-lg flex flex-col justify-center items-center">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className={`glass-panel border rounded-2xl p-5 text-center space-y-2 shadow-lg flex flex-col justify-center items-center ${
+              isLight ? 'bg-white/80 border-pink-200' : 'bg-slate-900/80 border-slate-800'
+            }`}>
+              <p className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-pink-600' : 'text-slate-400'}`}>
                 Estado Actual
               </p>
 
-              <div className="flex items-center gap-2 text-xl sm:text-2xl font-black text-white">
+              <div className={`flex items-center gap-2 text-xl sm:text-2xl font-black ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 <span>{currentStatus.icon}</span>
                 <span className={currentStatus.color}>{currentStatus.label}</span>
               </div>
 
-              <p className="text-xs font-semibold text-slate-400">
+              <p className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 {currentStatus.subtext}
               </p>
             </div>
 
             {/* Card 2: Ritmo para Bono 80% */}
-            <div className="glass-panel bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center space-y-2 shadow-lg flex flex-col justify-center items-center">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className={`glass-panel border rounded-2xl p-5 text-center space-y-2 shadow-lg flex flex-col justify-center items-center ${
+              isLight ? 'bg-white/80 border-pink-200' : 'bg-slate-900/80 border-slate-800'
+            }`}>
+              <p className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-pink-600' : 'text-slate-400'}`}>
                 Ritmo para Bono 80%
               </p>
 
               <div className="space-y-0.5">
-                <p className="text-[11px] text-slate-400 font-medium">Venta Diaria Necesaria:</p>
-                <p className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Venta Diaria Necesaria:</p>
+                <p className={`text-2xl sm:text-3xl font-black tracking-tight ${isLight ? 'text-slate-800' : 'text-white'}`}>
                   {faltaPara80 <= 0 ? (
                     <span className="text-emerald-400 text-xl font-extrabold flex items-center justify-center gap-1">
                       <CheckCircle2 className="w-5 h-5" /> ¡Conseguido!
@@ -347,22 +372,24 @@ export const LoreGoalsCalculator: React.FC = () => {
                 </p>
               </div>
 
-              <p className="text-xs font-medium text-slate-400">
-                Semanal: <span className="font-bold text-slate-300">
+              <p className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Semanal: <span className={`font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                   {faltaPara80 <= 0 ? '0,00 €' : `${ritmoSemanal80.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
                 </span>
               </p>
             </div>
 
             {/* Card 3: Ritmo para 100% */}
-            <div className="glass-panel bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center space-y-2 shadow-lg flex flex-col justify-center items-center">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className={`glass-panel border rounded-2xl p-5 text-center space-y-2 shadow-lg flex flex-col justify-center items-center ${
+              isLight ? 'bg-white/80 border-pink-200' : 'bg-slate-900/80 border-slate-800'
+            }`}>
+              <p className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-pink-600' : 'text-slate-400'}`}>
                 Ritmo para 100%
               </p>
 
               <div className="space-y-0.5">
-                <p className="text-[11px] text-slate-400 font-medium">Venta Diaria Necesaria:</p>
-                <p className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Venta Diaria Necesaria:</p>
+                <p className={`text-2xl sm:text-3xl font-black tracking-tight ${isLight ? 'text-slate-800' : 'text-white'}`}>
                   {faltaPara100 <= 0 ? (
                     <span className="text-emerald-400 text-xl font-extrabold flex items-center justify-center gap-1">
                       <CheckCircle2 className="w-5 h-5" /> ¡Completado!
@@ -373,8 +400,8 @@ export const LoreGoalsCalculator: React.FC = () => {
                 </p>
               </div>
 
-              <p className="text-xs font-medium text-slate-400">
-                Semanal: <span className="font-bold text-slate-300">
+              <p className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Semanal: <span className={`font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                   {faltaPara100 <= 0 ? '0,00 €' : `${ritmoSemanal100.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
                 </span>
               </p>
@@ -384,17 +411,19 @@ export const LoreGoalsCalculator: React.FC = () => {
       </div>
 
       {/* Sección Información Adicional: Tabla Oficial de Incentivos y Objetivos */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-800">
+      <div className={`glass-panel p-6 sm:p-8 rounded-3xl border space-y-6 shadow-xl ${
+        isLight ? 'bg-white/90 border-pink-200' : 'bg-slate-900/70 border-slate-800'
+      }`}>
+        <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b ${isLight ? 'border-pink-200' : 'border-slate-800'}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
               <ImageIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <h3 className={`text-lg font-bold flex items-center gap-2 ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 <span>Información Adicional: Tabla de Incentivos Drasanvi</span>
               </h3>
-              <p className="text-xs text-slate-400">Escala de bonus por ratio de cumplimiento (R/O Mes)</p>
+              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Escala de bonus por ratio de cumplimiento (R/O Mes)</p>
             </div>
           </div>
 
