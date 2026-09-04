@@ -52,6 +52,7 @@ export interface PharmacyCRMItem {
   direccion?: string;
   cp?: string;
   cif_nif?: string;
+  codigo?: string;
   latitud?: number;
   longitud?: number;
   farmacia_nombre: string;
@@ -298,12 +299,12 @@ export const LorePharmaciesCRM: React.FC = () => {
   const handleExportCSV = () => {
     const list = items.filter(p => activeSection === 'pendientes' ? true : p.category_type === activeSection);
     const headers = [
-      'Sección', 'Provincia', 'Ciudad', 'Dirección', 'CP', 'CIF/NIF', 'Farmacia', 'Contacto', 'Teléfono', 'Decil', 'Ventas Anuales (€)',
+      'Sección', 'Código', 'Provincia', 'Ciudad', 'Dirección', 'CP', 'CIF/NIF', 'Farmacia', 'Contacto', 'Teléfono', 'Decil', 'Ventas Anuales (€)',
       'Última Visita', 'Próxima Acción', 'Fecha Próxima Acción', 'Frecuencia', 'Estado', 'Tendencia', 'Notas'
     ];
 
     const rows = list.map(p => [
-      `"${p.category_type}"`, `"${p.provincia}"`, `"${p.ciudad}"`, `"${p.direccion || ''}"`, `"${p.cp || ''}"`, `"${p.cif_nif || ''}"`, `"${p.farmacia_nombre}"`, `"${p.contacto}"`,
+      `"${p.category_type}"`, `"${p.codigo || ''}"`, `"${p.provincia}"`, `"${p.ciudad}"`, `"${p.direccion || ''}"`, `"${p.cp || ''}"`, `"${p.cif_nif || ''}"`, `"${p.farmacia_nombre}"`, `"${p.contacto}"`,
       `"${p.telefono}"`, `"${p.decil}"`, `"${p.ventas_anuales}"`, `"${p.ultima_visita}"`, `"${p.proxima_accion}"`,
       `"${p.fecha_proxima_accion}"`, `"${p.frecuencia_visita}"`, `"${p.category_type === 'cliente' ? p.estado_cliente : p.estado_prospeccion}"`,
       `"${p.tendencia_compra}"`, `"${p.notas}"`
@@ -344,7 +345,8 @@ export const LorePharmaciesCRM: React.FC = () => {
       
       const idxProvincia = headers.findIndex(h => h.includes('provincia') || h === 'prov');
       const idxCiudad = headers.findIndex(h => h.includes('ciudad') || h.includes('poblacion') || h.includes('población') || h.includes('localidad'));
-      const idxFarmacia = headers.findIndex(h => h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social'));
+      const idxFarmacia = headers.findIndex(h => h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social') || h.includes('customer name') || h === 'name');
+      const idxCodigo = headers.findIndex(h => h === 'codigo' || h === 'código' || h === 'code' || h === 'customer no' || h.includes('código cliente'));
       const idxDecil = headers.findIndex(h => h.includes('decil') || h.includes('clasificacion') || h.includes('clasificación') || h.includes('segmentacion'));
       const idxDireccion = headers.findIndex(h => h.includes('direccion') || h.includes('dirección') || h.includes('calle') || h.includes('domicilio'));
       const idxCP = headers.findIndex(h => h === 'cp' || h.includes('codigo postal') || h.includes('código postal'));
@@ -372,6 +374,7 @@ export const LorePharmaciesCRM: React.FC = () => {
         const colDecil = row[dIdx]?.toString().trim();
         
         // Columnas opcionales extraídas dinámicamente si existen
+        const colCodigo = idxCodigo >= 0 ? row[idxCodigo]?.toString().trim() : '';
         const colDireccion = idxDireccion >= 0 ? row[idxDireccion]?.toString().trim() : '';
         const colCP = idxCP >= 0 ? row[idxCP]?.toString().trim() : '';
         const colCIF = idxCIF >= 0 ? row[idxCIF]?.toString().trim() : '';
@@ -392,6 +395,7 @@ export const LorePharmaciesCRM: React.FC = () => {
           provincia: lastProvincia,
           ciudad: lastCiudad,
           direccion: colDireccion || '',
+          codigo: colCodigo || '',
           cp: colCP || '',
           cif_nif: colCIF || '',
           farmacia_nombre: colFarmacia,
@@ -841,6 +845,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             <thead className="sticky top-0 z-20">
               <tr className="bg-slate-900/95 text-slate-400 border-b border-slate-800 font-bold uppercase tracking-wider text-[11px] shadow-sm backdrop-blur-md">
                 {activeSection === 'pendientes' && <th className="py-3.5 px-3 text-center">Hecho</th>}
+                <th className="py-3.5 px-3 hidden sm:table-cell">Código</th>
                 <th className="py-3.5 px-4">Farmacia</th>
                 <th className="py-3.5 px-3 hidden lg:table-cell">Dirección</th>
                 <th className="py-3.5 px-3 hidden sm:table-cell">Ciudad</th>
@@ -875,6 +880,17 @@ export const LorePharmaciesCRM: React.FC = () => {
                       </button>
                     </td>
                   )}
+
+                  {/* Código */}
+                  <td className="py-3 px-3 whitespace-nowrap hidden sm:table-cell">
+                    <input
+                      type="text"
+                      value={item.codigo || ''}
+                      placeholder="Cod."
+                      onChange={e => handleUpdateField(item.id, 'codigo', e.target.value)}
+                      className="bg-transparent hover:bg-slate-800/80 focus:bg-slate-800 px-2 py-1 rounded-lg text-slate-400 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 w-16 transition-colors"
+                    />
+                  </td>
 
                   {/* Nombre Farmacia (Editable directo) */}
                   <td className="py-3 px-4 font-bold text-white whitespace-nowrap">

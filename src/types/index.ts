@@ -337,6 +337,7 @@ export interface PharmacyCRMItem {
   direccion?: string;
   cp?: string;
   cif_nif?: string;
+  codigo?: string;
   latitud?: number;
   longitud?: number;
   farmacia_nombre: string;
