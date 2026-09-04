@@ -794,7 +794,8 @@ export const LorePharmaciesCRM: React.FC = () => {
               <tr className="bg-slate-900/95 text-slate-400 border-b border-slate-800 font-bold uppercase tracking-wider text-[11px] shadow-sm backdrop-blur-md">
                 {activeSection === 'pendientes' && <th className="py-3.5 px-3 text-center">Hecho</th>}
                 <th className="py-3.5 px-4">Farmacia</th>
-                <th className="py-3.5 px-3 hidden sm:table-cell">Ubicación</th>
+                <th className="py-3.5 px-3 hidden lg:table-cell">Dirección</th>
+                <th className="py-3.5 px-3 hidden sm:table-cell">Ciudad</th>
                 <th className="py-3.5 px-3 hidden md:table-cell">Contacto</th>
                 {activeSection === 'prospeccion' && <th className="py-3.5 px-3 hidden sm:table-cell">Teléfono</th>}
                 <th className="py-3.5 px-3">Decil</th>
@@ -837,11 +838,22 @@ export const LorePharmaciesCRM: React.FC = () => {
                     />
                   </td>
 
+                  {/* Dirección */}
+                  <td className="py-3 px-3 whitespace-nowrap hidden lg:table-cell">
+                    <input
+                      type="text"
+                      value={item.direccion || ''}
+                      placeholder="Dirección..."
+                      onChange={e => handleUpdateField(item.id, 'direccion', e.target.value)}
+                      className="bg-transparent hover:bg-slate-800/80 focus:bg-slate-800 px-2 py-1 rounded-lg text-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 w-32 transition-colors truncate"
+                    />
+                  </td>
+
                   {/* Ciudad */}
                   <td className="py-3 px-3 whitespace-nowrap hidden sm:table-cell">
                     <input
                       type="text"
-                      value={item.ciudad}
+                      value={item.ciudad || ''}
                       onChange={e => handleUpdateField(item.id, 'ciudad', e.target.value)}
                       className="bg-transparent hover:bg-slate-800/80 focus:bg-slate-800 px-2 py-1 rounded-lg text-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 w-24 transition-colors"
                     />
