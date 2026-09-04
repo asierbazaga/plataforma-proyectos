@@ -3,6 +3,7 @@ import {
   X, 
   Sparkles, 
   Upload, 
+  Download,
   CheckCircle2, 
   Briefcase 
 } from 'lucide-react';
@@ -215,7 +216,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
                 </span>
               </div>
               <label className="cursor-pointer text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-950/60 border border-indigo-500/30">
-                <Upload className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5" />
                 <span>{uploadingPdf ? 'Leyendo PDF...' : cvFileName ? `📄 ${cvFileName}` : 'Cargar CV (PDF / TXT)'}</span>
                 <input type="file" accept=".pdf,.txt,.docx,.csv,.json" onChange={handleFileUpload} className="hidden" />
               </label>

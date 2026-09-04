@@ -486,7 +486,7 @@ export const LorePharmaciesCRM: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all shadow-sm"
               title="Importar datos desde Excel"
             >
-              <Upload className="w-4 h-4 text-blue-400" />
+              <Download className="w-4 h-4 text-blue-400" />
               <span>Importar Excel</span>
             </button>
             <button
@@ -494,7 +494,7 @@ export const LorePharmaciesCRM: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all shadow-sm"
               title="Descargar datos actuales en CSV / Excel"
             >
-              <Download className="w-4 h-4 text-emerald-400" />
+              <Upload className="w-4 h-4 text-emerald-400" />
               <span>Exportar Excel</span>
             </button>
             <button

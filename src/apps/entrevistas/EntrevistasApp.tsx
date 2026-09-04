@@ -510,7 +510,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
                       onClick={() => ExcelInterviewService.exportCandidateToExcel(selectedCandidate)}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all"
                     >
-                      <Download className="w-4 h-4" />
+                      <Upload className="w-4 h-4" />
                       <span>Descargar Excel de {selectedCandidate.fullName} (.xlsx)</span>
                     </button>
                   ) : (
@@ -533,7 +533,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
                     onClick={() => ExcelInterviewService.exportAllCandidatesSummary(candidates)}
                     className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 transition-all"
                   >
-                    <Download className="w-4 h-4" />
+                    <Upload className="w-4 h-4" />
                     <span>Descargar Matriz Completa de Candidatos (.xlsx)</span>
                   </button>
                 </div>

@@ -157,7 +157,7 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Importar Excel */}
             <label className="cursor-pointer flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all">
-              <Upload className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5" />
               <span>Importar Excel</span>
               <input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelImport} className="hidden" />
             </label>
