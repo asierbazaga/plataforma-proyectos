@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft, Target, Sparkles, ArrowUp, ArrowDown, Share2 } from 'lucide-react';
+import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft, Target, Sparkles, ArrowUp, ArrowDown, Share2, Zap } from 'lucide-react';
 import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
@@ -394,6 +394,49 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     setRouteClientIds(finalRoute.map(c => c.id));
   };
 
+  // Optimizar ruta manual (Nearest Neighbor TSP)
+  const handleOptimizeCustomRoute = () => {
+    if (routeClientIds.length < 2) return;
+
+    // Obtener los clientes actuales de la ruta
+    const routeClients = routeClientIds.map(id => clientes.find(c => c.id === id)).filter(Boolean) as LoreClient[];
+    if (routeClients.length < 2) return;
+
+    // Buscar el más cercano a la posición actual para usarlo como punto de partida
+    const currentPos = userCoords.lat !== 0 ? userCoords : { lat: 43.3614, lng: -5.8593 };
+    const unvisited = [...routeClients];
+    
+    // El punto de partida será el más cercano a la ubicación del comercial
+    unvisited.sort((a, b) => {
+      return getDistanceInMeters(currentPos.lat, currentPos.lng, a.latitud, a.longitud) - 
+             getDistanceInMeters(currentPos.lat, currentPos.lng, b.latitud, b.longitud);
+    });
+
+    const firstNode = unvisited.shift()!;
+    const finalRoute = [firstNode];
+    
+    let currentMarker = { lat: firstNode.latitud, lng: firstNode.longitud };
+
+    while (unvisited.length > 0) {
+      let nearestIdx = -1;
+      let minDist = Infinity;
+      for (let i = 0; i < unvisited.length; i++) {
+        const dist = getDistanceInMeters(currentMarker.lat, currentMarker.lng, unvisited[i].latitud, unvisited[i].longitud);
+        if (dist < minDist) {
+          minDist = dist;
+          nearestIdx = i;
+        }
+      }
+      if (nearestIdx !== -1) {
+        const nextNode = unvisited.splice(nearestIdx, 1)[0];
+        finalRoute.push(nextNode);
+        currentMarker = { lat: nextNode.latitud, lng: nextNode.longitud };
+      }
+    }
+
+    setRouteClientIds(finalRoute.map(c => c.id));
+  };
+
   // Guardar Ruta
   const handleSaveRoute = async () => {
     if (routeClientIds.length === 0) return;
@@ -533,13 +576,33 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
+              <button
+                onClick={() => setRouteClientIds([])}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all"
+                title="Vaciar ruta actual para empezar de cero"
+              >
+                <Trash2 className="w-4 h-4 text-rose-400" />
+                Limpiar Ruta
+              </button>
+              
+              <button
+                onClick={handleOptimizeCustomRoute}
+                disabled={routeClientIds.length < 2}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all"
+                title="Calcula el camino más corto entre las farmacias que has seleccionado manualmente"
+              >
+                <Zap className="w-4 h-4 text-yellow-400" />
+                Optimizar mi Ruta
+              </button>
+
               <button
                 onClick={generateRecommendedRoute}
                 className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+                title="Generar automáticamente una ruta con farmacias top (D10)"
               >
                 <Award className="w-4 h-4 text-amber-400" />
-                Generar Ruta Recomendada
+                Ruta Automática D10
               </button>
             </div>
           </div>
