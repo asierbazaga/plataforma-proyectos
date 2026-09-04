@@ -96,7 +96,6 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     const cityCounts: Record<string, number> = {};
 
     const mappedClients: LoreClient[] = crmItems
-      .filter(item => item.category_type === 'cliente' || item.category_type === 'prospeccion')
       .map(item => {
         const cityKey = (item.ciudad || '').toLowerCase().trim();
         const baseCoords = getCityBaseCoords(item.ciudad);
@@ -120,10 +119,12 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
           finalLng = isNaN(baseCoords[1] + jitterLng) ? -5.8593 : baseCoords[1] + jitterLng;
         }
 
+        const ct = (item.category_type || '').toLowerCase().trim();
+
         return {
           id: item.id,
           nombre: item.farmacia_nombre,
-          tipo: item.category_type === 'prospeccion' ? 'Prospección' : 'Farmacia',
+          tipo: ct === 'prospeccion' ? 'Prospección' : 'Cliente',
           contacto_nombre: item.contacto || '---',
           direccion: item.direccion ? `${item.direccion}, ${item.ciudad}` : item.ciudad + (item.provincia ? ` (${item.provincia})` : ''),
           latitud: finalLat,
@@ -764,7 +765,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border whitespace-nowrap ${
                               client.tipo === 'Prospección' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                             }`}>
-                              {client.tipo === 'Prospección' ? 'Prospección' : 'Cliente'}
+                              {client.tipo}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border whitespace-nowrap ${
                               client.decil === 'D10' || client.decil === 'D010' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
@@ -871,7 +872,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${
                           client.tipo === 'Prospección' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                         }`}>
-                          {client.tipo === 'Prospección' ? 'Prospección' : 'Cliente'}
+                          {client.tipo}
                         </span>
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${
                           client.decil === 'D10' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
