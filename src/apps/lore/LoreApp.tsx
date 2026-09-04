@@ -648,7 +648,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
               <button
                 onClick={() => { setRouteClientIds([]); setRejectedSubstitutes([]); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all flex-1 sm:flex-none whitespace-nowrap"
                 title="Vaciar ruta actual para empezar de cero"
               >
                 <Trash2 className="w-4 h-4 text-rose-400" />
@@ -658,7 +658,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
               <button
                 onClick={handleOptimizeCustomRoute}
                 disabled={routeClientIds.length < 2}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all flex-1 sm:flex-none whitespace-nowrap"
                 title="Calcula el camino más corto entre las farmacias que has seleccionado manualmente"
               >
                 <Zap className="w-4 h-4 text-yellow-400" />
@@ -667,7 +667,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
               <button
                 onClick={() => { generateRecommendedRoute(); setRejectedSubstitutes([]); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all flex-1 sm:flex-none w-full sm:w-auto whitespace-nowrap"
                 title="Generar automáticamente una ruta con farmacias top (D10)"
               >
                 <Award className="w-4 h-4 text-amber-400" />
@@ -692,9 +692,9 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
           </div>
 
           {/* Active Route Summary Bar */}
-          <div className="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border-l-4 border-l-indigo-500">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400">
+          <div className="glass-panel p-5 rounded-2xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 border-l-4 border-l-indigo-500">
+            <div className="flex items-center gap-4 w-full xl:w-auto">
+              <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 shrink-0">
                 <Route className="w-6 h-6" />
               </div>
               <div>
@@ -706,36 +706,36 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
             </div>
 
             {canEdit && (
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:justify-end">
                 <input
                   type="text"
                   placeholder="Nombre de la Ruta..."
                   value={routeNameInput}
                   onChange={e => setRouteNameInput(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 flex-1 min-w-[140px]"
                 />
                 <button
                   onClick={handleSaveRoute}
                   disabled={routeClientIds.length === 0}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none"
                 >
-                  <Save className="w-4 h-4" /> Guardar Ruta
+                  <Save className="w-4 h-4" /> Guardar
                 </button>
                 <button
                   onClick={handleExportRoute}
                   disabled={routeClientIds.length === 0}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none"
                   title="Copiar texto con la ruta"
                 >
-                  <Share2 className="w-4 h-4" /> Exportar / Copiar
+                  <Share2 className="w-4 h-4" /> Copiar
                 </button>
                 <button
                   onClick={handleOpenInGoogleMaps}
                   disabled={routeClientIds.length === 0}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none w-full sm:w-auto"
                   title="Abrir esta ruta en Google Maps"
                 >
-                  <Map className="w-4 h-4" /> Enviar a Google Maps
+                  <Map className="w-4 h-4" /> Google Maps
                 </button>
               </div>
             )}
