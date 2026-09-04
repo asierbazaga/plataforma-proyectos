@@ -248,12 +248,12 @@ export const LorePharmaciesCRM: React.FC = () => {
   const handleExportCSV = () => {
     const list = items.filter(p => activeSection === 'pendientes' ? true : p.category_type === activeSection);
     const headers = [
-      'Sección', 'Provincia', 'Ciudad', 'Farmacia', 'Contacto', 'Teléfono', 'Decil', 'Ventas Anuales (€)',
+      'Sección', 'Provincia', 'Ciudad', 'Dirección', 'CP', 'CIF/NIF', 'Farmacia', 'Contacto', 'Teléfono', 'Decil', 'Ventas Anuales (€)',
       'Última Visita', 'Próxima Acción', 'Fecha Próxima Acción', 'Frecuencia', 'Estado', 'Tendencia', 'Notas'
     ];
 
     const rows = list.map(p => [
-      `"${p.category_type}"`, `"${p.provincia}"`, `"${p.ciudad}"`, `"${p.farmacia_nombre}"`, `"${p.contacto}"`,
+      `"${p.category_type}"`, `"${p.provincia}"`, `"${p.ciudad}"`, `"${p.direccion || ''}"`, `"${p.cp || ''}"`, `"${p.cif_nif || ''}"`, `"${p.farmacia_nombre}"`, `"${p.contacto}"`,
       `"${p.telefono}"`, `"${p.decil}"`, `"${p.ventas_anuales}"`, `"${p.ultima_visita}"`, `"${p.proxima_accion}"`,
       `"${p.fecha_proxima_accion}"`, `"${p.frecuencia_visita}"`, `"${p.category_type === 'cliente' ? p.estado_cliente : p.estado_prospeccion}"`,
       `"${p.tendencia_compra}"`, `"${p.notas}"`
@@ -282,7 +282,6 @@ export const LorePharmaciesCRM: React.FC = () => {
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      // header: 1 devuelve un array de arrays, sin mapear a objetos por la primera fila
       const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
       
       if (rows.length < 2) {
@@ -290,45 +289,72 @@ export const LorePharmaciesCRM: React.FC = () => {
         return;
       }
 
+      // 1. Deducir columnas a partir de la cabecera
+      const headers = (rows[0] || []).map(h => h?.toString().toLowerCase().trim() || '');
+      
+      const idxProvincia = headers.findIndex(h => h.includes('provincia') || h === 'prov');
+      const idxCiudad = headers.findIndex(h => h.includes('ciudad') || h.includes('poblacion') || h.includes('población') || h.includes('localidad'));
+      const idxFarmacia = headers.findIndex(h => h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social'));
+      const idxDecil = headers.findIndex(h => h.includes('decil') || h.includes('clasificacion') || h.includes('clasificación') || h.includes('segmentacion'));
+      const idxDireccion = headers.findIndex(h => h.includes('direccion') || h.includes('dirección') || h.includes('calle') || h.includes('domicilio'));
+      const idxCP = headers.findIndex(h => h === 'cp' || h.includes('codigo postal') || h.includes('código postal'));
+      const idxCIF = headers.findIndex(h => h.includes('cif') || h.includes('nif') || h.includes('cif/nif'));
+      const idxTelefono = headers.findIndex(h => h.includes('telefono') || h.includes('teléfono') || h.includes('movil') || h.includes('móvil'));
+      const idxContacto = headers.findIndex(h => h.includes('contacto') || h.includes('persona') || h.includes('encargado'));
+
+      // Fallback a posiciones hardcodeadas si no se encuentra en cabecera
+      const pIdx = idxProvincia >= 0 ? idxProvincia : 0;
+      const cIdx = idxCiudad >= 0 ? idxCiudad : 1;
+      const fIdx = idxFarmacia >= 0 ? idxFarmacia : 3;
+      const dIdx = idxDecil >= 0 ? idxDecil : 4;
+
       const newItems: PharmacyCRMItem[] = [];
       let lastProvincia = '';
       let lastCiudad = '';
 
-      // Saltamos la fila 0 asumiendo que son las cabeceras (Provincia, Ciudad, Cliente...)
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
 
-        // A=0, B=1, C=2, D=3, E=4
-        const colProvincia = row[0]?.toString().trim();
-        const colCiudad = row[1]?.toString().trim();
-        // C suele estar oculta, D es el nombre del cliente
-        const colFarmacia = row[3]?.toString().trim();
-        const colDecil = row[4]?.toString().trim();
+        const colProvincia = row[pIdx]?.toString().trim();
+        const colCiudad = row[cIdx]?.toString().trim();
+        const colFarmacia = row[fIdx]?.toString().trim();
+        const colDecil = row[dIdx]?.toString().trim();
+        
+        // Columnas opcionales extraídas dinámicamente si existen
+        const colDireccion = idxDireccion >= 0 ? row[idxDireccion]?.toString().trim() : '';
+        const colCP = idxCP >= 0 ? row[idxCP]?.toString().trim() : '';
+        const colCIF = idxCIF >= 0 ? row[idxCIF]?.toString().trim() : '';
+        const colTelefono = idxTelefono >= 0 ? row[idxTelefono]?.toString().trim() : '';
+        const colContacto = idxContacto >= 0 ? row[idxContacto]?.toString().trim() : '';
 
-        // Si la celda de Provincia o Ciudad no está vacía, actualizamos el "arrastre"
         if (colProvincia) lastProvincia = colProvincia;
         if (colCiudad) lastCiudad = colCiudad;
 
-        // Si no hay nombre de farmacia, ignoramos la fila (puede ser un total o fila vacía)
         if (!colFarmacia) continue;
+
+        // Asignar a la pestaña actual (clientes o prospección)
+        const itemCategory = activeSection === 'prospeccion' ? 'prospeccion' : 'cliente';
 
         newItems.push({
           id: `imported_${Date.now()}_${i}`,
-          category_type: 'cliente',
+          category_type: itemCategory,
           provincia: lastProvincia,
           ciudad: lastCiudad,
+          direccion: colDireccion || '',
+          cp: colCP || '',
+          cif_nif: colCIF || '',
           farmacia_nombre: colFarmacia,
-          contacto: '',
-          telefono: '',
-          decil: colDecil || 'D05',
+          contacto: colContacto || '',
+          telefono: colTelefono || '',
+          decil: colDecil || (itemCategory === 'prospeccion' ? 'D01' : 'D05'),
           ventas_anuales: 0,
           ultima_visita: '',
           proxima_accion: '',
           fecha_proxima_accion: '',
-          frecuencia_visita: '15 días',
+          frecuencia_visita: itemCategory === 'prospeccion' ? '30 días' : '15 días',
           estado_cliente: 'Activo',
-          estado_prospeccion: 'Cliente cerrado',
+          estado_prospeccion: itemCategory === 'prospeccion' ? 'Sin contactar' : 'Cliente cerrado',
           tendencia_compra: 'Estable',
           notas: '',
           le_interesa: '',

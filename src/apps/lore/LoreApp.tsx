@@ -95,7 +95,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     const cityCounts: Record<string, number> = {};
 
     const mappedClients: LoreClient[] = crmItems
-      .filter(item => item.category_type === 'cliente')
+      .filter(item => item.category_type === 'cliente' || item.category_type === 'prospeccion')
       .map(item => {
         const cityKey = (item.ciudad || '').toLowerCase().trim();
         const baseCoords = getCityBaseCoords(item.ciudad);
@@ -122,7 +122,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
         return {
           id: item.id,
           nombre: item.farmacia_nombre,
-          tipo: 'Farmacia',
+          tipo: item.category_type === 'prospeccion' ? 'Prospección' : 'Farmacia',
           contacto_nombre: item.contacto || '---',
           direccion: item.direccion ? `${item.direccion}, ${item.ciudad}` : item.ciudad + (item.provincia ? ` (${item.provincia})` : ''),
           latitud: finalLat,
