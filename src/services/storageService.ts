@@ -1333,32 +1333,44 @@ class StorageService {
       try {
         const { data, error } = await supabase.from('lore_crm_pharmacies').select('*');
         if (!error && data) {
-          const list: PharmacyCRMItem[] = (data as any[]).map(row => ({
-            id: row.id,
-            category_type: row.category_type || 'cliente',
-            provincia: row.provincia || '',
-            ciudad: row.ciudad || '',
-            farmacia_nombre: row.farmacia_nombre || '',
-            contacto: row.contacto || '',
-            telefono: row.telefono || '',
-            decil: row.decil || 'D05',
-            ventas_anuales: Number(row.ventas_anuales) || 0,
-            frecuencia_visita: row.frecuencia_visita || '15 días',
-            ultima_visita: row.ultima_visita || '',
-            proxima_accion: row.proxima_accion || '',
-            fecha_proxima_accion: row.fecha_proxima_accion || '',
-            le_interesa: row.le_interesa || '',
-            no_le_interesa: row.no_le_interesa || '',
-            marcas_competencia: row.marcas_competencia || '',
-            detalles_competencia: row.detalles_competencia || '',
-            estado_cliente: row.estado_cliente || 'Activo',
-            estado_prospeccion: row.estado_prospeccion || 'Sin contactar',
-            tendencia_compra: row.tendencia_compra || 'Estable',
-            prioridad: row.prioridad || 'Media',
-            accion_completada: Boolean(row.accion_completada),
-            notas: row.notas || '',
-            updated_at: row.updated_at
-          }));
+          // Read local to preserve fields not supported by remote schema
+          const local = this.getLocal<PharmacyCRMItem[]>('lore_crm_items', []);
+          const localMap = new Map(local.map(i => [i.id, i]));
+
+          const list: PharmacyCRMItem[] = (data as any[]).map(row => {
+            const localItem = localMap.get(row.id);
+            return {
+              id: row.id,
+              category_type: row.category_type || 'cliente',
+              provincia: row.provincia || '',
+              ciudad: row.ciudad || '',
+              direccion: row.direccion || localItem?.direccion || '',
+              cp: row.cp || localItem?.cp || '',
+              cif_nif: row.cif_nif || localItem?.cif_nif || '',
+              latitud: row.latitud || localItem?.latitud,
+              longitud: row.longitud || localItem?.longitud,
+              farmacia_nombre: row.farmacia_nombre || '',
+              contacto: row.contacto || '',
+              telefono: row.telefono || '',
+              decil: row.decil || 'D05',
+              ventas_anuales: Number(row.ventas_anuales) || 0,
+              frecuencia_visita: row.frecuencia_visita || '15 días',
+              ultima_visita: row.ultima_visita || '',
+              proxima_accion: row.proxima_accion || '',
+              fecha_proxima_accion: row.fecha_proxima_accion || '',
+              le_interesa: row.le_interesa || '',
+              no_le_interesa: row.no_le_interesa || '',
+              marcas_competencia: row.marcas_competencia || '',
+              detalles_competencia: row.detalles_competencia || '',
+              estado_cliente: row.estado_cliente || 'Activo',
+              estado_prospeccion: row.estado_prospeccion || 'Sin contactar',
+              tendencia_compra: row.tendencia_compra || 'Estable',
+              prioridad: row.prioridad || 'Media',
+              accion_completada: Boolean(row.accion_completada),
+              notas: row.notas || '',
+              updated_at: row.updated_at
+            };
+          });
           this.setLocal('lore_crm_items', list);
           return list;
         }
@@ -1372,12 +1384,17 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase && items.length > 0) {
       try {
-        // Strip out fields not in Supabase schema to avoid upsert errors
+        // Ahora que vas a añadir las columnas a Supabase, podemos enviar el objeto completo
         const payload = items.map(item => ({
           id: item.id,
           category_type: item.category_type,
           provincia: item.provincia,
           ciudad: item.ciudad,
+          direccion: item.direccion,
+          cp: item.cp,
+          cif_nif: item.cif_nif,
+          latitud: item.latitud,
+          longitud: item.longitud,
           farmacia_nombre: item.farmacia_nombre,
           contacto: item.contacto,
           telefono: item.telefono,
