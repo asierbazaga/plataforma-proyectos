@@ -340,23 +340,32 @@ export const LorePharmaciesCRM: React.FC = () => {
         return;
       }
 
-      // 1. Deducir columnas a partir de la cabecera
-      const headers = (rows[0] || []).map(h => h?.toString().toLowerCase().trim() || '');
+      // 1. Deducir la fila de cabeceras (puede no ser la primera si hay título en el Excel)
+      let headerRowIdx = 0;
+      for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const rowStr = (rows[i] || []).join(' ').toLowerCase();
+        if (rowStr.includes('customer') || rowStr.includes('nombre') || rowStr.includes('decil') || rowStr.includes('ciudad') || rowStr.includes('provincia')) {
+          headerRowIdx = i;
+          break;
+        }
+      }
+
+      const headers = (rows[headerRowIdx] || []).map(h => h?.toString().toLowerCase().trim() || '');
       
       // Buscar Código primero para que no se confunda con Nombre/Cliente
-      const idxCodigo = headers.findIndex(h => h === 'codigo' || h === 'código' || h === 'code' || h.includes('customer no') || h.includes('código cliente') || h.includes('codigo cliente') || h === 'no' || h === 'id');
+      const idxCodigo = headers.findIndex(h => h === 'codigo' || h === 'código' || h === 'code' || h.includes('customer no') || h.includes('customer_no') || h.includes('código cliente') || h.includes('codigo cliente') || h === 'no' || h === 'no.' || h === 'nº' || h === 'id' || h === 'customer');
       
       // Buscar Farmacia/Nombre, asegurándonos de que no es la columna del código
-      const idxFarmacia = headers.findIndex((h, i) => i !== idxCodigo && (h.includes('customer name') || h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social') || h === 'name'));
+      const idxFarmacia = headers.findIndex((h, i) => i !== idxCodigo && (h.includes('customer name') || h.includes('customer_name') || h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social') || h === 'name'));
 
-      const idxProvincia = headers.findIndex(h => h.includes('provincia') || h === 'prov');
-      const idxCiudad = headers.findIndex(h => h.includes('ciudad') || h.includes('poblacion') || h.includes('población') || h.includes('localidad'));
+      const idxProvincia = headers.findIndex(h => h.includes('provincia') || h === 'prov' || h.includes('state') || h.includes('region'));
+      const idxCiudad = headers.findIndex(h => h.includes('ciudad') || h.includes('poblacion') || h.includes('población') || h.includes('localidad') || h.includes('city'));
       const idxDecil = headers.findIndex(h => h.includes('decil') || h.includes('clasificacion') || h.includes('clasificación') || h.includes('segmentacion'));
-      const idxDireccion = headers.findIndex(h => h.includes('direccion') || h.includes('dirección') || h.includes('calle') || h.includes('domicilio'));
-      const idxCP = headers.findIndex(h => h === 'cp' || h.includes('codigo postal') || h.includes('código postal'));
-      const idxCIF = headers.findIndex(h => h.includes('cif') || h.includes('nif') || h.includes('cif/nif'));
-      const idxTelefono = headers.findIndex(h => h.includes('telefono') || h.includes('teléfono') || h.includes('movil') || h.includes('móvil'));
-      const idxContacto = headers.findIndex(h => h.includes('contacto') || h.includes('persona') || h.includes('encargado'));
+      const idxDireccion = headers.findIndex(h => h.includes('direccion') || h.includes('dirección') || h.includes('calle') || h.includes('domicilio') || h.includes('address'));
+      const idxCP = headers.findIndex(h => h === 'cp' || h.includes('codigo postal') || h.includes('código postal') || h.includes('zip'));
+      const idxCIF = headers.findIndex(h => h.includes('cif') || h.includes('nif') || h.includes('cif/nif') || h.includes('vat'));
+      const idxTelefono = headers.findIndex(h => h.includes('telefono') || h.includes('teléfono') || h.includes('movil') || h.includes('móvil') || h.includes('phone'));
+      const idxContacto = headers.findIndex(h => h.includes('contacto') || h.includes('persona') || h.includes('encargado') || h.includes('contact'));
 
       // Fallback a posiciones si no se encuentra en cabecera
       const pIdx = idxProvincia >= 0 ? idxProvincia : 0;
@@ -374,7 +383,7 @@ export const LorePharmaciesCRM: React.FC = () => {
       let lastProvincia = '';
       let lastCiudad = '';
 
-      for (let i = 1; i < rows.length; i++) {
+      for (let i = headerRowIdx + 1; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
 
