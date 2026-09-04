@@ -352,11 +352,23 @@ export const LorePharmaciesCRM: React.FC = () => {
 
       const headers = (rows[headerRowIdx] || []).map(h => h?.toString().toLowerCase().trim() || '');
       
-      // Buscar Código primero para que no se confunda con Nombre/Cliente
-      const idxCodigo = headers.findIndex(h => h === 'codigo' || h === 'código' || h === 'code' || h.includes('customer no') || h.includes('customer_no') || h.includes('código cliente') || h.includes('codigo cliente') || h === 'no' || h === 'no.' || h === 'nº' || h === 'id' || h === 'customer');
+      // Buscar Código (Customer ID)
+      const idxCodigo = headers.findIndex(h => 
+        h.includes('customer id') || h.includes('codigo') || h.includes('código') || 
+        h.includes('customer no') || h.includes('código cliente') || 
+        h === 'code' || h === 'id' || h === 'nº' || h === 'no' || h === 'no.' || h === 'customer'
+      );
       
-      // Buscar Farmacia/Nombre, asegurándonos de que no es la columna del código
-      const idxFarmacia = headers.findIndex((h, i) => i !== idxCodigo && (h.includes('customer name') || h.includes('customer_name') || h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social') || h === 'name'));
+      // Buscar Farmacia/Nombre, priorizando coincidencias exactas
+      let idxFarmacia = headers.findIndex((h, i) => i !== idxCodigo && (
+        h.includes('cliente - nombre') || h.includes('customer name') || 
+        h.includes('nombre') || h.includes('farmacia') || h.includes('razon social')
+      ));
+      
+      // Fallback si no encontró el nombre
+      if (idxFarmacia === -1) {
+        idxFarmacia = headers.findIndex((h, i) => i !== idxCodigo && (h.includes('cliente') || h === 'name'));
+      }
 
       const idxProvincia = headers.findIndex(h => h.includes('provincia') || h === 'prov' || h.includes('state') || h.includes('region'));
       const idxCiudad = headers.findIndex(h => h.includes('ciudad') || h.includes('poblacion') || h.includes('población') || h.includes('localidad') || h.includes('city'));
@@ -371,13 +383,24 @@ export const LorePharmaciesCRM: React.FC = () => {
       const pIdx = idxProvincia >= 0 ? idxProvincia : 0;
       const cIdx = idxCiudad >= 0 ? idxCiudad : 1;
       
-      // Si no encontramos farmacia, miramos si la columna 3 (o 4) no es el código
+      // Posición lógica para el nombre si todo falla
       let fIdx = idxFarmacia;
       if (fIdx === -1) {
-        fIdx = (idxCodigo !== 3) ? 3 : 4;
+        fIdx = (idxCodigo >= 0 && idxCodigo <= 3) ? (idxCodigo + 1) : 3;
       }
       
-      const dIdx = idxDecil >= 0 ? idxDecil : (idxCodigo !== 4 && fIdx !== 4 ? 4 : 5);
+      // Heurística salvavidas para el Código:
+      // Si no detectamos el encabezado del código, pero sabemos dónde está el Nombre,
+      // casi siempre el código es la columna inmediatamente anterior.
+      let finalIdxCodigo = idxCodigo;
+      if (finalIdxCodigo === -1 && fIdx > 0) {
+        const prevCol = fIdx - 1;
+        if (prevCol !== pIdx && prevCol !== cIdx) {
+          finalIdxCodigo = prevCol;
+        }
+      }
+
+      const dIdx = idxDecil >= 0 ? idxDecil : (finalIdxCodigo !== 4 && fIdx !== 4 ? 4 : 5);
 
       const newItems: PharmacyCRMItem[] = [];
       let lastProvincia = '';
@@ -393,7 +416,7 @@ export const LorePharmaciesCRM: React.FC = () => {
         const colDecil = row[dIdx]?.toString().trim();
         
         // Columnas opcionales extraídas dinámicamente si existen
-        const colCodigo = idxCodigo >= 0 ? row[idxCodigo]?.toString().trim() : '';
+        const colCodigo = finalIdxCodigo >= 0 ? row[finalIdxCodigo]?.toString().trim() : '';
         const colDireccion = idxDireccion >= 0 ? row[idxDireccion]?.toString().trim() : '';
         const colCP = idxCP >= 0 ? row[idxCP]?.toString().trim() : '';
         const colCIF = idxCIF >= 0 ? row[idxCIF]?.toString().trim() : '';
