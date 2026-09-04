@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft, Target, Sparkles, ArrowUp, ArrowDown, Share2, Zap } from 'lucide-react';
+import { Navigation, MapPin, Search, Plus, Award, CheckCircle, ShieldAlert, Footprints, RefreshCw, Phone, Calendar, Save, Trash2, Route, ArrowLeft, Target, Sparkles, ArrowUp, ArrowDown, Share2, Zap, Map } from 'lucide-react';
 import { LoreClient, LoreSavedRoute } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
@@ -518,6 +518,43 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     });
   };
 
+  const handleOpenInGoogleMaps = () => {
+    if (routeClientIds.length === 0) return;
+    
+    const stops = routeClientIds.map(id => clientes.find(c => c.id === id)).filter(Boolean) as LoreClient[];
+    if (stops.length === 0) return;
+
+    let origin = '';
+    let waypoints = '';
+    let destination = '';
+
+    // Considerar origen la ubicación actual del usuario si no es la por defecto de Madrid
+    const hasRealLocation = userCoords.lat !== 0 && userCoords.lat !== 40.4168;
+
+    if (hasRealLocation) {
+      origin = `${userCoords.lat},${userCoords.lng}`;
+      destination = `${stops[stops.length - 1].latitud},${stops[stops.length - 1].longitud}`;
+      const wpStops = stops.slice(0, -1);
+      if (wpStops.length > 0) {
+        waypoints = '&waypoints=' + wpStops.map(s => `${s.latitud},${s.longitud}`).join('|');
+      }
+    } else {
+      origin = `${stops[0].latitud},${stops[0].longitud}`;
+      if (stops.length === 1) {
+        destination = origin;
+      } else {
+        destination = `${stops[stops.length - 1].latitud},${stops[stops.length - 1].longitud}`;
+        const wpStops = stops.slice(1, -1);
+        if (wpStops.length > 0) {
+          waypoints = '&waypoints=' + wpStops.map(s => `${s.latitud},${s.longitud}`).join('|');
+        }
+      }
+    }
+
+    const mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints}`;
+    window.open(mapUrl, '_blank');
+  };
+
   const filteredClientes = clientes.filter(c => {
     const matchesSearch = (c.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
    (c.direccion || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -688,8 +725,17 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                   onClick={handleExportRoute}
                   disabled={routeClientIds.length === 0}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                  title="Copiar texto con la ruta"
                 >
                   <Share2 className="w-4 h-4" /> Exportar / Copiar
+                </button>
+                <button
+                  onClick={handleOpenInGoogleMaps}
+                  disabled={routeClientIds.length === 0}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
+                  title="Abrir esta ruta en Google Maps"
+                >
+                  <Map className="w-4 h-4" /> Enviar a Google Maps
                 </button>
               </div>
             )}
