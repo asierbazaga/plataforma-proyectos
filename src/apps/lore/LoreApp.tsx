@@ -42,6 +42,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
   // Ruta seleccionada actualmente (lista de IDs de clientes en orden)
   const [routeClientIds, setRouteClientIds] = useState<string[]>([]);
+  const [rejectedSubstitutes, setRejectedSubstitutes] = useState<string[]>([]);
   const [savedRoutes, setSavedRoutes] = useState<LoreSavedRoute[]>([]);
   const [routeNameInput, setRouteNameInput] = useState('');
 
@@ -476,10 +477,11 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     const currentClient = clientes.find(c => c.id === currentClientId);
     if (!currentClient) return;
 
-    // Buscar clientes que NO estén ya en la ruta (opcionalmente podríamos filtrar solo por los del mismo decil o similar, pero buscaremos la más cercana global)
-    const availableClients = clientes.filter(c => !routeClientIds.includes(c.id));
+    // Buscar clientes que NO estén ya en la ruta Y que no hayan sido rechazados previamente en esta sesión de sustitución
+    const availableClients = clientes.filter(c => !routeClientIds.includes(c.id) && !rejectedSubstitutes.includes(c.id) && c.id !== currentClientId);
+    
     if (availableClients.length === 0) {
-      alert("No hay más farmacias disponibles para sustituir.");
+      alert("No hay más farmacias nuevas disponibles cerca para sustituir.");
       return;
     }
 
@@ -490,6 +492,9 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     });
 
     const closestSubstitute = availableClients[0];
+
+    // Marcar el actual como rechazado para que no vuelva a aparecer en siguientes sustituciones
+    setRejectedSubstitutes(prev => [...prev, currentClientId]);
 
     // Reemplazar en la ruta manteniendo la misma posición
     const newRoute = [...routeClientIds];
@@ -605,7 +610,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
               <button
-                onClick={() => setRouteClientIds([])}
+                onClick={() => { setRouteClientIds([]); setRejectedSubstitutes([]); }}
                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all"
                 title="Vaciar ruta actual para empezar de cero"
               >
@@ -624,7 +629,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
               </button>
 
               <button
-                onClick={generateRecommendedRoute}
+                onClick={() => { generateRecommendedRoute(); setRejectedSubstitutes([]); }}
                 className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
                 title="Generar automáticamente una ruta con farmacias top (D10)"
               >
