@@ -598,7 +598,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input 
               type="file" 
               accept=".csv, .xlsx, .xls" 
@@ -609,7 +609,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             />
             <button
               onClick={() => document.getElementById('import-excel-input')?.click()}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl border border-white/10 transition-all shadow-sm backdrop-blur-sm"
               title="Importar datos desde Excel"
             >
               <Download className="w-4 h-4 text-blue-400" />
@@ -617,7 +617,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             </button>
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl border border-white/10 transition-all shadow-sm backdrop-blur-sm"
               title="Descargar datos actuales en CSV / Excel"
             >
               <Upload className="w-4 h-4 text-emerald-400" />
@@ -625,7 +625,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             </button>
             <button
               onClick={handleDeleteAllData}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white text-xs font-bold rounded-xl border border-rose-600/20 hover:border-rose-600 transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-bold rounded-xl border border-rose-500/20 transition-all shadow-sm backdrop-blur-sm"
               title="Borrar todos los datos actuales"
             >
               <Trash2 className="w-4 h-4" />
@@ -635,13 +635,13 @@ export const LorePharmaciesCRM: React.FC = () => {
         </div>
 
         {/* Sub-Tabs de Secciones (Clientes vs Prospección vs Pendientes) */}
-        <div className="relative z-10 flex flex-wrap gap-2 pt-2 border-t border-slate-800/80">
+        <div className="relative z-10 flex flex-wrap gap-2 pt-2 border-t border-white/10">
           <button
             onClick={() => setActiveSection('clientes')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
               activeSection === 'clientes'
                 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-                : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
+                : 'bg-white/5 text-white/70 hover:text-white border border-white/10 backdrop-blur-sm hover:bg-white/10'
             }`}
           >
             <UserCheck className="w-4 h-4 text-emerald-300" />
@@ -656,7 +656,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
               activeSection === 'prospeccion'
                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
+                : 'bg-white/5 text-white/70 hover:text-white border border-white/10 backdrop-blur-sm hover:bg-white/10'
             }`}
           >
             <UserPlus className="w-4 h-4 text-purple-300" />
@@ -671,7 +671,7 @@ export const LorePharmaciesCRM: React.FC = () => {
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
               activeSection === 'pendientes'
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
-                : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
+                : 'bg-white/5 text-white/70 hover:text-white border border-white/10 backdrop-blur-sm hover:bg-white/10'
             }`}
           >
             <ListTodo className="w-4 h-4 text-amber-300" />
