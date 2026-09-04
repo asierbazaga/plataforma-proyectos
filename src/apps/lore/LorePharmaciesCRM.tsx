@@ -405,14 +405,14 @@ export const LorePharmaciesCRM: React.FC = () => {
 
       // Filtro por búsqueda
       const matchSearch = 
-        item.farmacia_nombre.toLowerCase().includes(search.toLowerCase()) ||
-        item.contacto.toLowerCase().includes(search.toLowerCase()) ||
-        item.ciudad.toLowerCase().includes(search.toLowerCase()) ||
-        item.telefono.includes(search) ||
-        item.notas.toLowerCase().includes(search.toLowerCase()) ||
-        item.le_interesa.toLowerCase().includes(search.toLowerCase());
+        (item.farmacia_nombre || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.contacto || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.ciudad || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.telefono || '').includes(search) ||
+        (item.notas || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.le_interesa || '').toLowerCase().includes(search.toLowerCase());
 
-      const matchProv = filterProvincia === 'all' || item.provincia.toLowerCase() === filterProvincia.toLowerCase();
+      const matchProv = filterProvincia === 'all' || (item.provincia || '').toLowerCase() === filterProvincia.toLowerCase();
       const matchDecil = filterDecil === 'all' || item.decil === filterDecil;
       const matchTend = filterTendencia === 'all' || item.tendencia_compra === filterTendencia;
 
@@ -421,17 +421,21 @@ export const LorePharmaciesCRM: React.FC = () => {
 
     // Ordenar por Comunidad (Provincia) > Ciudad > Nombre
     return filtered.sort((a, b) => {
-      const provA = a.provincia.toLowerCase();
-      const provB = b.provincia.toLowerCase();
+      const provA = (a.provincia || '').toLowerCase();
+      const provB = (b.provincia || '').toLowerCase();
       if (provA < provB) return -1;
       if (provA > provB) return 1;
 
-      const ciudA = a.ciudad.toLowerCase();
-      const ciudB = b.ciudad.toLowerCase();
+      const ciudA = (a.ciudad || '').toLowerCase();
+      const ciudB = (b.ciudad || '').toLowerCase();
       if (ciudA < ciudB) return -1;
       if (ciudA > ciudB) return 1;
 
-      return a.farmacia_nombre.localeCompare(b.farmacia_nombre);
+      const nomA = (a.farmacia_nombre || '').toLowerCase();
+      const nomB = (b.farmacia_nombre || '').toLowerCase();
+      if (nomA < nomB) return -1;
+      if (nomA > nomB) return 1;
+      return 0;
     });
   }, [items, activeSection, search, filterProvincia, filterDecil, filterTendencia]);
 
