@@ -343,10 +343,14 @@ export const LorePharmaciesCRM: React.FC = () => {
       // 1. Deducir columnas a partir de la cabecera
       const headers = (rows[0] || []).map(h => h?.toString().toLowerCase().trim() || '');
       
+      // Buscar Código primero para que no se confunda con Nombre/Cliente
+      const idxCodigo = headers.findIndex(h => h === 'codigo' || h === 'código' || h === 'code' || h.includes('customer no') || h.includes('código cliente') || h.includes('codigo cliente') || h === 'no' || h === 'id');
+      
+      // Buscar Farmacia/Nombre, asegurándonos de que no es la columna del código
+      const idxFarmacia = headers.findIndex((h, i) => i !== idxCodigo && (h.includes('customer name') || h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social') || h === 'name'));
+
       const idxProvincia = headers.findIndex(h => h.includes('provincia') || h === 'prov');
       const idxCiudad = headers.findIndex(h => h.includes('ciudad') || h.includes('poblacion') || h.includes('población') || h.includes('localidad'));
-      const idxFarmacia = headers.findIndex(h => h.includes('nombre') || h.includes('farmacia') || h.includes('cliente') || h.includes('razon social') || h.includes('razón social') || h.includes('customer name') || h === 'name');
-      const idxCodigo = headers.findIndex(h => h === 'codigo' || h === 'código' || h === 'code' || h === 'customer no' || h.includes('código cliente'));
       const idxDecil = headers.findIndex(h => h.includes('decil') || h.includes('clasificacion') || h.includes('clasificación') || h.includes('segmentacion'));
       const idxDireccion = headers.findIndex(h => h.includes('direccion') || h.includes('dirección') || h.includes('calle') || h.includes('domicilio'));
       const idxCP = headers.findIndex(h => h === 'cp' || h.includes('codigo postal') || h.includes('código postal'));
@@ -354,11 +358,17 @@ export const LorePharmaciesCRM: React.FC = () => {
       const idxTelefono = headers.findIndex(h => h.includes('telefono') || h.includes('teléfono') || h.includes('movil') || h.includes('móvil'));
       const idxContacto = headers.findIndex(h => h.includes('contacto') || h.includes('persona') || h.includes('encargado'));
 
-      // Fallback a posiciones hardcodeadas si no se encuentra en cabecera
+      // Fallback a posiciones si no se encuentra en cabecera
       const pIdx = idxProvincia >= 0 ? idxProvincia : 0;
       const cIdx = idxCiudad >= 0 ? idxCiudad : 1;
-      const fIdx = idxFarmacia >= 0 ? idxFarmacia : 3;
-      const dIdx = idxDecil >= 0 ? idxDecil : 4;
+      
+      // Si no encontramos farmacia, miramos si la columna 3 (o 4) no es el código
+      let fIdx = idxFarmacia;
+      if (fIdx === -1) {
+        fIdx = (idxCodigo !== 3) ? 3 : 4;
+      }
+      
+      const dIdx = idxDecil >= 0 ? idxDecil : (idxCodigo !== 4 && fIdx !== 4 ? 4 : 5);
 
       const newItems: PharmacyCRMItem[] = [];
       let lastProvincia = '';
@@ -1157,13 +1167,23 @@ export const LorePharmaciesCRM: React.FC = () => {
 
                 <div>
                   <label className="text-xs font-semibold text-slate-400">Farmacia / Herbolario *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingItem.farmacia_nombre}
-                    onChange={e => setEditingItem({ ...editingItem, farmacia_nombre: e.target.value })}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white text-xs font-bold focus:outline-none focus:border-emerald-500"
-                  />
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      type="text"
+                      placeholder="Cod."
+                      value={editingItem.codigo || ''}
+                      onChange={e => setEditingItem({ ...editingItem, codigo: e.target.value })}
+                      className="w-1/4 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nombre..."
+                      value={editingItem.farmacia_nombre}
+                      onChange={e => setEditingItem({ ...editingItem, farmacia_nombre: e.target.value })}
+                      className="w-3/4 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white text-xs font-bold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
                 </div>
 
                 <div>
