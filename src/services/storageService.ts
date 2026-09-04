@@ -1369,13 +1369,42 @@ class StorageService {
 
   async setLoreCRMItems(items: PharmacyCRMItem[]): Promise<void> {
     this.setLocal('lore_crm_items', items);
-    this.broadcastChange();
 
     if (isSupabaseConfigured && supabase && items.length > 0) {
       try {
-        await supabase.from('lore_crm_pharmacies').upsert(items);
+        // Strip out fields not in Supabase schema to avoid upsert errors
+        const payload = items.map(item => ({
+          id: item.id,
+          category_type: item.category_type,
+          provincia: item.provincia,
+          ciudad: item.ciudad,
+          farmacia_nombre: item.farmacia_nombre,
+          contacto: item.contacto,
+          telefono: item.telefono,
+          decil: item.decil,
+          ventas_anuales: item.ventas_anuales,
+          frecuencia_visita: item.frecuencia_visita,
+          ultima_visita: item.ultima_visita,
+          proxima_accion: item.proxima_accion,
+          fecha_proxima_accion: item.fecha_proxima_accion,
+          le_interesa: item.le_interesa,
+          no_le_interesa: item.no_le_interesa,
+          marcas_competencia: item.marcas_competencia,
+          detalles_competencia: item.detalles_competencia,
+          estado_cliente: item.estado_cliente,
+          estado_prospeccion: item.estado_prospeccion,
+          tendencia_compra: item.tendencia_compra,
+          prioridad: item.prioridad,
+          accion_completada: item.accion_completada,
+          notas: item.notas,
+          updated_at: item.updated_at
+        }));
+        await supabase.from('lore_crm_pharmacies').upsert(payload);
       } catch (e) {}
     }
+    
+    // Broadcast AFTER upsert so listeners fetching from Supabase get the latest data
+    this.broadcastChange();
   }
 
   async saveLoreCRMItem(item: PharmacyCRMItem): Promise<PharmacyCRMItem> {
@@ -1406,23 +1435,27 @@ class StorageService {
     const current = await this.getLoreCRMItems();
     const updated = current.filter(i => i.id !== id);
     this.setLocal('lore_crm_items', updated);
-    this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('lore_crm_pharmacies').delete().eq('id', id);
       } catch (e) {}
     }
+    
+    this.broadcastChange();
   }
 
   async deleteAllLoreCRMItems(): Promise<void> {
     this.setLocal('lore_crm_items', []);
-    this.broadcastChange();
+    
     if (isSupabaseConfigured && supabase) {
       try {
+        // Delete all rows safely
         await supabase.from('lore_crm_pharmacies').delete().neq('id', '___NON_EXISTENT_ID___');
       } catch (e) {}
     }
+    
+    this.broadcastChange();
   }
 
   async getLoreGoalsConfig(): Promise<LoreGoalsConfig> {
