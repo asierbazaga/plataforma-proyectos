@@ -470,6 +470,33 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     setRouteClientIds(newRoute);
   };
 
+  // Sustituir una farmacia por la más cercana disponible
+  const handleSubstituteClient = (index: number) => {
+    const currentClientId = routeClientIds[index];
+    const currentClient = clientes.find(c => c.id === currentClientId);
+    if (!currentClient) return;
+
+    // Buscar clientes que NO estén ya en la ruta (opcionalmente podríamos filtrar solo por los del mismo decil o similar, pero buscaremos la más cercana global)
+    const availableClients = clientes.filter(c => !routeClientIds.includes(c.id));
+    if (availableClients.length === 0) {
+      alert("No hay más farmacias disponibles para sustituir.");
+      return;
+    }
+
+    // Ordenar los disponibles por cercanía al cliente que vamos a sustituir
+    availableClients.sort((a, b) => {
+      return getDistanceInMeters(currentClient.latitud, currentClient.longitud, a.latitud, a.longitud) - 
+             getDistanceInMeters(currentClient.latitud, currentClient.longitud, b.latitud, b.longitud);
+    });
+
+    const closestSubstitute = availableClients[0];
+
+    // Reemplazar en la ruta manteniendo la misma posición
+    const newRoute = [...routeClientIds];
+    newRoute[index] = closestSubstitute.id;
+    setRouteClientIds(newRoute);
+  };
+
   const handleExportRoute = () => {
     if (routeClientIds.length === 0) return;
     let exportText = `Ruta Comercial - ${new Date().toLocaleDateString()}\n`;
@@ -701,6 +728,13 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleSubstituteClient(index)}
+                          className="p-1.5 mr-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/40 transition-all"
+                          title="Sustituir por la farmacia más cercana"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => moveClientInRoute(index, 'up')}
                           disabled={index === 0}
