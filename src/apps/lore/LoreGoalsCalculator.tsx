@@ -10,7 +10,8 @@ import {
   Calendar,
   Award,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
@@ -53,6 +54,15 @@ export const LoreGoalsCalculator: React.FC = () => {
   const [diasLaborablesRestantes, setDiasLaborablesRestantes] = useState<number>(calculateAutoWorkDays());
   const [incentiveImage, setIncentiveImage] = useState<string>('/tabla-incentivos.png');
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [nuevaVenta, setNuevaVenta] = useState<string>('');
+
+  const handleSumarVenta = () => {
+    const cantidad = Number(nuevaVenta);
+    if (cantidad && !isNaN(cantidad)) {
+      updateAndSaveGoals({ ventaAcumulada: ventaAcumulada + cantidad });
+      setNuevaVenta('');
+    }
+  };
 
   useEffect(() => {
     storageService.getLoreGoalsConfig().then(cfg => {
@@ -222,11 +232,12 @@ export const LoreGoalsCalculator: React.FC = () => {
                   type="number"
                   min="0"
                   step="100"
-                  value={objetivoMensual}
+                  value={objetivoMensual === 0 ? '' : objetivoMensual}
                   onChange={(e) => {
-                    const val = Number(e.target.value) || 0;
+                    const val = e.target.value === '' ? 0 : Number(e.target.value);
                     updateAndSaveGoals({ objetivoMensual: val });
                   }}
+                  placeholder="0"
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
                 />
               </div>
@@ -237,18 +248,36 @@ export const LoreGoalsCalculator: React.FC = () => {
               <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
                 <span>Venta Realizada Acumulada (€)</span>
               </label>
-              <div className="relative">
+              <div className="flex flex-col gap-2">
                 <input
                   type="number"
                   min="0"
                   step="10"
-                  value={ventaAcumulada}
+                  value={ventaAcumulada === 0 ? '' : ventaAcumulada}
                   onChange={(e) => {
-                    const val = Number(e.target.value) || 0;
+                    const val = e.target.value === '' ? 0 : Number(e.target.value);
                     updateAndSaveGoals({ ventaAcumulada: val });
                   }}
+                  placeholder="0"
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
                 />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    placeholder="+ Sumar venta"
+                    value={nuevaVenta}
+                    onChange={(e) => setNuevaVenta(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSumarVenta()}
+                    className="w-full bg-[#1A2E35]/40 hover:bg-[#1A2E35]/60 focus:bg-[#1A2E35]/80 border border-emerald-500/20 focus:border-emerald-400 text-emerald-300 font-bold text-sm rounded-xl px-3 py-2 focus:outline-none transition-all"
+                  />
+                  <button
+                    onClick={handleSumarVenta}
+                    className="bg-emerald-600/80 hover:bg-emerald-500 text-white p-2 rounded-xl transition-all flex-shrink-0"
+                    title="Sumar al total"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
 
