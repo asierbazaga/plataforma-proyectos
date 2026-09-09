@@ -271,6 +271,13 @@ export interface CategoryBudget {
   color?: string;
 }
 
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
 export type MediaType = 'book' | 'game' | 'movie' | 'series';
 export type MediaStatus = 'in_progress' | 'completed' | 'wishlist' | 'abandoned';
 

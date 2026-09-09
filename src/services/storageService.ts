@@ -9,6 +9,7 @@ import {
   BodyProgressEntry,
   PolarGritMetrics,
   ExpenseItem,
+  ExpenseCategory,
   SavingsGoal,
   CategoryBudget,
   LibraryItem,
@@ -100,7 +101,20 @@ const DEFAULT_CATEGORY_BUDGETS: CategoryBudget[] = [
   { category: 'Servicios / Suministros', monthly_limit: 120, icon: '⚡', color: '#06B6D4' },
   { category: 'Tecnología', monthly_limit: 100, icon: '💻', color: '#8B5CF6' },
   { category: 'Salud & Bienestar', monthly_limit: 80, icon: '💊', color: '#14B8A6' },
+  { category: 'Ahorro/Común', monthly_limit: 500, icon: '💰', color: '#3B82F6' },
   { category: 'Otros', monthly_limit: 100, icon: '📦', color: '#64748B' }
+];
+
+const DEFAULT_EXPENSE_CATEGORIES: ExpenseCategory[] = [
+  { id: 'cat-1', name: 'Alimentación', icon: '🛒', color: '#10B981' },
+  { id: 'cat-2', name: 'Hogar / Alquiler', icon: '🏠', color: '#6366F1' },
+  { id: 'cat-3', name: 'Transporte / Gasolina', icon: '🚗', color: '#F59E0B' },
+  { id: 'cat-4', name: 'Ocio & Restaurantes', icon: '🍿', color: '#EC4899' },
+  { id: 'cat-5', name: 'Servicios / Suministros', icon: '⚡', color: '#06B6D4' },
+  { id: 'cat-6', name: 'Tecnología', icon: '💻', color: '#8B5CF6' },
+  { id: 'cat-7', name: 'Salud & Bienestar', icon: '💊', color: '#14B8A6' },
+  { id: 'cat-8', name: 'Ahorro/Común', icon: '💰', color: '#3B82F6' },
+  { id: 'cat-9', name: 'Otros', icon: '📦', color: '#64748B' }
 ];
 
 const DEFAULT_LORE_GOALS: LoreGoalsConfig = {
@@ -811,6 +825,57 @@ class StorageService {
           monthly_limit: Number(monthlyLimit) || 0,
           updated_at: new Date().toISOString()
         }, { onConflict: 'category' });
+      } catch (e) {}
+    }
+  }
+  async getGlobalExpenseCategories(): Promise<ExpenseCategory[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('expense_categories').select('*').order('name', { ascending: true });
+        if (!error && data && data.length > 0) {
+          this.setLocal('global_expense_categories', data);
+          return data;
+        }
+      } catch (e) {}
+    }
+    return this.getLocal<ExpenseCategory[]>('global_expense_categories', DEFAULT_EXPENSE_CATEGORIES);
+  }
+
+  async addGlobalExpenseCategory(cat: Omit<ExpenseCategory, 'id'>): Promise<ExpenseCategory> {
+    const item: ExpenseCategory = { ...cat, id: generateId('cat') };
+    const current = await this.getGlobalExpenseCategories();
+    this.setLocal('global_expense_categories', [...current, item]);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('expense_categories').insert(item);
+      } catch (e) {}
+    }
+    return item;
+  }
+
+  async updateGlobalExpenseCategory(id: string, updates: Partial<ExpenseCategory>): Promise<void> {
+    const current = await this.getGlobalExpenseCategories();
+    const updated = current.map(c => c.id === id ? { ...c, ...updates } : c);
+    this.setLocal('global_expense_categories', updated);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('expense_categories').update(updates).eq('id', id);
+      } catch (e) {}
+    }
+  }
+
+  async deleteGlobalExpenseCategory(id: string): Promise<void> {
+    const current = await this.getGlobalExpenseCategories();
+    this.setLocal('global_expense_categories', current.filter(c => c.id !== id));
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('expense_categories').delete().eq('id', id);
       } catch (e) {}
     }
   }

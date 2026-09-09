@@ -30,6 +30,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { AppId, Role, UserProfile, UserStatus } from '../types';
+import { GlobalExpenseCategoriesManager } from './GlobalExpenseCategoriesManager';
 
 interface UserManagementProps {
   onBack?: () => void;
@@ -727,6 +728,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           </table>
         </div>
       </div>
+
+      <GlobalExpenseCategoriesManager />
 
       {/* MODAL CREAR USUARIO */}
       {showAddModal && (

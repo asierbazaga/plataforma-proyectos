@@ -35,7 +35,7 @@ import {
   Award,
   X
 } from 'lucide-react';
-import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount, WalletConfig } from '../../types';
+import { ExpenseItem, SavingsGoal, CategoryBudget, WalletAccount, WalletConfig, ExpenseCategory } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -90,6 +90,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
 
   // Modales
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -121,16 +122,18 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
   const loadData = async () => {
     const userId = currentUser?.id;
-    const [cfg, list, goalsList, budgetsList] = await Promise.all([
+    const [cfg, list, goalsList, budgetsList, globalCats] = await Promise.all([
       storageService.getWalletConfig(userId),
       storageService.getExpenses(userId),
       storageService.getSavingsGoals(userId),
-      storageService.getCategoryBudgets(userId)
+      storageService.getCategoryBudgets(userId),
+      storageService.getGlobalExpenseCategories()
     ]);
     setWalletConfig(cfg);
     setExpenses(list);
     setGoals(goalsList);
     setBudgets(budgetsList);
+    setCategories(globalCats);
 
     // Si es un usuario nuevo y no ha configurado sus cuentas ni tiene gastos, lanzar onboarding
     if (!cfg.onboarding_completed && list.length === 0) {
@@ -438,10 +441,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     const onlyExpenses = filteredExpenses.filter(e => e.type === 'expense');
     const totalExpenseSum = onlyExpenses.reduce((acc, c) => acc + c.amount, 0);
 
-    const breakdown = Object.keys(CATEGORY_META).map(catName => {
+    const breakdown = categories.map(cat => {
+      const catName = cat.name;
       const catTotal = onlyExpenses.filter(e => e.category === catName).reduce((acc, c) => acc + c.amount, 0);
       const catPct = totalExpenseSum > 0 ? (catTotal / totalExpenseSum) * 100 : 0;
-      const meta = CATEGORY_META[catName] || { icon: '📦', color: '#64748B' };
+      const meta = { icon: cat.icon, color: cat.color };
       const budgetObj = budgets.find(b => b.category === catName);
       const monthlyLimit = budgetObj ? budgetObj.monthly_limit : 200;
       const budgetConsumedPct = monthlyLimit > 0 ? (catTotal / monthlyLimit) * 100 : 0;
@@ -1732,15 +1736,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                       onChange={e => setCategory(e.target.value)}
                       className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 sm:py-2 text-white focus:outline-none focus:border-emerald-500 text-xs sm:text-sm"
                     >
-                      <option value="Alimentación">Alimentación</option>
-                      <option value="Hogar / Alquiler">Hogar / Alquiler</option>
-                      <option value="Transporte / Gasolina">Transporte</option>
-                      <option value="Ocio & Restaurantes">Ocio</option>
-                      <option value="Servicios / Suministros">Servicios</option>
-                      <option value="Tecnología">Tecnología</option>
-                      <option value="Salud & Bienestar">Salud</option>
-                      <option value="Ahorro/Común">Ahorro</option>
-                      <option value="Otros">Otros</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
