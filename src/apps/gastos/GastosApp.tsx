@@ -144,10 +144,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    loadData();
-    storageService.syncFromCloud().then(() => {
-      loadData();
-    });
+    loadData(); // Carga inicial
+
+    // syncFromCloud ya notifica a los suscriptores (incluyendo este onSync)
+    storageService.syncFromCloud().catch(() => {});
 
     const unsubscribe = storageService.onSync(() => {
       loadData();

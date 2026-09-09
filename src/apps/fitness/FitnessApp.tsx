@@ -91,9 +91,7 @@ export const FitnessApp: React.FC<FitnessAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     loadAllFitnessData();
-    storageService.syncFromCloud().then(() => {
-      loadAllFitnessData();
-    });
+    storageService.syncFromCloud().catch(() => {});
 
     const unsubscribe = storageService.onSync(() => {
       loadAllFitnessData();

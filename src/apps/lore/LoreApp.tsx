@@ -146,10 +146,8 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   };
 
   useEffect(() => {
-    loadData();
-    storageService.syncFromCloud().then(() => {
-      loadData();
-    });
+    loadData(); // Carga inicial
+    storageService.syncFromCloud().catch(() => {}); // Notifica a los suscriptores
 
     const unsubscribe = storageService.onSync(() => {
       loadData();

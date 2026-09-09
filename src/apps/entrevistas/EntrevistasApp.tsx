@@ -66,9 +66,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     loadCandidates(false);
-    storageService.syncFromCloud().then(() => {
-      loadCandidates(true);
-    });
+    storageService.syncFromCloud().catch(() => {});
 
     // Eliminamos el listener onSync localmente para evitar que se pisen los datos al escribir (race condition)
     // El optimistic UI ya mantiene la vista actualizada.

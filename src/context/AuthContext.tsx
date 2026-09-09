@@ -68,9 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     refreshData();
-    storageService.syncFromCloud().then(() => {
-      refreshData();
-    });
+    storageService.syncFromCloud().catch(() => {});
 
     const unsubscribe = storageService.onSync(() => {
       refreshData();

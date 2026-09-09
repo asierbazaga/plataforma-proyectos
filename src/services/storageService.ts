@@ -162,9 +162,6 @@ class StorageService {
         try { supabase.removeChannel(this.realtimeChannel); } catch (e) {}
       }
       this.realtimeChannel = supabase.channel('plataforma-realtime-global')
-        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-          this.notifySubscribers();
-        })
         .on('broadcast', { event: 'data_changed' }, () => {
           this.notifySubscribers();
         })

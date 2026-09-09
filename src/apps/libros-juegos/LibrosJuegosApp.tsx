@@ -93,9 +93,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     loadData();
-    storageService.syncFromCloud().then(() => {
-      loadData();
-    });
+    storageService.syncFromCloud().catch(() => {});
 
     const unsubscribe = storageService.onSync(() => {
       loadData();
