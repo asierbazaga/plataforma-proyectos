@@ -93,6 +93,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
   // Modales
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
 
@@ -207,7 +208,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     await loadData();
   };
 
-  // Guardar nueva transacción
+  // Guardar nueva transacción o actualizar existente
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawVal = String(amount).replace(',', '.');
@@ -220,26 +221,61 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     const finalDescription = description.trim() || (type === 'expense' ? 'Gasto' : 'Ingreso');
 
     try {
-      const saved = await storageService.addExpense({
-        description: finalDescription,
-        amount: parsedAmount,
-        type,
-        category,
-        account: transactionAccount,
-        transaction_date: new Date().toISOString().split('T')[0]
-      }, currentUser?.id);
+      if (editingExpense) {
+        const saved = await storageService.updateExpense(editingExpense.id, {
+          description: finalDescription,
+          amount: parsedAmount,
+          type,
+          category,
+          account: transactionAccount,
+        }, currentUser?.id);
+        
+        if (saved) {
+           setExpenses(prev => prev.map(x => x.id === saved.id ? saved : x));
+           toast.success('Movimiento actualizado exitosamente');
+        }
+      } else {
+        const saved = await storageService.addExpense({
+          description: finalDescription,
+          amount: parsedAmount,
+          type,
+          category,
+          account: transactionAccount,
+          transaction_date: new Date().toISOString().split('T')[0]
+        }, currentUser?.id);
 
-      // Actualización inmediata optimista en el estado de React
-      setExpenses(prev => [saved, ...prev.filter(x => x.id !== saved.id)]);
+        setExpenses(prev => [saved, ...prev.filter(x => x.id !== saved.id)]);
+        toast.success('Movimiento registrado exitosamente');
+      }
 
       setDescription('');
       setAmount('');
       setShowTransactionModal(false);
-      toast.success('Movimiento registrado exitosamente');
+      setEditingExpense(null);
       await loadData();
     } catch (e: any) {
       toast.error('Error al guardar movimiento');
     }
+  };
+
+  const handleOpenAddTransaction = () => {
+    setEditingExpense(null);
+    setDescription('');
+    setAmount('');
+    setType('expense');
+    setCategory('Alimentación');
+    setTransactionAccount('abanca');
+    setShowTransactionModal(true);
+  };
+
+  const handleOpenEditTransaction = (expense: ExpenseItem) => {
+    setEditingExpense(expense);
+    setDescription(expense.description);
+    setAmount(expense.amount);
+    setType(expense.type);
+    setCategory(expense.category);
+    setTransactionAccount(expense.account || 'abanca');
+    setShowTransactionModal(true);
   };
 
   // Eliminar transacción individual
@@ -559,7 +595,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </button>
 
             <button
-              onClick={() => setShowTransactionModal(true)}
+              onClick={handleOpenAddTransaction}
               className="py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5 active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -869,12 +905,20 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         {isIncome ? '+' : '-'}{item.amount.toFixed(2)} €
                       </p>
                       {canEdit && (
-                        <button
-                          onClick={() => handleDeleteTransaction(item.id)}
-                          className="p-1 text-slate-600 hover:text-rose-400 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenEditTransaction(item)}
+                            className="p-1 text-slate-600 hover:text-indigo-400 transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTransaction(item.id)}
+                            className="p-1 text-slate-600 hover:text-rose-400 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -964,13 +1008,22 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           {/* Acciones */}
                           {canEdit && (
                             <td className="py-3 px-4 text-center">
-                              <button
-                                onClick={() => handleDeleteTransaction(item.id)}
-                                title="Eliminar transacción"
-                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                                <button
+                                  onClick={() => handleOpenEditTransaction(item)}
+                                  title="Editar transacción"
+                                  className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTransaction(item.id)}
+                                  title="Eliminar transacción"
+                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </td>
                           )}
                         </tr>
@@ -1570,8 +1623,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 flex-shrink-0">
               <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-                <span>Registrar Movimiento</span>
+                {editingExpense ? <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />}
+                <span>{editingExpense ? 'Editar Movimiento' : 'Registrar Movimiento'}</span>
               </h3>
               <button
                 type="button"

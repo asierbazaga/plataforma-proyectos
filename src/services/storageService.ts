@@ -657,6 +657,37 @@ class StorageService {
     }
   }
 
+  async updateExpense(id: string, updates: Partial<ExpenseItem>, userId?: string): Promise<ExpenseItem | null> {
+    const current = this.getLocal<ExpenseItem[]>('expenses', []);
+    const idx = current.findIndex(e => e.id === id);
+    if (idx === -1) return null;
+
+    const item = { ...current[idx], ...updates };
+    if (userId) item.user_id = userId;
+    item.amount = Number(item.amount) || 0;
+    
+    current[idx] = item;
+    this.setLocal('expenses', current);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('expenses').upsert({
+          id: item.id,
+          user_id: item.user_id,
+          description: item.description,
+          amount: item.amount,
+          type: item.type,
+          category: item.category,
+          account: item.account || 'abanca',
+          transaction_date: item.transaction_date || new Date().toISOString().split('T')[0]
+        });
+      } catch (e) {}
+    }
+    
+    this.broadcastChange();
+    return item;
+  }
+
   async clearAllExpenses(userId?: string): Promise<void> {
     this.setLocal('expenses', []);
     this.broadcastChange();
