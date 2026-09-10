@@ -29,6 +29,7 @@ interface LiveInterviewViewProps {
   onGoToResultado: () => void;
   onBackToList: () => void;
   rubrics: MecaluxCompetencyRubric[];
+  onSaveRubrics?: (rubrics: MecaluxCompetencyRubric[]) => void;
 }
 
 // Componente externo ultra-estable: guarda solo al perder el foco (onBlur)
@@ -67,7 +68,8 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   onUpdateCandidate,
   onGoToResultado,
   onBackToList,
-  rubrics
+  rubrics,
+  onSaveRubrics
 }) => {
   const toast = useToast();
   const [activeSection, setActiveSection] = useState<MecaluxCompetencySection>('Competencias Profesionales');
@@ -79,6 +81,28 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   const [notes, setNotes] = useState<string>(candidate.interviewNotes || '');
   const [manualAiPromptOpen, setManualAiPromptOpen] = useState<boolean>(false);
   const [manualAiResponse, setManualAiResponse] = useState<string>('');
+
+  const [newDynamicQuestion, setNewDynamicQuestion] = useState('');
+
+  const handleAddDynamicQuestion = () => {
+    if (!newDynamicQuestion.trim() || !onSaveRubrics) return;
+    const newRubric: MecaluxCompetencyRubric = {
+      id: `custom_dyn_${Date.now()}`,
+      section: 'Preguntas Dinámicas',
+      nombre: newDynamicQuestion.trim(),
+      criterios: {
+        inexistente: '',
+        pobre: '',
+        bueno: '',
+        fuerte: ''
+      },
+      disparadores: []
+    };
+    onSaveRubrics([...rubrics, newRubric]);
+    setNewDynamicQuestion('');
+    setExpandedRubrics(prev => ({ ...prev, [newRubric.id]: true }));
+    toast.success('Pregunta añadida');
+  };
 
   const handleNotesChange = (val: string) => {
     setNotes(val);
@@ -663,6 +687,33 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
           );
         })}
       </div>
+
+        {activeSection === 'Preguntas Dinámicas' && onSaveRubrics && (
+          <div className="rounded-3xl bg-slate-900/80 border border-slate-800 border-dashed p-5 space-y-3">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Añadir pregunta dinámica personalizada
+            </p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <input
+                type="text"
+                value={newDynamicQuestion}
+                onChange={(e) => setNewDynamicQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddDynamicQuestion();
+                }}
+                placeholder="Escribe tu propia pregunta (ej. ¿Cómo lidias con deuda técnica en proyectos legacy?)"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                onClick={handleAddDynamicQuestion}
+                disabled={!newDynamicQuestion.trim()}
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all whitespace-nowrap"
+              >
+                Añadir Pregunta
+              </button>
+            </div>
+          </div>
+        )}
 
       {/* Barra Inferior Flotante de Navegación de Secciones */}
       <div className="sticky bottom-4 z-30 p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-800 flex items-center justify-between shadow-2xl">

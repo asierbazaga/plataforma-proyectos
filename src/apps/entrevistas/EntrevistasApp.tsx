@@ -352,6 +352,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
           onGoToResultado={() => setActiveTab('resultado')}
           onBackToList={() => setActiveTab('candidates')}
           rubrics={rubrics}
+          onSaveRubrics={handleSaveRubrics}
         />
       )}
 
