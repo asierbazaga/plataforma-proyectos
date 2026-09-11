@@ -252,6 +252,11 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
                     }`}>
                       {candidate.resultadoFinal.decision || 'Pendiente'}
                     </span>
+                    {candidate.resultadoFinal.resolucionReal && (
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/30" title="Resolución Real">
+                        🎯 {candidate.resultadoFinal.resolucionReal}
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-xs font-medium text-slate-300">

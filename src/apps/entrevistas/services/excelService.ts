@@ -148,6 +148,7 @@ export class ExcelInterviewService {
     rows.push([]);
     rows.push(['DICTAMEN Y CONCLUSIÓN FINAL DEL TEAM LEADER', '', '', '']);
     rows.push(['Decisión Final:', candidate.resultadoFinal.decision]);
+    rows.push(['Resolución Real (Post-Entrevista):', candidate.resultadoFinal.resolucionReal || 'N/A']);
     rows.push(['Puntuación Global:', `${candidate.resultadoFinal.puntuacionGlobal}%`]);
     rows.push(['Salario Sugerido Mecalux:', candidate.resultadoFinal.salarioRecomendadoEur ? `${candidate.resultadoFinal.salarioRecomendadoEur} €` : 'N/A']);
     rows.push([]);
@@ -198,6 +199,7 @@ export class ExcelInterviewService {
       'Fecha',
       'Puntuación Global',
       'Decisión Final',
+      'Resolución Real',
       'Salario Pretendido',
       'Salario Recomendado',
       'Estado'
@@ -211,6 +213,7 @@ export class ExcelInterviewService {
         c.interviewDate,
         `${c.resultadoFinal.puntuacionGlobal}%`,
         c.resultadoFinal.decision,
+        c.resultadoFinal.resolucionReal || 'N/A',
         c.expectedSalaryEur ? `${c.expectedSalaryEur} €` : 'N/A',
         c.resultadoFinal.salarioRecomendadoEur ? `${c.resultadoFinal.salarioRecomendadoEur} €` : 'N/A',
         c.status
@@ -224,6 +227,7 @@ export class ExcelInterviewService {
       { wch: 14 },
       { wch: 14 },
       { wch: 18 },
+      { wch: 24 },
       { wch: 24 },
       { wch: 20 },
       { wch: 20 },

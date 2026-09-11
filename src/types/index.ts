@@ -436,6 +436,7 @@ export interface CandidateInterview {
     puntosAMejorar: string[];
     conclusionesTeamLeader: string;
     salarioRecomendadoEur?: number;
+    resolucionReal?: string; // e.g. "Candidato rechaza oferta", "Contratado", etc.
   };
   createdAt: string;
   updatedAt: string;

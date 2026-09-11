@@ -72,6 +72,18 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
     onUpdateCandidate(updated);
   };
 
+  const handleResolucionRealChange = (text: string) => {
+    const updated: CandidateInterview = {
+      ...candidate,
+      resultadoFinal: {
+        ...candidate.resultadoFinal,
+        resolucionReal: text
+      },
+      updatedAt: new Date().toISOString()
+    };
+    onUpdateCandidate(updated);
+  };
+
   const handleSalaryRecommendationChange = (eur: number) => {
     const updated: CandidateInterview = {
       ...candidate,
@@ -389,6 +401,25 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
           value={candidate.resultadoFinal.conclusionesTeamLeader || ''}
           onChange={(e) => handleConclusionesChange(e.target.value)}
           placeholder="Escribe el resumen ejecutivo de la entrevista, impresiones personales, encaje con el equipo de Mecalux y recomendación..."
+          className="w-full rounded-2xl bg-slate-950 border border-slate-800 p-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-y"
+        />
+      </div>
+
+      {/* Resolución Real del Proceso (Post-Entrevista) */}
+      <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 space-y-3 border-l-4 border-l-indigo-500">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-black text-white uppercase tracking-wider">
+            Resolución Real del Proceso (Post-Entrevista):
+          </label>
+          <span className="text-[11px] text-slate-400">
+            ¿Qué ocurrió al final? (ej. Rechaza oferta, Contratado, etc.)
+          </span>
+        </div>
+        <textarea
+          rows={3}
+          value={candidate.resultadoFinal.resolucionReal || ''}
+          onChange={(e) => handleResolucionRealChange(e.target.value)}
+          placeholder="Anota aquí qué pasó finalmente (ej: Le pasamos oferta y la rechazó por contraoferta de su empresa)..."
           className="w-full rounded-2xl bg-slate-950 border border-slate-800 p-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-y"
         />
       </div>
