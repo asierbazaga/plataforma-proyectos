@@ -45,33 +45,33 @@ export const Bookshelf: React.FC<BookshelfProps> = ({ items, canEdit, onEdit, on
   };
 
   return (
-    <div className="bg-[#601920] rounded-t-lg rounded-b-sm border-x-[16px] border-t-[16px] border-[#3D0C10] shadow-2xl max-w-5xl mx-auto overflow-hidden relative">
+    <div className="bg-[#601920] rounded-t-lg rounded-b-sm border-x-[8px] sm:border-x-[16px] border-t-[8px] sm:border-t-[16px] border-[#3D0C10] shadow-2xl max-w-5xl mx-auto overflow-hidden relative">
       {/* Top Banner inside shelf */}
-      <div className="absolute top-2 left-4 z-10 flex items-center gap-2">
-         <span className="text-amber-500/80 font-bold text-sm bg-black/40 px-2 py-0.5 rounded-md backdrop-blur-sm border border-white/5">
+      <div className="absolute top-2 left-2 sm:left-4 z-10 flex items-center gap-2">
+         <span className="text-amber-500/80 font-bold text-xs sm:text-sm bg-black/40 px-2 py-0.5 rounded-md backdrop-blur-sm border border-white/5">
            {items.length} libros expuestos
          </span>
       </div>
 
-      <div className="flex flex-col pt-12">
+      <div className="flex flex-col pt-8 sm:pt-12">
         {shelves.map((shelf, idx) => (
           <div 
             key={idx} 
-            className="relative w-full min-h-[240px] flex items-end justify-center sm:justify-start gap-4 sm:gap-8 px-8 pb-[18px] border-b-[20px] border-[#3D0C10] relative"
+            className="relative w-full min-h-[190px] sm:min-h-[240px] flex items-end justify-center sm:justify-start gap-3 sm:gap-8 px-3 sm:px-8 pb-[14px] sm:pb-[18px] border-b-[14px] sm:border-b-[20px] border-[#3D0C10]"
             style={{ 
               boxShadow: 'inset 0 -15px 30px rgba(0,0,0,0.6), 0 5px 15px rgba(0,0,0,0.7)',
             }}
           >
             {/* Shelf bottom ambient glow */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-orange-500/10 to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 h-12 sm:h-16 bg-gradient-to-t from-orange-500/10 to-transparent pointer-events-none" />
             
             {shelf.map((item, itemIdx) => {
               // Add some slight random rotation and height variation for realism
               // using the item id as a seed so it's consistent
               const seed = item.id.charCodeAt(0) + item.id.charCodeAt(item.id.length - 1);
-              const heightClass = ['h-[170px]', 'h-[185px]', 'h-[195px]', 'h-[205px]'][seed % 4];
+              const heightClass = ['h-[135px] sm:h-[170px]', 'h-[145px] sm:h-[185px]', 'h-[155px] sm:h-[195px]', 'h-[165px] sm:h-[205px]'][seed % 4];
               const rotateClass = ['rotate-0', 'rotate-[-1deg]', 'rotate-[1deg]', 'rotate-[2deg]'][seed % 4];
-              const widthClass = ['w-[110px]', 'w-[125px]', 'w-[135px]'][seed % 3];
+              const widthClass = ['w-[85px] sm:w-[110px]', 'w-[95px] sm:w-[125px]', 'w-[105px] sm:w-[135px]'][seed % 3];
 
               return (
                 <div 
