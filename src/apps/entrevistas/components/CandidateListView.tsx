@@ -230,16 +230,28 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
             const isApproved = candidate.status === 'approved' || candidate.resultadoFinal.decision === 'Aprobado / Contratar';
             const isRejected = candidate.status === 'rejected' || candidate.resultadoFinal.decision === 'Rechazado';
             const score = candidate.resultadoFinal.puntuacionGlobal;
+            const isContratado = candidate.resultadoFinal.estadoReal === 'contratado';
+            const isNoEntra = candidate.resultadoFinal.estadoReal === 'rechazado';
+            
+            const cardBg = isContratado 
+              ? 'bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400' 
+              : isNoEntra 
+                ? 'bg-rose-950/40 border-rose-500/50 hover:border-rose-400'
+                : 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40';
 
             return (
               <div
                 key={candidate.id}
-                className="group rounded-3xl bg-slate-900/80 border border-slate-800 p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5 transition-all hover:border-indigo-500/40 hover:shadow-xl"
+                className={`group rounded-3xl border p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5 transition-all hover:shadow-xl ${cardBg}`}
               >
                 {/* Info Principal */}
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <h3 className="text-lg font-black text-white group-hover:text-indigo-300 transition-colors">
+                    <h3 className={`text-lg font-black transition-colors ${
+                      isContratado ? 'text-emerald-50 group-hover:text-emerald-200' :
+                      isNoEntra ? 'text-rose-50 group-hover:text-rose-200' :
+                      'text-white group-hover:text-indigo-300'
+                    }`}>
                       {candidate.fullName}
                     </h3>
                     <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">

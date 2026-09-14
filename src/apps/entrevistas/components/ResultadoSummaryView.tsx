@@ -84,6 +84,18 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
     onUpdateCandidate(updated);
   };
 
+  const handleEstadoRealChange = (estado: 'contratado' | 'rechazado' | 'pendiente') => {
+    const updated: CandidateInterview = {
+      ...candidate,
+      resultadoFinal: {
+        ...candidate.resultadoFinal,
+        estadoReal: estado
+      },
+      updatedAt: new Date().toISOString()
+    };
+    onUpdateCandidate(updated);
+  };
+
   const handleSalaryRecommendationChange = (eur: number) => {
     const updated: CandidateInterview = {
       ...candidate,
@@ -406,20 +418,57 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
       </div>
 
       {/* Resolución Real del Proceso (Post-Entrevista) */}
-      <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 space-y-3 border-l-4 border-l-indigo-500">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-black text-white uppercase tracking-wider">
-            Resolución Real del Proceso (Post-Entrevista):
-          </label>
-          <span className="text-[11px] text-slate-400">
-            ¿Qué ocurrió al final? (ej. Rechaza oferta, Contratado, etc.)
-          </span>
+      <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 space-y-4 border-l-4 border-l-indigo-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <label className="text-xs font-black text-white uppercase tracking-wider block">
+              Resolución Real del Proceso (Post-Entrevista):
+            </label>
+            <span className="text-[11px] text-slate-400">
+              ¿Qué ocurrió al final? ¿Se incorporó a la empresa?
+            </span>
+          </div>
+
+          {/* Botones de Estado Real */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleEstadoRealChange('contratado')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                candidate.resultadoFinal.estadoReal === 'contratado'
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-lg shadow-emerald-500/20'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-300'
+              }`}
+            >
+              ✅ Contratado
+            </button>
+            <button
+              onClick={() => handleEstadoRealChange('rechazado')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                candidate.resultadoFinal.estadoReal === 'rechazado'
+                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-lg shadow-rose-500/20'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-300'
+              }`}
+            >
+              ❌ No Entra
+            </button>
+            <button
+              onClick={() => handleEstadoRealChange('pendiente')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                candidate.resultadoFinal.estadoReal === 'pendiente' || !candidate.resultadoFinal.estadoReal
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-lg shadow-amber-500/20'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-300'
+              }`}
+            >
+              ⏳ Pendiente
+            </button>
+          </div>
         </div>
+
         <textarea
-          rows={3}
+          rows={2}
           value={candidate.resultadoFinal.resolucionReal || ''}
           onChange={(e) => handleResolucionRealChange(e.target.value)}
-          placeholder="Anota aquí qué pasó finalmente (ej: Le pasamos oferta y la rechazó por contraoferta de su empresa)..."
+          placeholder="Comentarios adicionales (ej: Le pasamos oferta y la rechazó por contraoferta de su empresa)..."
           className="w-full rounded-2xl bg-slate-950 border border-slate-800 p-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-y"
         />
       </div>

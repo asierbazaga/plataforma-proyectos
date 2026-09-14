@@ -437,6 +437,7 @@ export interface CandidateInterview {
     conclusionesTeamLeader: string;
     salarioRecomendadoEur?: number;
     resolucionReal?: string; // e.g. "Candidato rechaza oferta", "Contratado", etc.
+    estadoReal?: 'contratado' | 'rechazado' | 'pendiente';
   };
   createdAt: string;
   updatedAt: string;
