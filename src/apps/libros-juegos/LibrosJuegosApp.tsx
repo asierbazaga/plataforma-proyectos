@@ -300,39 +300,37 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-purple-900/40 via-indigo-950/30 to-slate-900/50 p-6 rounded-3xl border border-purple-500/20 shadow-xl backdrop-blur-xl">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 bg-gradient-to-r from-purple-900/40 via-indigo-950/30 to-slate-900/50 p-5 sm:p-6 rounded-3xl border border-purple-500/20 shadow-xl backdrop-blur-xl">
+        <div className="flex flex-row items-start sm:items-center gap-3 sm:gap-4 w-full md:w-auto flex-1 min-w-0">
           {onBack && (
             <button
               onClick={onBack}
               title="Volver a la Plataforma"
-              className="p-3 rounded-2xl bg-slate-800/90 hover:bg-purple-600 hover:text-white text-slate-300 border border-slate-700 hover:border-purple-400 transition-all flex items-center justify-center group shadow-md"
+              className="p-2 sm:p-3 rounded-2xl bg-slate-800/90 hover:bg-purple-600 hover:text-white text-slate-300 border border-slate-700 hover:border-purple-400 transition-all flex items-center justify-center group shadow-md flex-shrink-0 mt-1 sm:mt-0"
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </button>
           )}
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
-            <Sparkles className="w-7 h-7 text-white animate-pulse" />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0 mt-1 sm:mt-0">
+            <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
           </div>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-                CENTRO MULTIMEDIA & RECOMENDACIONES
-              </h1>
-              <span className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30 font-medium">
-                Libros • Juegos • Cine • Series
-              </span>
-            </div>
-            <p className="text-slate-400 text-sm mt-1">
+          <div className="flex-1 min-w-0 flex flex-col items-start gap-1.5">
+            <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight break-words w-full">
+              CENTRO MULTIMEDIA & RECOMENDACIONES
+            </h1>
+            <span className="text-[10px] sm:text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30 font-medium inline-block">
+              Libros • Juegos • Cine • Series
+            </span>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1 line-clamp-2">
               Tu diario personal de entretenimiento, puntuaciones y motor inteligente de recomendaciones.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-wrap">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto mt-4 md:mt-0 flex-shrink-0">
           <button
             onClick={handleSpinRoulette}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold rounded-2xl border border-purple-500/30 hover:border-purple-400 transition-all shadow-md text-sm"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold rounded-2xl border border-purple-500/30 hover:border-purple-400 transition-all shadow-md text-sm w-full sm:w-auto"
           >
             <Shuffle className="w-4 h-4 text-purple-400" />
             ¿Qué disfrutar hoy?
@@ -340,13 +338,13 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           {canEdit ? (
             <button
               onClick={() => openAddModal()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-purple-500/30 transition-all hover:scale-105 active:scale-95 text-sm"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-purple-500/30 transition-all hover:scale-105 active:scale-95 text-sm w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
               Registrar Obra
             </button>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20">
+            <div className="flex items-center justify-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-2 rounded-xl border border-amber-400/20 w-full sm:w-auto">
               <ShieldAlert className="w-4 h-4" /> Modo Lectura
             </div>
           )}
@@ -354,11 +352,11 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       </div>
 
       {/* Main Tabs Navigation */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-2">
-        <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/80">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-800 pb-2">
+        <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/80 overflow-x-auto w-full xl:w-auto scrollbar-hide">
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'history'
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -369,7 +367,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </button>
           <button
             onClick={() => setActiveTab('explore')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'explore'
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -380,7 +378,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </button>
           <button
             onClick={() => setActiveTab('recommendations')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'recommendations'
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -391,7 +389,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </button>
           <button
             onClick={() => setActiveTab('stats')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'stats'
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -403,10 +401,10 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
         </div>
 
         {/* Media Type Quick Filter */}
-        <div className="flex items-center gap-1.5 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-1.5 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto w-full xl:w-auto scrollbar-hide">
           <button
             onClick={() => setMediaFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -414,7 +412,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </button>
           <button
             onClick={() => setMediaFilter('book')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'book' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -422,7 +420,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </button>
           <button
             onClick={() => setMediaFilter('game')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'game' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -430,7 +428,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </button>
           <button
             onClick={() => setMediaFilter('movie')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'movie' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -438,7 +436,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </button>
           <button
             onClick={() => setMediaFilter('series')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'series' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -475,7 +473,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             </div>
 
             {/* Status Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 w-full md:w-auto scrollbar-hide">
               <button
                 onClick={() => setStatusFilter('all')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
@@ -726,13 +724,13 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                 </p>
               </div>
               {/* Type toggle */}
-              <div className="flex items-center gap-1 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 self-start md:self-auto">
+              <div className="flex items-center gap-1 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 self-start md:self-auto overflow-x-auto w-full md:w-auto scrollbar-hide">
                 <button
                   onClick={() => {
                     setExploreType('all');
                     handleExploreSearch(exploreQuery, 'all');
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                     exploreType === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -743,7 +741,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                     setExploreType('book');
                     handleExploreSearch(exploreQuery, 'book');
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                     exploreType === 'book' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -754,7 +752,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                     setExploreType('game');
                     handleExploreSearch(exploreQuery, 'game');
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                     exploreType === 'game' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -765,7 +763,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                     setExploreType('movie');
                     handleExploreSearch(exploreQuery, 'movie');
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                     exploreType === 'movie' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -776,7 +774,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                     setExploreType('series');
                     handleExploreSearch(exploreQuery, 'series');
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                     exploreType === 'series' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -1214,8 +1212,9 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       {/* MODAL: AÑADIR / EDITAR REGISTRO */}
       {/* ========================================================================= */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="glass-panel bg-slate-900 border border-purple-500/30 rounded-3xl w-full max-w-xl p-6 space-y-5 my-8 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="glass-panel bg-slate-900 border border-purple-500/30 rounded-3xl w-full max-w-xl p-5 sm:p-6 space-y-5 shadow-2xl relative my-auto">
             <div className="flex justify-between items-center pb-2 border-b border-slate-800">
               <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
                 <Plus className="w-5 h-5 text-purple-400" />
@@ -1233,7 +1232,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
               {/* Media Type Selector */}
               <div>
                 <label className="text-xs font-bold text-slate-400">Tipo de Medio</label>
-                <div className="grid grid-cols-4 gap-2 mt-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1.5">
                   {(['book', 'game', 'movie', 'series'] as MediaType[]).map(type => {
                     const badge = getMediaBadge(type);
                     const Icon = badge.icon;
@@ -1376,16 +1375,16 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                     <span>Puntuación Personal (1 a 10 ⭐)</span>
                     <span className="text-amber-400 font-extrabold">{formRating} / 10</span>
                   </label>
-                  <div className="flex items-center gap-1 mt-2">
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 mt-2">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
                       <button
                         key={val}
                         type="button"
                         onClick={() => setFormRating(val)}
-                        className={`flex-1 py-1 rounded-lg text-xs font-bold transition-all ${
+                        className={`w-full py-1.5 rounded-lg text-xs font-bold transition-all ${
                           val <= formRating
                             ? 'bg-amber-400 text-black font-extrabold shadow'
-                            : 'bg-slate-800 text-slate-500 hover:text-slate-300'
+                            : 'bg-slate-800 text-slate-500 hover:text-slate-300 border border-slate-700/50'
                         }`}
                       >
                         {val}
@@ -1464,6 +1463,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
@@ -1471,8 +1471,9 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       {/* MODAL: RULETA / SUGERENCIA ALEATORIA "¿QUÉ DISFRUTAR HOY?" */}
       {/* ========================================================================= */}
       {showRandomModal && randomPick && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-panel bg-slate-900 border border-amber-400/40 rounded-3xl w-full max-w-lg p-6 space-y-5 shadow-2xl relative overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="glass-panel bg-slate-900 border border-amber-400/40 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-5 shadow-2xl relative overflow-hidden my-auto">
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -z-10 pointer-events-none" />
 
             <div className="flex justify-between items-center">
@@ -1485,33 +1486,35 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
               </button>
             </div>
 
-            <div className="flex gap-4">
-              <img
-                src={randomPick.cover_url}
-                alt={randomPick.title}
-                className="w-28 h-40 object-cover rounded-2xl border border-slate-700 shadow-xl flex-shrink-0"
-              />
-              <div className="space-y-1.5 flex-1">
-                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex justify-center sm:justify-start">
+                <img
+                  src={randomPick.cover_url}
+                  alt={randomPick.title}
+                  className="w-28 h-40 object-cover rounded-2xl border border-slate-700 shadow-xl flex-shrink-0"
+                />
+              </div>
+              <div className="space-y-1.5 flex-1 text-center sm:text-left">
+                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 inline-block">
                   {getMediaBadge(randomPick.media_type).label} • {randomPick.year}
                 </span>
                 <h4 className="text-lg font-bold text-white leading-tight">{randomPick.title}</h4>
                 <p className="text-xs font-medium text-purple-300">{randomPick.author_creator}</p>
                 <p className="text-xs text-slate-400">{randomPick.genre}</p>
-                <div className="flex items-center gap-1 text-amber-400 font-bold text-xs pt-1">
+                <div className="flex items-center justify-center sm:justify-start gap-1 text-amber-400 font-bold text-xs pt-1">
                   <Star className="w-4 h-4 fill-amber-400" /> {randomPick.rating_global}/10 Crítica Global
                 </div>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed bg-slate-800/60 p-3 rounded-2xl border border-slate-700/60">
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-800/60 p-3 rounded-2xl border border-slate-700/60 text-center sm:text-left">
               {randomPick.description}
             </p>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <button
                 onClick={handleSpinRoulette}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-slate-700"
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-700 w-full sm:w-auto"
               >
                 <Shuffle className="w-4 h-4" /> Otra Opción
               </button>
@@ -1520,11 +1523,12 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                   handleQuickAddFromCatalog(randomPick, 'wishlist');
                   setShowRandomModal(false);
                 }}
-                className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-pink-500 text-white font-bold rounded-xl text-xs hover:brightness-110 transition-all shadow-lg"
+                className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-pink-500 text-white font-bold rounded-xl text-xs hover:brightness-110 transition-all shadow-lg w-full"
               >
                 + Añadir a Mis Pendientes
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
