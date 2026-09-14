@@ -15,39 +15,41 @@ export interface SearchResultItem {
   source?: 'openlibrary' | 'tvmaze' | 'catalog' | 'custom';
 }
 
-// 1. Search Open Library (Books) - Free, Open API, no key required
-async function searchOpenLibrary(query: string): Promise<SearchResultItem[]> {
+// 1. Search Google Books (Books) - Free, high quality covers, no key strictly required for low volume
+async function searchGoogleBooks(query: string): Promise<SearchResultItem[]> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10&fields=key,title,author_name,first_publish_year,cover_i,subject`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);
 
     if (!res.ok) return [];
     const data = await res.json();
-    if (!data.docs || !Array.isArray(data.docs)) return [];
+    if (!data.items || !Array.isArray(data.items)) return [];
 
-    return data.docs.map((doc: any) => {
-      const coverUrl = doc.cover_i
-        ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+    return data.items.map((item: any) => {
+      const vol = item.volumeInfo || {};
+      const coverUrl = vol.imageLinks?.thumbnail 
+        ? vol.imageLinks.thumbnail.replace('http:', 'https:').replace('&edge=curl', '')
         : 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80';
-      const authors = Array.isArray(doc.author_name) ? doc.author_name.join(', ') : 'Autor Desconocido';
-      const subjects = Array.isArray(doc.subject) ? doc.subject.slice(0, 3) : ['Literatura'];
+      const authors = Array.isArray(vol.authors) ? vol.authors.join(', ') : 'Autor Desconocido';
+      const subjects = Array.isArray(vol.categories) ? vol.categories.slice(0, 3) : ['Literatura'];
+      const year = vol.publishedDate ? parseInt(vol.publishedDate.substring(0, 4), 10) : undefined;
 
       return {
-        id: `ol_${doc.key?.replace('/works/', '') || Math.random().toString(36)}`,
-        title: doc.title || query,
+        id: `gbooks_${item.id || Math.random().toString(36)}`,
+        title: vol.title || query,
         media_type: 'book' as MediaType,
         genre: subjects[0] || 'Ficción / General',
         author_creator: authors,
-        year: doc.first_publish_year,
+        year: year,
         cover_url: coverUrl,
-        description: `Obra literaria de ${authors}${doc.first_publish_year ? ` (${doc.first_publish_year})` : ''}.`,
+        description: vol.description || `Obra literaria de ${authors}${year ? ` (${year})` : ''}.`,
         tags: subjects,
-        source: 'openlibrary'
+        source: 'openlibrary' // keep source tag or change it
       };
     });
   } catch (err) {
@@ -224,7 +226,7 @@ export const mediaSearchService = {
     const promises: Promise<SearchResultItem[]>[] = [];
 
     if (mediaType === 'all' || mediaType === 'book') {
-      promises.push(searchOpenLibrary(trimmed));
+      promises.push(searchGoogleBooks(trimmed));
     }
     if (mediaType === 'all' || mediaType === 'series') {
       promises.push(searchTVMaze(trimmed));
