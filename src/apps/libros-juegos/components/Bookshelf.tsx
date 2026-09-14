@@ -66,6 +66,7 @@ export const Bookshelf: React.FC<BookshelfProps> = ({ items, canEdit, onEdit, on
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     if (!canEdit) return;
     e.preventDefault();
+    e.stopPropagation();
     if (!draggedId || draggedId === targetId) return;
 
     const newOrdered = [...orderedItems];
@@ -73,6 +74,28 @@ export const Bookshelf: React.FC<BookshelfProps> = ({ items, canEdit, onEdit, on
     const targetIndex = newOrdered.findIndex(i => i.id === targetId);
 
     if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const [draggedItem] = newOrdered.splice(draggedIndex, 1);
+    newOrdered.splice(targetIndex, 0, draggedItem);
+
+    setOrderedItems(newOrdered);
+    setDraggedId(null);
+  };
+
+  const handleShelfDrop = (e: React.DragEvent, shelfIndex: number) => {
+    if (!canEdit) return;
+    e.preventDefault();
+    if (!draggedId) return;
+
+    const newOrdered = [...orderedItems];
+    const draggedIndex = newOrdered.findIndex(i => i.id === draggedId);
+    if (draggedIndex === -1) return;
+
+    const shelfItemsCount = shelves[shelfIndex].length;
+    let targetIndex = shelfIndex * booksPerShelf + shelfItemsCount;
+    if (targetIndex > newOrdered.length) targetIndex = newOrdered.length;
+
+    if (draggedIndex < targetIndex) targetIndex -= 1;
 
     const [draggedItem] = newOrdered.splice(draggedIndex, 1);
     newOrdered.splice(targetIndex, 0, draggedItem);
@@ -101,7 +124,9 @@ export const Bookshelf: React.FC<BookshelfProps> = ({ items, canEdit, onEdit, on
           <div className="flex flex-col pt-10 sm:pt-16">
             {shelves.map((shelf, idx) => (
               <div 
-                key={idx} 
+                key={idx}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleShelfDrop(e, idx)} 
                 className="relative w-full min-h-[190px] sm:min-h-[250px] flex items-end justify-center sm:justify-start gap-2 sm:gap-6 px-4 sm:px-8 pb-[16px] sm:pb-[20px]"
               >
                 {/* The actual horizontal wood plank */}
@@ -152,7 +177,7 @@ export const Bookshelf: React.FC<BookshelfProps> = ({ items, canEdit, onEdit, on
                       {getStatusMarker(item.status)}
 
                       {canEdit && (
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none group-hover:pointer-events-auto">
                           <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} className="p-2 sm:p-2.5 rounded-full bg-black/90 text-white hover:bg-purple-600 transition-colors shadow-xl backdrop-blur-md">
                             <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
                           </button>
