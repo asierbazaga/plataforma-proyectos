@@ -11,14 +11,13 @@ interface MockRelease {
 }
 
 const mockReleases: MockRelease[] = [
-  { id: '1', name: 'SV5a Crimson Haze', region: 'Japan', date: '2024-03-22', status: 'Released', setPrefix: 'SV5a' },
-  { id: '2', name: 'SV6 Twilight Masquerade', region: 'West', date: '2024-05-24', status: 'Released', setPrefix: 'TWM' },
-  { id: '3', name: 'SV6a Night Wanderer', region: 'Japan', date: '2024-06-07', status: 'Released', setPrefix: 'SV6a' },
-  { id: '4', name: 'SV6.5 Shrouded Fable', region: 'West', date: '2024-08-02', status: 'Imminent', setPrefix: 'SFA' },
-  { id: '5', name: 'SV7 Stellar Miracle', region: 'Japan', date: '2024-07-19', status: 'Released', setPrefix: 'SV7' },
-  { id: '6', name: 'SV7 Stellar Crown', region: 'West', date: '2024-09-13', status: 'Pre-order', setPrefix: 'SCR' },
-  { id: '7', name: 'SV7a Paradise Dragona', region: 'Japan', date: '2024-09-13', status: 'Pre-order', setPrefix: 'SV7a' },
-  { id: '8', name: 'SV8 Surging Sparks', region: 'West', date: '2024-11-08', status: 'Rumor', setPrefix: 'SSP' },
+  { id: '1', name: 'SV12 Obsidian Eclipse', region: 'West', date: '2026-08-14', status: 'Released', setPrefix: 'OBE' },
+  { id: '2', name: 'Pokémon 30th Celebration (Japón)', region: 'Japan', date: '2026-09-16', status: 'Released', setPrefix: 'P30' },
+  { id: '3', name: 'Pokémon 30th Celebration (Global)', region: 'West', date: '2026-10-09', status: 'Imminent', setPrefix: 'P30G' },
+  { id: '4', name: 'SV12a Dragon\'s Roar', region: 'Japan', date: '2026-11-20', status: 'Pre-order', setPrefix: 'SV12a' },
+  { id: '5', name: 'SV13 Crystal Horizons', region: 'West', date: '2027-02-12', status: 'Rumor', setPrefix: 'CRH' },
+  { id: '6', name: 'SV13a Phantom Shadows', region: 'Japan', date: '2027-03-19', status: 'Rumor', setPrefix: 'SV13a' },
+  { id: '7', name: 'SV14 Radiant Zenith', region: 'West', date: '2027-05-21', status: 'Rumor', setPrefix: 'RZN' }
 ];
 
 export const ReleaseCalendar: React.FC = () => {
