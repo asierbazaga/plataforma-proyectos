@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight, Building } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight, Building, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { AppId } from '../types';
@@ -19,6 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
     { id: 'libros-juegos', name: 'MULTIMEDIA & CULTURA', icon: BookOpen, color: 'text-purple-400' },
     { id: 'lore', name: 'APP LORE', icon: BookMarked, color: 'text-blue-400' },
     { id: 'entrevistas', name: 'ENTREVISTAS MECALUX', icon: Building, color: 'text-cyan-400' },
+    { id: 'tcg', name: 'COLECCIONISMO TCG', icon: Package, color: 'text-yellow-400' },
   ];
 
   return (

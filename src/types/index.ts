@@ -2,7 +2,7 @@ export type Role = 'admin' | 'user' | 'guest';
 
 export type UserStatus = 'active' | 'pending' | 'suspended';
 
-export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas';
+export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas' | 'tcg';
 
 export interface UserProfile {
   id: string;
@@ -443,3 +443,62 @@ export interface CandidateInterview {
   updatedAt: string;
 }
 
+
+// ============================================================================
+// TCG (TRADING CARD GAME) TRACKER
+// ============================================================================
+
+export type TcgProductType = 'ETB' | 'Booster Box' | 'UPC' | 'Blister' | 'Tin' | 'Single Card (Raw)' | 'Single Card (Graded)' | 'Other';
+export type TcgLanguage = 'English' | 'Spanish' | 'Japanese' | 'Other';
+export type TcgCondition = 'Sealed (Mint)' | 'Sealed (Damaged)' | 'Mint/Near Mint' | 'Lightly Played' | 'Played' | 'Graded';
+
+export interface TcgItem {
+  id: string;
+  user_id?: string;
+  name: string;
+  set_name: string;
+  product_type: TcgProductType;
+  language: TcgLanguage;
+  condition: TcgCondition;
+  purchase_date: string;
+  store_name: string;
+  purchase_price: number;
+  market_price: number;
+  storage_location: string;
+  image_url: string;
+  notes?: string;
+  created_at: string;
+}
+
+export type TcgStoreType = 'Local' | 'Online' | 'Third Party (Cardmarket, eBay)';
+
+export interface TcgStore {
+  id: string;
+  user_id?: string;
+  name: string;
+  type: TcgStoreType;
+  location?: string;
+  url?: string;
+  reliability_score?: number; // 1-5
+  notes?: string;
+  created_at: string;
+}
+
+export interface TcgWatchlistItem {
+  id: string;
+  user_id?: string;
+  item_name: string;
+  url: string;
+  target_price: number;
+  status: 'In Stock' | 'Out of Stock' | 'Pre-order';
+  created_at: string;
+}
+
+export interface TcgRelease {
+  id: string;
+  name: string;
+  region: 'Japan' | 'West';
+  date_japan?: string;
+  date_west?: string;
+  status: 'Rumor' | 'Pre-order' | 'Imminent' | 'Released';
+}

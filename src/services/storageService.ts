@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   UserProfile,
   AppPermission,
@@ -41,7 +41,7 @@ const DEFAULT_PROFILES: UserProfile[] = [
     role: 'admin',
     status: 'active',
     password: 'admin123',
-    department: 'Dirección IT & Super Admin',
+    department: 'DirecciÃ³n IT & Super Admin',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     created_at: new Date().toISOString()
   },
@@ -52,7 +52,7 @@ const DEFAULT_PROFILES: UserProfile[] = [
     role: 'user',
     status: 'active',
     password: 'lore',
-    department: 'Operaciones & Gestión',
+    department: 'Operaciones & GestiÃ³n',
     avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
   }
 ];
@@ -63,12 +63,14 @@ const DEFAULT_PERMISSIONS: AppPermission[] = [
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'lore', can_access: true, can_edit: true },
   { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'entrevistas', can_access: true, can_edit: true },
+  { user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', app_id: 'tcg', can_access: true, can_edit: true },
 
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'fitness', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'gastos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'libros-juegos', can_access: true, can_edit: true },
   { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'lore', can_access: true, can_edit: true },
-  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'entrevistas', can_access: false, can_edit: false }
+  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'entrevistas', can_access: false, can_edit: false },
+  { user_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', app_id: 'tcg', can_access: true, can_edit: true }
 ];
 
 const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
@@ -94,27 +96,27 @@ const DEFAULT_FITNESS_PROFILE: FitnessProfile = {
 };
 
 const DEFAULT_CATEGORY_BUDGETS: CategoryBudget[] = [
-  { category: 'Alimentación', monthly_limit: 400, icon: '🛒', color: '#10B981' },
-  { category: 'Hogar / Alquiler', monthly_limit: 750, icon: '🏠', color: '#6366F1' },
-  { category: 'Transporte / Gasolina', monthly_limit: 150, icon: '🚗', color: '#F59E0B' },
-  { category: 'Ocio & Restaurantes', monthly_limit: 200, icon: '🍿', color: '#EC4899' },
-  { category: 'Servicios / Suministros', monthly_limit: 120, icon: '⚡', color: '#06B6D4' },
-  { category: 'Tecnología', monthly_limit: 100, icon: '💻', color: '#8B5CF6' },
-  { category: 'Salud & Bienestar', monthly_limit: 80, icon: '💊', color: '#14B8A6' },
-  { category: 'Ahorro/Común', monthly_limit: 500, icon: '💰', color: '#3B82F6' },
-  { category: 'Otros', monthly_limit: 100, icon: '📦', color: '#64748B' }
+  { category: 'AlimentaciÃ³n', monthly_limit: 400, icon: 'ðŸ›’', color: '#10B981' },
+  { category: 'Hogar / Alquiler', monthly_limit: 750, icon: 'ðŸ ', color: '#6366F1' },
+  { category: 'Transporte / Gasolina', monthly_limit: 150, icon: 'ðŸš—', color: '#F59E0B' },
+  { category: 'Ocio & Restaurantes', monthly_limit: 200, icon: 'ðŸ¿', color: '#EC4899' },
+  { category: 'Servicios / Suministros', monthly_limit: 120, icon: 'âš¡', color: '#06B6D4' },
+  { category: 'TecnologÃ­a', monthly_limit: 100, icon: 'ðŸ’»', color: '#8B5CF6' },
+  { category: 'Salud & Bienestar', monthly_limit: 80, icon: 'ðŸ’Š', color: '#14B8A6' },
+  { category: 'Ahorro/ComÃºn', monthly_limit: 500, icon: 'ðŸ’°', color: '#3B82F6' },
+  { category: 'Otros', monthly_limit: 100, icon: 'ðŸ“¦', color: '#64748B' }
 ];
 
 const DEFAULT_EXPENSE_CATEGORIES: ExpenseCategory[] = [
-  { id: 'cat-1', name: 'Alimentación', icon: '🛒', color: '#10B981' },
-  { id: 'cat-2', name: 'Hogar / Alquiler', icon: '🏠', color: '#6366F1' },
-  { id: 'cat-3', name: 'Transporte / Gasolina', icon: '🚗', color: '#F59E0B' },
-  { id: 'cat-4', name: 'Ocio & Restaurantes', icon: '🍿', color: '#EC4899' },
-  { id: 'cat-5', name: 'Servicios / Suministros', icon: '⚡', color: '#06B6D4' },
-  { id: 'cat-6', name: 'Tecnología', icon: '💻', color: '#8B5CF6' },
-  { id: 'cat-7', name: 'Salud & Bienestar', icon: '💊', color: '#14B8A6' },
-  { id: 'cat-8', name: 'Ahorro/Común', icon: '💰', color: '#3B82F6' },
-  { id: 'cat-9', name: 'Otros', icon: '📦', color: '#64748B' }
+  { id: 'cat-1', name: 'AlimentaciÃ³n', icon: 'ðŸ›’', color: '#10B981' },
+  { id: 'cat-2', name: 'Hogar / Alquiler', icon: 'ðŸ ', color: '#6366F1' },
+  { id: 'cat-3', name: 'Transporte / Gasolina', icon: 'ðŸš—', color: '#F59E0B' },
+  { id: 'cat-4', name: 'Ocio & Restaurantes', icon: 'ðŸ¿', color: '#EC4899' },
+  { id: 'cat-5', name: 'Servicios / Suministros', icon: 'âš¡', color: '#06B6D4' },
+  { id: 'cat-6', name: 'TecnologÃ­a', icon: 'ðŸ’»', color: '#8B5CF6' },
+  { id: 'cat-7', name: 'Salud & Bienestar', icon: 'ðŸ’Š', color: '#14B8A6' },
+  { id: 'cat-8', name: 'Ahorro/ComÃºn', icon: 'ðŸ’°', color: '#3B82F6' },
+  { id: 'cat-9', name: 'Otros', icon: 'ðŸ“¦', color: '#64748B' }
 ];
 
 const DEFAULT_LORE_GOALS: LoreGoalsConfig = {
@@ -247,7 +249,7 @@ class StorageService {
   }
 
   // ==========================================
-  // 1. PERFILES & AUTENTICACIÓN
+  // 1. PERFILES & AUTENTICACIÃ“N
   // ==========================================
   getPasswordMap(): Record<string, string> {
     return this.getLocal<Record<string, string>>('user_passwords', {
@@ -299,7 +301,7 @@ class StorageService {
           for (const l of local) {
             if (!merged.find(m => m.id === l.id || m.email.toLowerCase() === l.email.toLowerCase())) {
               merged.push(l);
-              // Sincronización automática a Supabase (Upsert en background)
+              // SincronizaciÃ³n automÃ¡tica a Supabase (Upsert en background)
               const { status, last_login, ...supabaseProfile } = l as any;
               supabase.from('profiles').upsert(supabaseProfile).then(({ error }) => {
                 if (error) console.error('Error auto-syncing profile:', error);
@@ -326,7 +328,7 @@ class StorageService {
           for (const l of local) {
             if (!merged.find(m => m.user_id === l.user_id && m.app_id === l.app_id)) {
               merged.push(l);
-              // Sincronización automática a Supabase (Upsert en background)
+              // SincronizaciÃ³n automÃ¡tica a Supabase (Upsert en background)
               supabase.from('app_permissions').upsert({
                 user_id: l.user_id,
                 app_id: l.app_id,
@@ -594,7 +596,7 @@ class StorageService {
             created_at: row.created_at
           }));
           
-          // Merge optimista: si hay gastos locales más nuevos que no están en Supabase, no borrarlos
+          // Merge optimista: si hay gastos locales mÃ¡s nuevos que no estÃ¡n en Supabase, no borrarlos
           const local = this.getLocal<ExpenseItem[]>('expenses', []);
           const merged = [...formatted];
           for (const l of local) {
@@ -628,7 +630,7 @@ class StorageService {
       created_at: new Date().toISOString()
     };
     
-    // 1. Guardar en local primero para feedback instantáneo
+    // 1. Guardar en local primero para feedback instantÃ¡neo
     const current = this.getLocal<ExpenseItem[]>('expenses', []);
     this.setLocal('expenses', [item, ...current.filter(e => e.id !== item.id)]);
 
@@ -654,7 +656,7 @@ class StorageService {
       }
     }
     
-    // 3. Notificar cambios después de haber intentado subir
+    // 3. Notificar cambios despuÃ©s de haber intentado subir
     this.broadcastChange();
     return item;
   }
@@ -1448,7 +1450,7 @@ class StorageService {
               telefono: row.telefono || '',
               decil: row.decil || 'D05',
               ventas_anuales: Number(row.ventas_anuales) || 0,
-              frecuencia_visita: row.frecuencia_visita || '15 días',
+              frecuencia_visita: row.frecuencia_visita || '15 dÃ­as',
               ultima_visita: row.ultima_visita || '',
               proxima_accion: row.proxima_accion || '',
               fecha_proxima_accion: row.fecha_proxima_accion || '',
@@ -1478,7 +1480,7 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase && items.length > 0) {
       try {
-        // Ahora que vas a añadir las columnas a Supabase, podemos enviar el objeto completo
+        // Ahora que vas a aÃ±adir las columnas a Supabase, podemos enviar el objeto completo
         const payload = items.map(item => ({
           id: item.id,
           category_type: item.category_type,
@@ -1693,7 +1695,7 @@ class StorageService {
   async getInterviewCandidates(userId?: string, forceFetch: boolean = false): Promise<CandidateInterview[]> {
     const local = this.getLocal<CandidateInterview[]>('interview_candidates', []);
     
-    // Si no forzamos la recarga y ya tenemos datos, devolvemos rápido para no bloquear UI
+    // Si no forzamos la recarga y ya tenemos datos, devolvemos rÃ¡pido para no bloquear UI
     if (!forceFetch && local.length > 0) {
       return local;
     }
@@ -1810,6 +1812,93 @@ class StorageService {
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
     this.notifySubscribers();
+  }
+
+  // ==========================================
+  // TCG (TRADING CARD GAME) TRACKER
+  // ==========================================
+
+  async getTcgItems(userId?: string): Promise<import('../types').TcgItem[]> {
+    return this.getLocal<import('../types').TcgItem[]>('tcg_items_' + (userId || 'default'), []);
+  }
+
+  async addTcgItem(item: Omit<import('../types').TcgItem, 'id'>, userId?: string): Promise<import('../types').TcgItem> {
+    const newItem: import('../types').TcgItem = {
+      ...item,
+      id: generateId('tcg'),
+      user_id: userId || 'default'
+    };
+    const current = await this.getTcgItems(userId);
+    this.setLocal('tcg_items_' + (userId || 'default'), [newItem, ...current]);
+    this.broadcastChange();
+    return newItem;
+  }
+
+  async updateTcgItem(id: string, updates: Partial<import('../types').TcgItem>, userId?: string): Promise<void> {
+    const current = await this.getTcgItems(userId);
+    const updated = current.map(item => item.id === id ? { ...item, ...updates } : item);
+    this.setLocal('tcg_items_' + (userId || 'default'), updated);
+    this.broadcastChange();
+  }
+
+  async deleteTcgItem(id: string, userId?: string): Promise<void> {
+    const current = await this.getTcgItems(userId);
+    const updated = current.filter(item => item.id !== id);
+    this.setLocal('tcg_items_' + (userId || 'default'), updated);
+    this.broadcastChange();
+  }
+
+  async getTcgStores(userId?: string): Promise<import('../types').TcgStore[]> {
+    return this.getLocal<import('../types').TcgStore[]>('tcg_stores_' + (userId || 'default'), []);
+  }
+
+  async addTcgStore(store: Omit<import('../types').TcgStore, 'id'>, userId?: string): Promise<import('../types').TcgStore> {
+    const newStore: import('../types').TcgStore = {
+      ...store,
+      id: generateId('tcg_store'),
+      user_id: userId || 'default'
+    };
+    const current = await this.getTcgStores(userId);
+    this.setLocal('tcg_stores_' + (userId || 'default'), [newStore, ...current]);
+    this.broadcastChange();
+    return newStore;
+  }
+
+  async deleteTcgStore(id: string, userId?: string): Promise<void> {
+    const current = await this.getTcgStores(userId);
+    const updated = current.filter(store => store.id !== id);
+    this.setLocal('tcg_stores_' + (userId || 'default'), updated);
+    this.broadcastChange();
+  }
+
+  async getTcgWatchlist(userId?: string): Promise<import('../types').TcgWatchlistItem[]> {
+    return this.getLocal<import('../types').TcgWatchlistItem[]>('tcg_watchlist_' + (userId || 'default'), []);
+  }
+
+  async addTcgWatchlistItem(item: Omit<import('../types').TcgWatchlistItem, 'id'>, userId?: string): Promise<import('../types').TcgWatchlistItem> {
+    const newItem: import('../types').TcgWatchlistItem = {
+      ...item,
+      id: generateId('tcg_wl'),
+      user_id: userId || 'default'
+    };
+    const current = await this.getTcgWatchlist(userId);
+    this.setLocal('tcg_watchlist_' + (userId || 'default'), [newItem, ...current]);
+    this.broadcastChange();
+    return newItem;
+  }
+
+  async updateTcgWatchlistItem(id: string, updates: Partial<import('../types').TcgWatchlistItem>, userId?: string): Promise<void> {
+    const current = await this.getTcgWatchlist(userId);
+    const updated = current.map(item => item.id === id ? { ...item, ...updates } : item);
+    this.setLocal('tcg_watchlist_' + (userId || 'default'), updated);
+    this.broadcastChange();
+  }
+
+  async deleteTcgWatchlistItem(id: string, userId?: string): Promise<void> {
+    const current = await this.getTcgWatchlist(userId);
+    const updated = current.filter(item => item.id !== id);
+    this.setLocal('tcg_watchlist_' + (userId || 'default'), updated);
+    this.broadcastChange();
   }
 }
 

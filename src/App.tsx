@@ -5,7 +5,7 @@ import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
-import { ShieldAlert, ArrowLeft, LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, ChevronRight, Home, Building } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, ChevronRight, Home, Building, Package } from 'lucide-react';
 import { AppId } from './types';
 
 // Lazy loading de módulos para optimización extrema de carga y rendimiento
@@ -14,6 +14,7 @@ const GastosApp = lazy(() => import('./apps/gastos/GastosApp').then(m => ({ defa
 const LibrosJuegosApp = lazy(() => import('./apps/libros-juegos/LibrosJuegosApp').then(m => ({ default: m.LibrosJuegosApp })));
 const LoreApp = lazy(() => import('./apps/lore/LoreApp').then(m => ({ default: m.LoreApp })));
 const EntrevistasApp = lazy(() => import('./apps/entrevistas/EntrevistasApp').then(m => ({ default: m.EntrevistasApp })));
+const TcgApp = lazy(() => import('./apps/tcg/TcgApp').then(m => ({ default: m.TcgApp })));
 const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
 const ActivityLogs = lazy(() => import('./components/ActivityLogs').then(m => ({ default: m.ActivityLogs })));
 
@@ -64,6 +65,7 @@ const MainLayout: React.FC = () => {
       case 'libros-juegos': return 'App Libros & Juegos';
       case 'lore': return 'App Lore & Rutas';
       case 'entrevistas': return 'Mecalux Talent & Entrevistas';
+      case 'tcg': return 'Pokémon TCG Tracker';
       case 'permissions': return 'Matriz de Permisos (RBAC)';
       case 'logs': return 'Registro de Actividad';
       default: return 'Catálogo de Proyectos';
@@ -94,6 +96,10 @@ const MainLayout: React.FC = () => {
       case 'entrevistas':
         if (!hasAccessToApp('entrevistas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="ENTREVISTAS MECALUX" />;
         return <EntrevistasApp onBack={handleBackToDashboard} />;
+        
+      case 'tcg':
+        if (!hasAccessToApp('tcg')) return <AccessDeniedView onBack={handleBackToDashboard} appName="COLECCIONISMO TCG" />;
+        return <TcgApp onBack={handleBackToDashboard} />;
 
       case 'permissions':
         if (currentUser.role !== 'admin') return <AccessDeniedView onBack={handleBackToDashboard} appName="Matriz de Permisos" />;
@@ -201,6 +207,20 @@ const MainLayout: React.FC = () => {
           >
             <Building className="w-4 h-4" />
             <span className="text-[10px]">Entrevistas</span>
+          </button>
+        )}
+
+        {hasAccessToApp('tcg') && (
+          <button
+            onClick={() => handleSelectTab('tcg')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
+              currentTab === 'tcg'
+                ? 'text-yellow-400 font-bold'
+                : 'text-slate-400 hover:text-white font-medium'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span className="text-[10px]">TCG</span>
           </button>
         )}
       </nav>

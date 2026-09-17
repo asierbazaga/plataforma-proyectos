@@ -23,7 +23,8 @@ import {
   Calendar,
   PhoneCall,
   Building,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Package
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { storageService } from '../services/storageService';
@@ -157,6 +158,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
         { text: 'Rúbricas Mecalux', label: 'Rúbricas Mecalux', icon: Award },
         { text: 'Plantilla Excel (.xlsx)', label: 'Plantilla Excel (.xlsx)', icon: FileSpreadsheet },
         { text: 'Análisis de CV', label: 'Análisis de CV', icon: Sparkles }
+      ]
+    },
+    {
+      id: 'tcg' as AppId,
+      number: '06',
+      category: 'Coleccionismo TCG',
+      title: 'Pokémon TCG Tracker',
+      subtitle: 'Portfolio, precios y radar de tiendas',
+      description: 'Seguimiento de la colección de cartas y productos sellados, valoración de mercado (ROI), calendario de lanzamientos y feed de noticias.',
+      icon: Package,
+      glowColor: 'group-hover:shadow-yellow-500/20 group-hover:border-yellow-500/50',
+      iconGradient: 'from-yellow-500 via-amber-500 to-red-500 shadow-yellow-500/30',
+      tagColor: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+      btnGradient: 'from-yellow-500 via-amber-500 to-red-500 hover:from-yellow-400 hover:to-red-400 shadow-yellow-500/25',
+      highlights: [
+        { text: 'Portfolio & ROI', label: 'Portfolio & ROI', icon: TrendingUp },
+        { text: 'API de Cartas', label: 'API de Cartas', icon: Sparkles },
+        { text: 'Radar Tiendas', label: 'Radar Tiendas', icon: MapPin }
       ]
     }
   ];
