@@ -4,7 +4,7 @@ import { storageService } from '../../../services/storageService';
 import { TcgItem, TcgProductType, TcgLanguage, TcgCondition } from '../../../types';
 
 const MOCK_ETBS = [
-  { id: 'etb_30th', name: 'Pokémon 30th Anniversary Elite Trainer Box', set: '30th Anniversary', image: 'https://product-images.tcgplayer.com/fit-in/437x437/455799.jpg', marketPrice: 150 },
+  { id: 'etb_30th', name: 'Pokémon 30th Anniversary Elite Trainer Box', set: '30th Anniversary', image: 'https://product-images.tcgplayer.com/fit-in/437x437/704143.jpg', marketPrice: 150 },
   { id: 'etb_151', name: 'Pokémon 151 Elite Trainer Box', set: '151', image: 'https://product-images.tcgplayer.com/fit-in/437x437/503313.jpg', marketPrice: 55 },
   { id: 'etb_paf', name: 'Paldean Fates Elite Trainer Box', set: 'Paldean Fates', image: 'https://product-images.tcgplayer.com/fit-in/437x437/528040.jpg', marketPrice: 45 },
   { id: 'etb_obf', name: 'Obsidian Flames Elite Trainer Box', set: 'Obsidian Flames', image: 'https://product-images.tcgplayer.com/fit-in/437x437/503417.jpg', marketPrice: 40 },
@@ -15,15 +15,15 @@ const MOCK_ETBS = [
   { id: 'etb_lor', name: 'Lost Origin Elite Trainer Box', set: 'Lost Origin', image: 'https://product-images.tcgplayer.com/fit-in/437x437/276527.jpg', marketPrice: 50 },
   { id: 'etb_asr', name: 'Astral Radiance Elite Trainer Box', set: 'Astral Radiance', image: 'https://product-images.tcgplayer.com/fit-in/437x437/264426.jpg', marketPrice: 40 },
   { id: 'etb_brs', name: 'Brilliant Stars Elite Trainer Box', set: 'Brilliant Stars', image: 'https://product-images.tcgplayer.com/fit-in/437x437/253303.jpg', marketPrice: 45 },
-  { id: 'etb_fst', name: 'Fusion Strike Elite Trainer Box', set: 'Fusion Strike', image: 'https://m.media-amazon.com/images/I/81bWzO1V+jL._AC_SL1500_.jpg', marketPrice: 45 },
-  { id: 'etb_cel', name: 'Celebrations Elite Trainer Box', set: 'Celebrations', image: 'https://m.media-amazon.com/images/I/81pI5hK0GOL._AC_SL1500_.jpg', marketPrice: 85 },
-  { id: 'etb_evs', name: 'Evolving Skies Elite Trainer Box', set: 'Evolving Skies', image: 'https://m.media-amazon.com/images/I/81V2t+r7qFL._AC_SL1500_.jpg', marketPrice: 120 },
-  { id: 'etb_cre', name: 'Chilling Reign Elite Trainer Box', set: 'Chilling Reign', image: 'https://m.media-amazon.com/images/I/81+XlqJpW9S._AC_SL1500_.jpg', marketPrice: 50 },
-  { id: 'etb_bst', name: 'Battle Styles Elite Trainer Box', set: 'Battle Styles', image: 'https://m.media-amazon.com/images/I/81L+-jK4i1L._AC_SL1500_.jpg', marketPrice: 40 },
-  { id: 'etb_shf', name: 'Shining Fates Elite Trainer Box', set: 'Shining Fates', image: 'https://m.media-amazon.com/images/I/81a+qg3U94L._AC_SL1500_.jpg', marketPrice: 55 },
-  { id: 'etb_viv', name: 'Vivid Voltage Elite Trainer Box', set: 'Vivid Voltage', image: 'https://m.media-amazon.com/images/I/81nC2rN1nUL._AC_SL1500_.jpg', marketPrice: 45 },
-  { id: 'etb_cpa', name: 'Champion\'s Path Elite Trainer Box', set: 'Champion\'s Path', image: 'https://m.media-amazon.com/images/I/81W4o1v4LBL._AC_SL1500_.jpg', marketPrice: 90 },
-  { id: 'etb_daa', name: 'Darkness Ablaze Elite Trainer Box', set: 'Darkness Ablaze', image: 'https://m.media-amazon.com/images/I/81j8C1ZpZ-L._AC_SL1500_.jpg', marketPrice: 45 },
+  { id: 'etb_fst', name: 'Fusion Strike Elite Trainer Box', set: 'Fusion Strike', image: 'https://product-images.tcgplayer.com/fit-in/437x437/247671.jpg', marketPrice: 45 },
+  { id: 'etb_cel', name: 'Celebrations Elite Trainer Box', set: 'Celebrations', image: 'https://product-images.tcgplayer.com/fit-in/437x437/242811.jpg', marketPrice: 85 },
+  { id: 'etb_evs', name: 'Evolving Skies Elite Trainer Box', set: 'Evolving Skies', image: 'https://product-images.tcgplayer.com/fit-in/437x437/242434.jpg', marketPrice: 120 },
+  { id: 'etb_cre', name: 'Chilling Reign Elite Trainer Box', set: 'Chilling Reign', image: 'https://product-images.tcgplayer.com/fit-in/437x437/236260.jpg', marketPrice: 50 },
+  { id: 'etb_bst', name: 'Battle Styles Elite Trainer Box', set: 'Battle Styles', image: 'https://product-images.tcgplayer.com/fit-in/437x437/229284.jpg', marketPrice: 40 },
+  { id: 'etb_shf', name: 'Shining Fates Elite Trainer Box', set: 'Shining Fates', image: 'https://product-images.tcgplayer.com/fit-in/437x437/228821.jpg', marketPrice: 55 },
+  { id: 'etb_viv', name: 'Vivid Voltage Elite Trainer Box', set: 'Vivid Voltage', image: 'https://product-images.tcgplayer.com/fit-in/437x437/221752.jpg', marketPrice: 45 },
+  { id: 'etb_cpa', name: 'Champion\'s Path Elite Trainer Box', set: 'Champion\'s Path', image: 'https://product-images.tcgplayer.com/fit-in/437x437/218791.jpg', marketPrice: 90 },
+  { id: 'etb_daa', name: 'Darkness Ablaze Elite Trainer Box', set: 'Darkness Ablaze', image: 'https://product-images.tcgplayer.com/fit-in/437x437/216856.jpg', marketPrice: 45 },
 ];
 
 export const PortfolioTracker: React.FC = () => {
