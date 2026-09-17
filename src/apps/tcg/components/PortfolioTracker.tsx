@@ -285,20 +285,23 @@ export const PortfolioTracker: React.FC = () => {
                       onClick={() => selectEtbFromMock(etb)}
                       className="cursor-pointer group flex items-center gap-3 p-2 rounded-xl border border-slate-700 hover:border-indigo-500 bg-slate-900/50"
                     >
-                      <div className="w-12 h-12 flex-shrink-0 bg-white/5 rounded-lg overflow-hidden flex items-center justify-center p-1">
+                      <div className="w-12 h-12 flex-shrink-0 bg-white/5 rounded-lg overflow-hidden flex items-center justify-center p-1 relative">
                         <img 
                           src={etb.image} 
                           alt={etb.name} 
-                          className="w-full h-full object-contain" 
+                          className="w-full h-full object-contain z-10" 
                           onError={(e) => {
-                            e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Pok%C3%A9_Ball_icon.svg/512px-Pok%C3%A9_Ball_icon.svg.png';
-                            e.currentTarget.classList.add('opacity-50');
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block';
+                            }
                           }}
                         />
+                        <Package className="w-6 h-6 text-slate-500 absolute hidden" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-white truncate">{etb.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{etb.set}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{etb.set} • ~{etb.marketPrice}€</p>
                       </div>
                     </div>
                   ))}
@@ -345,7 +348,19 @@ export const PortfolioTracker: React.FC = () => {
               <input type="number" step="0.01" value={purchasePrice} onChange={e => setPurchasePrice(Number(e.target.value))} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Precio Mercado (€)</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-medium text-slate-400">Precio Mercado (€)</label>
+                {name && (
+                  <a 
+                    href={`https://www.cardmarket.com/es/Pokemon/Products/Search?searchString=${encodeURIComponent(name)}`}
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                  >
+                    Consultar en Cardmarket <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
               <input type="number" step="0.01" value={marketPrice} onChange={e => setMarketPrice(Number(e.target.value))} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white" />
             </div>
 
@@ -376,20 +391,25 @@ export const PortfolioTracker: React.FC = () => {
             <div key={item.id} className="group relative rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden flex flex-col hover:border-indigo-500/50 transition-colors">
               <div className="aspect-[3/4] w-full bg-slate-800/50 relative overflow-hidden flex items-center justify-center p-4">
                 {item.image_url ? (
-                  <img 
-                    src={item.image_url} 
-                    alt={item.name} 
-                    className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-500" 
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Pok%C3%A9_Ball_icon.svg/512px-Pok%C3%A9_Ball_icon.svg.png';
-                      e.currentTarget.classList.add('opacity-30', 'p-6');
-                    }}
-                  />
+                  <>
+                    <img 
+                      src={item.image_url} 
+                      alt={item.name} 
+                      className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-500 z-10" 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextElementSibling) {
+                          (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block';
+                        }
+                      }}
+                    />
+                    <Package className="w-12 h-12 text-slate-600 absolute hidden" />
+                  </>
                 ) : (
                   <ImageIcon className="w-12 h-12 text-slate-600" />
                 )}
                 
-                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                   <button onClick={() => handleDelete(item.id)} className="p-2 rounded-lg bg-rose-500 text-white shadow-lg hover:bg-rose-600">
                     <Trash2 className="w-4 h-4" />
                   </button>

@@ -1,4 +1,4 @@
-﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   UserProfile,
   AppPermission,
@@ -1819,6 +1819,15 @@ class StorageService {
   // ==========================================
 
   async getTcgItems(userId?: string): Promise<import('../types').TcgItem[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('tcg_items').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
+        if (!error && data) {
+          this.setLocal('tcg_items_' + (userId || 'default'), data);
+          return data;
+        }
+      } catch (e) {}
+    }
     return this.getLocal<import('../types').TcgItem[]>('tcg_items_' + (userId || 'default'), []);
   }
 
@@ -1826,8 +1835,18 @@ class StorageService {
     const newItem: import('../types').TcgItem = {
       ...item,
       id: generateId('tcg'),
-      user_id: userId || 'default'
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
     };
+    
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('tcg_items').insert([newItem]).select().single();
+        if (!error && data) {
+          newItem.id = data.id;
+        }
+      } catch (e) {}
+    }
+
     const current = await this.getTcgItems(userId);
     this.setLocal('tcg_items_' + (userId || 'default'), [newItem, ...current]);
     this.broadcastChange();
@@ -1835,6 +1854,11 @@ class StorageService {
   }
 
   async updateTcgItem(id: string, updates: Partial<import('../types').TcgItem>, userId?: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('tcg_items').update(updates).eq('id', id);
+      } catch (e) {}
+    }
     const current = await this.getTcgItems(userId);
     const updated = current.map(item => item.id === id ? { ...item, ...updates } : item);
     this.setLocal('tcg_items_' + (userId || 'default'), updated);
@@ -1842,6 +1866,11 @@ class StorageService {
   }
 
   async deleteTcgItem(id: string, userId?: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('tcg_items').delete().eq('id', id);
+      } catch (e) {}
+    }
     const current = await this.getTcgItems(userId);
     const updated = current.filter(item => item.id !== id);
     this.setLocal('tcg_items_' + (userId || 'default'), updated);
@@ -1849,6 +1878,15 @@ class StorageService {
   }
 
   async getTcgStores(userId?: string): Promise<import('../types').TcgStore[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('tcg_stores').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
+        if (!error && data) {
+          this.setLocal('tcg_stores_' + (userId || 'default'), data);
+          return data;
+        }
+      } catch (e) {}
+    }
     return this.getLocal<import('../types').TcgStore[]>('tcg_stores_' + (userId || 'default'), []);
   }
 
@@ -1856,8 +1894,18 @@ class StorageService {
     const newStore: import('../types').TcgStore = {
       ...store,
       id: generateId('tcg_store'),
-      user_id: userId || 'default'
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
     };
+    
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('tcg_stores').insert([newStore]).select().single();
+        if (!error && data) {
+          newStore.id = data.id;
+        }
+      } catch (e) {}
+    }
+
     const current = await this.getTcgStores(userId);
     this.setLocal('tcg_stores_' + (userId || 'default'), [newStore, ...current]);
     this.broadcastChange();
@@ -1865,6 +1913,11 @@ class StorageService {
   }
 
   async deleteTcgStore(id: string, userId?: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('tcg_stores').delete().eq('id', id);
+      } catch (e) {}
+    }
     const current = await this.getTcgStores(userId);
     const updated = current.filter(store => store.id !== id);
     this.setLocal('tcg_stores_' + (userId || 'default'), updated);
@@ -1872,6 +1925,15 @@ class StorageService {
   }
 
   async getTcgWatchlist(userId?: string): Promise<import('../types').TcgWatchlistItem[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('tcg_watchlist').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
+        if (!error && data) {
+          this.setLocal('tcg_watchlist_' + (userId || 'default'), data);
+          return data;
+        }
+      } catch (e) {}
+    }
     return this.getLocal<import('../types').TcgWatchlistItem[]>('tcg_watchlist_' + (userId || 'default'), []);
   }
 
@@ -1879,8 +1941,18 @@ class StorageService {
     const newItem: import('../types').TcgWatchlistItem = {
       ...item,
       id: generateId('tcg_wl'),
-      user_id: userId || 'default'
+      user_id: userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
     };
+    
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('tcg_watchlist').insert([newItem]).select().single();
+        if (!error && data) {
+          newItem.id = data.id;
+        }
+      } catch (e) {}
+    }
+
     const current = await this.getTcgWatchlist(userId);
     this.setLocal('tcg_watchlist_' + (userId || 'default'), [newItem, ...current]);
     this.broadcastChange();
@@ -1888,6 +1960,11 @@ class StorageService {
   }
 
   async updateTcgWatchlistItem(id: string, updates: Partial<import('../types').TcgWatchlistItem>, userId?: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('tcg_watchlist').update(updates).eq('id', id);
+      } catch (e) {}
+    }
     const current = await this.getTcgWatchlist(userId);
     const updated = current.map(item => item.id === id ? { ...item, ...updates } : item);
     this.setLocal('tcg_watchlist_' + (userId || 'default'), updated);
@@ -1895,6 +1972,11 @@ class StorageService {
   }
 
   async deleteTcgWatchlistItem(id: string, userId?: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('tcg_watchlist').delete().eq('id', id);
+      } catch (e) {}
+    }
     const current = await this.getTcgWatchlist(userId);
     const updated = current.filter(item => item.id !== id);
     this.setLocal('tcg_watchlist_' + (userId || 'default'), updated);
