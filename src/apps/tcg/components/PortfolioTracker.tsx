@@ -4,25 +4,26 @@ import { storageService } from '../../../services/storageService';
 import { TcgItem, TcgProductType, TcgLanguage, TcgCondition } from '../../../types';
 
 const MOCK_ETBS = [
-  { id: 'etb_151', name: 'Pokémon 151 Elite Trainer Box', set: '151', image: 'https://tcg.pokemon.com/assets/img/expansions/151/products/etb.png', marketPrice: 55 },
-  { id: 'etb_paf', name: 'Paldean Fates Elite Trainer Box', set: 'Paldean Fates', image: 'https://tcg.pokemon.com/assets/img/expansions/paldean-fates/products/etb.png', marketPrice: 45 },
-  { id: 'etb_obf', name: 'Obsidian Flames Elite Trainer Box', set: 'Obsidian Flames', image: 'https://tcg.pokemon.com/assets/img/expansions/obsidian-flames/products/etb.png', marketPrice: 40 },
-  { id: 'etb_pev', name: 'Paldea Evolved Elite Trainer Box', set: 'Paldea Evolved', image: 'https://tcg.pokemon.com/assets/img/expansions/paldea-evolved/products/etb.png', marketPrice: 42 },
-  { id: 'etb_sv1', name: 'Scarlet & Violet Base Elite Trainer Box', set: 'Scarlet & Violet Base', image: 'https://tcg.pokemon.com/assets/img/expansions/scarlet-violet/products/etb.png', marketPrice: 40 },
-  { id: 'etb_crz', name: 'Crown Zenith Elite Trainer Box', set: 'Crown Zenith', image: 'https://tcg.pokemon.com/assets/img/expansions/crown-zenith/products/etb.png', marketPrice: 65 },
-  { id: 'etb_sit', name: 'Silver Tempest Elite Trainer Box', set: 'Silver Tempest', image: 'https://tcg.pokemon.com/assets/img/expansions/silver-tempest/products/etb.png', marketPrice: 45 },
-  { id: 'etb_lor', name: 'Lost Origin Elite Trainer Box', set: 'Lost Origin', image: 'https://tcg.pokemon.com/assets/img/expansions/lost-origin/products/etb.png', marketPrice: 50 },
-  { id: 'etb_asr', name: 'Astral Radiance Elite Trainer Box', set: 'Astral Radiance', image: 'https://tcg.pokemon.com/assets/img/expansions/astral-radiance/products/etb.png', marketPrice: 40 },
-  { id: 'etb_brs', name: 'Brilliant Stars Elite Trainer Box', set: 'Brilliant Stars', image: 'https://tcg.pokemon.com/assets/img/expansions/brilliant-stars/products/etb.png', marketPrice: 45 },
-  { id: 'etb_fst', name: 'Fusion Strike Elite Trainer Box', set: 'Fusion Strike', image: 'https://tcg.pokemon.com/assets/img/expansions/fusion-strike/products/etb.png', marketPrice: 45 },
-  { id: 'etb_cel', name: 'Celebrations Elite Trainer Box', set: 'Celebrations', image: 'https://tcg.pokemon.com/assets/img/expansions/celebrations/products/etb.png', marketPrice: 85 },
-  { id: 'etb_evs', name: 'Evolving Skies Elite Trainer Box', set: 'Evolving Skies', image: 'https://tcg.pokemon.com/assets/img/expansions/evolving-skies/products/etb.png', marketPrice: 120 },
-  { id: 'etb_cre', name: 'Chilling Reign Elite Trainer Box', set: 'Chilling Reign', image: 'https://tcg.pokemon.com/assets/img/expansions/chilling-reign/products/etb.png', marketPrice: 50 },
-  { id: 'etb_bst', name: 'Battle Styles Elite Trainer Box', set: 'Battle Styles', image: 'https://tcg.pokemon.com/assets/img/expansions/battle-styles/products/etb.png', marketPrice: 40 },
-  { id: 'etb_shf', name: 'Shining Fates Elite Trainer Box', set: 'Shining Fates', image: 'https://tcg.pokemon.com/assets/img/expansions/shining-fates/products/etb.png', marketPrice: 55 },
-  { id: 'etb_viv', name: 'Vivid Voltage Elite Trainer Box', set: 'Vivid Voltage', image: 'https://tcg.pokemon.com/assets/img/expansions/vivid-voltage/products/etb.png', marketPrice: 45 },
-  { id: 'etb_cpa', name: 'Champion\'s Path Elite Trainer Box', set: 'Champion\'s Path', image: 'https://tcg.pokemon.com/assets/img/expansions/champions-path/products/etb.png', marketPrice: 90 },
-  { id: 'etb_daa', name: 'Darkness Ablaze Elite Trainer Box', set: 'Darkness Ablaze', image: 'https://tcg.pokemon.com/assets/img/expansions/darkness-ablaze/products/etb.png', marketPrice: 45 },
+  { id: 'etb_30th', name: 'Pokémon 30th Anniversary Elite Trainer Box', set: '30th Anniversary', image: 'https://m.media-amazon.com/images/I/71YyM+h309L._AC_SL1500_.jpg', marketPrice: 150 },
+  { id: 'etb_151', name: 'Pokémon 151 Elite Trainer Box', set: '151', image: 'https://m.media-amazon.com/images/I/71oD4H-lXfL._AC_SL1500_.jpg', marketPrice: 55 },
+  { id: 'etb_paf', name: 'Paldean Fates Elite Trainer Box', set: 'Paldean Fates', image: 'https://m.media-amazon.com/images/I/81xUe3Xf14L._AC_SL1500_.jpg', marketPrice: 45 },
+  { id: 'etb_obf', name: 'Obsidian Flames Elite Trainer Box', set: 'Obsidian Flames', image: 'https://m.media-amazon.com/images/I/81H+M0T5dJL._AC_SL1500_.jpg', marketPrice: 40 },
+  { id: 'etb_pev', name: 'Paldea Evolved Elite Trainer Box', set: 'Paldea Evolved', image: 'https://m.media-amazon.com/images/I/81+c74jP9HL._AC_SL1500_.jpg', marketPrice: 42 },
+  { id: 'etb_sv1', name: 'Scarlet & Violet Base Elite Trainer Box', set: 'Scarlet & Violet Base', image: 'https://m.media-amazon.com/images/I/81p9Qc2kF+L._AC_SL1500_.jpg', marketPrice: 40 },
+  { id: 'etb_crz', name: 'Crown Zenith Elite Trainer Box', set: 'Crown Zenith', image: 'https://m.media-amazon.com/images/I/81s69P71rSL._AC_SL1500_.jpg', marketPrice: 65 },
+  { id: 'etb_sit', name: 'Silver Tempest Elite Trainer Box', set: 'Silver Tempest', image: 'https://m.media-amazon.com/images/I/81Q-P7r3UFL._AC_SL1500_.jpg', marketPrice: 45 },
+  { id: 'etb_lor', name: 'Lost Origin Elite Trainer Box', set: 'Lost Origin', image: 'https://m.media-amazon.com/images/I/81yq+eHqDVL._AC_SL1500_.jpg', marketPrice: 50 },
+  { id: 'etb_asr', name: 'Astral Radiance Elite Trainer Box', set: 'Astral Radiance', image: 'https://m.media-amazon.com/images/I/81R50uOIfdL._AC_SL1500_.jpg', marketPrice: 40 },
+  { id: 'etb_brs', name: 'Brilliant Stars Elite Trainer Box', set: 'Brilliant Stars', image: 'https://m.media-amazon.com/images/I/81bH9fOqjVL._AC_SL1500_.jpg', marketPrice: 45 },
+  { id: 'etb_fst', name: 'Fusion Strike Elite Trainer Box', set: 'Fusion Strike', image: 'https://m.media-amazon.com/images/I/81bWzO1V+jL._AC_SL1500_.jpg', marketPrice: 45 },
+  { id: 'etb_cel', name: 'Celebrations Elite Trainer Box', set: 'Celebrations', image: 'https://m.media-amazon.com/images/I/81pI5hK0GOL._AC_SL1500_.jpg', marketPrice: 85 },
+  { id: 'etb_evs', name: 'Evolving Skies Elite Trainer Box', set: 'Evolving Skies', image: 'https://m.media-amazon.com/images/I/81V2t+r7qFL._AC_SL1500_.jpg', marketPrice: 120 },
+  { id: 'etb_cre', name: 'Chilling Reign Elite Trainer Box', set: 'Chilling Reign', image: 'https://m.media-amazon.com/images/I/81+XlqJpW9S._AC_SL1500_.jpg', marketPrice: 50 },
+  { id: 'etb_bst', name: 'Battle Styles Elite Trainer Box', set: 'Battle Styles', image: 'https://m.media-amazon.com/images/I/81L+-jK4i1L._AC_SL1500_.jpg', marketPrice: 40 },
+  { id: 'etb_shf', name: 'Shining Fates Elite Trainer Box', set: 'Shining Fates', image: 'https://m.media-amazon.com/images/I/81a+qg3U94L._AC_SL1500_.jpg', marketPrice: 55 },
+  { id: 'etb_viv', name: 'Vivid Voltage Elite Trainer Box', set: 'Vivid Voltage', image: 'https://m.media-amazon.com/images/I/81nC2rN1nUL._AC_SL1500_.jpg', marketPrice: 45 },
+  { id: 'etb_cpa', name: 'Champion\'s Path Elite Trainer Box', set: 'Champion\'s Path', image: 'https://m.media-amazon.com/images/I/81W4o1v4LBL._AC_SL1500_.jpg', marketPrice: 90 },
+  { id: 'etb_daa', name: 'Darkness Ablaze Elite Trainer Box', set: 'Darkness Ablaze', image: 'https://m.media-amazon.com/images/I/81j8C1ZpZ-L._AC_SL1500_.jpg', marketPrice: 45 },
 ];
 
 export const PortfolioTracker: React.FC = () => {
@@ -285,7 +286,15 @@ export const PortfolioTracker: React.FC = () => {
                       className="cursor-pointer group flex items-center gap-3 p-2 rounded-xl border border-slate-700 hover:border-indigo-500 bg-slate-900/50"
                     >
                       <div className="w-12 h-12 flex-shrink-0 bg-white/5 rounded-lg overflow-hidden flex items-center justify-center p-1">
-                        <img src={etb.image} alt={etb.name} className="w-full h-full object-contain" />
+                        <img 
+                          src={etb.image} 
+                          alt={etb.name} 
+                          className="w-full h-full object-contain" 
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Pok%C3%A9_Ball_icon.svg/512px-Pok%C3%A9_Ball_icon.svg.png';
+                            e.currentTarget.classList.add('opacity-50');
+                          }}
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-white truncate">{etb.name}</p>
@@ -367,7 +376,15 @@ export const PortfolioTracker: React.FC = () => {
             <div key={item.id} className="group relative rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden flex flex-col hover:border-indigo-500/50 transition-colors">
               <div className="aspect-[3/4] w-full bg-slate-800/50 relative overflow-hidden flex items-center justify-center p-4">
                 {item.image_url ? (
-                  <img src={item.image_url} alt={item.name} className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-500" />
+                  <img 
+                    src={item.image_url} 
+                    alt={item.name} 
+                    className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-500" 
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Pok%C3%A9_Ball_icon.svg/512px-Pok%C3%A9_Ball_icon.svg.png';
+                      e.currentTarget.classList.add('opacity-30', 'p-6');
+                    }}
+                  />
                 ) : (
                   <ImageIcon className="w-12 h-12 text-slate-600" />
                 )}
