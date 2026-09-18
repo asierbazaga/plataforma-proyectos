@@ -3,12 +3,11 @@ import { ArrowLeft, CheckSquare, CalendarDays, Activity, FileText, Timer } from 
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-// Placeholders for the internal components
-const TasksView = () => <div className="p-8 text-center text-slate-500">Módulo de Tareas en desarrollo...</div>;
-const CalendarView = () => <div className="p-8 text-center text-slate-500">Módulo de Calendario en desarrollo...</div>;
-const HabitsView = () => <div className="p-8 text-center text-slate-500">Módulo de Hábitos en desarrollo...</div>;
-const NotesView = () => <div className="p-8 text-center text-slate-500">Módulo de Notas en desarrollo...</div>;
-const PomodoroTimer = () => <div className="p-8 text-center text-slate-500">Temporizador Pomodoro en desarrollo...</div>;
+import { TasksView } from './components/TasksView';
+import { CalendarView } from './components/CalendarView';
+import { HabitsView } from './components/HabitsView';
+import { NotesView } from './components/NotesView';
+import { PomodoroTimer } from './components/PomodoroTimer';
 
 interface AgendaAppProps {
   onBack: () => void;
