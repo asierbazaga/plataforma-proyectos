@@ -13,7 +13,7 @@ export const agendaService = {
   async getTasks(userId: string): Promise<AgendaTask[]> {
     const { data, error } = await supabase
       .from('agenda_tasks')
-      .select('*, subtasks:agenda_subtasks(*)')
+      .select('*')
       .eq('user_id', userId)
       .order('due_date', { ascending: true });
 

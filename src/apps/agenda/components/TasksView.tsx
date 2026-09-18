@@ -41,22 +41,28 @@ export const TasksView: React.FC = () => {
     if (!newTaskTitle.trim() || !currentUser?.id) return;
 
     try {
-      const task = await agendaService.createTask({
+      const taskData: Partial<AgendaTask> = {
         user_id: currentUser.id,
         title: newTaskTitle,
         priority: newTaskPriority,
         status: 'pending',
-        due_date: newTaskDueDate || undefined,
         is_recurring: false
-      });
+      };
+      
+      if (newTaskDueDate) {
+        taskData.due_date = newTaskDueDate;
+      }
+
+      const task = await agendaService.createTask(taskData);
       
       setTasks([...tasks, task]);
       setNewTaskTitle('');
       setNewTaskDueDate('');
       setNewTaskPriority('medium');
       setIsAdding(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding task:', error);
+      alert('Error al guardar: ' + (error.message || 'Asegúrate de que las tablas en Supabase están creadas.'));
     }
   };
 
