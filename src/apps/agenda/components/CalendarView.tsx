@@ -146,6 +146,7 @@ export const CalendarView: React.FC = () => {
                   required
                   value={newEventDate}
                   onChange={(e) => setNewEventDate(e.target.value)}
+                  style={{ colorScheme: isDark ? 'dark' : 'light' }}
                   className={`w-full px-3 py-2 rounded-lg border text-sm outline-none ${
                     isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
                   }`}
@@ -157,6 +158,7 @@ export const CalendarView: React.FC = () => {
                   type="time"
                   value={newEventTime}
                   onChange={(e) => setNewEventTime(e.target.value)}
+                  style={{ colorScheme: isDark ? 'dark' : 'light' }}
                   className={`w-full px-3 py-2 rounded-lg border text-sm outline-none ${
                     isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
                   }`}

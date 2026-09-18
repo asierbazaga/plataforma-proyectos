@@ -465,7 +465,7 @@ INSERT INTO public.user_library (id, user_id, title, media_type, genre, status, 
 
 CREATE TABLE IF NOT EXISTS public.agenda_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT,
   title TEXT NOT NULL,
   description TEXT,
   status TEXT CHECK (status IN ('pending', 'in_progress', 'completed')) DEFAULT 'pending',
@@ -487,7 +487,7 @@ CREATE TABLE IF NOT EXISTS public.agenda_subtasks (
 
 CREATE TABLE IF NOT EXISTS public.agenda_events (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT,
   title TEXT NOT NULL,
   description TEXT,
   start_time TIMESTAMPTZ NOT NULL,
@@ -498,7 +498,7 @@ CREATE TABLE IF NOT EXISTS public.agenda_events (
 
 CREATE TABLE IF NOT EXISTS public.agenda_habits (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT,
   name TEXT NOT NULL,
   frequency TEXT DEFAULT 'daily',
   color TEXT DEFAULT '#3B82F6',
@@ -515,7 +515,7 @@ CREATE TABLE IF NOT EXISTS public.agenda_habit_logs (
 
 CREATE TABLE IF NOT EXISTS public.agenda_notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT,
   title TEXT NOT NULL,
   content TEXT,
   date DATE DEFAULT CURRENT_DATE,
@@ -523,35 +523,12 @@ CREATE TABLE IF NOT EXISTS public.agenda_notes (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- RLS POLICIES FOR AGENDA
+-- DISABLE RLS TO MATCH REST OF PROJECT (Custom Auth System)
+ALTER TABLE public.agenda_tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agenda_subtasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agenda_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agenda_habits DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agenda_habit_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agenda_notes DISABLE ROW LEVEL SECURITY;
 
-ALTER TABLE public.agenda_tasks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own agenda tasks" ON public.agenda_tasks FOR ALL USING (auth.uid() = user_id);
-
-ALTER TABLE public.agenda_subtasks ENABLE ROW LEVEL SECURITY;
--- For subtasks, auth is linked to the parent task
-CREATE POLICY "Users can manage their own agenda subtasks" ON public.agenda_subtasks FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.agenda_tasks
-    WHERE agenda_tasks.id = agenda_subtasks.task_id
-    AND agenda_tasks.user_id = auth.uid()
-  )
-);
-
-ALTER TABLE public.agenda_events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own agenda events" ON public.agenda_events FOR ALL USING (auth.uid() = user_id);
-
-ALTER TABLE public.agenda_habits ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own agenda habits" ON public.agenda_habits FOR ALL USING (auth.uid() = user_id);
-
-ALTER TABLE public.agenda_habit_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own agenda habit logs" ON public.agenda_habit_logs FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.agenda_habits
-    WHERE agenda_habits.id = agenda_habit_logs.habit_id
-    AND agenda_habits.user_id = auth.uid()
-  )
-);
-
-ALTER TABLE public.agenda_notes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own agenda notes" ON public.agenda_notes FOR ALL USING (auth.uid() = user_id);
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
