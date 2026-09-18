@@ -35,7 +35,7 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className={\`p-2 rounded-xl transition-colors \${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-200 text-slate-600'}\`}
+            className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-200 text-slate-600'}`}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -49,7 +49,7 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className={\`flex gap-2 p-1.5 rounded-2xl overflow-x-auto hide-scrollbar \${isDark ? 'bg-slate-900' : 'bg-slate-200'}\`}>
+      <div className={`flex gap-2 p-1.5 rounded-2xl overflow-x-auto hide-scrollbar ${isDark ? 'bg-slate-900' : 'bg-slate-200'}`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -57,13 +57,13 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={\`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 \${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0 ${
                 isActive
                   ? 'bg-blue-500 text-white shadow-md'
                   : isDark
                   ? 'text-slate-400 hover:text-white hover:bg-slate-800'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-              }\`}
+              }`}
             >
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
@@ -73,7 +73,7 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
       </div>
 
       {/* Content Area */}
-      <div className={\`min-h-[500px] rounded-3xl border p-4 sm:p-6 \${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}\`}>
+      <div className={`min-h-[500px] rounded-3xl border p-4 sm:p-6 ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
         {activeTab === 'tasks' && <TasksView />}
         {activeTab === 'calendar' && <CalendarView />}
         {activeTab === 'habits' && <HabitsView />}
