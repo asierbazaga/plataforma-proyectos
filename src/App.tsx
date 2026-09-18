@@ -5,7 +5,7 @@ import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
-import { ShieldAlert, ArrowLeft, LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, ChevronRight, Home, Building, Package } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, ChevronRight, Home, Building, Package, CalendarDays } from 'lucide-react';
 import { AppId } from './types';
 
 // Lazy loading de módulos para optimización extrema de carga y rendimiento
@@ -15,6 +15,7 @@ const LibrosJuegosApp = lazy(() => import('./apps/libros-juegos/LibrosJuegosApp'
 const LoreApp = lazy(() => import('./apps/lore/LoreApp').then(m => ({ default: m.LoreApp })));
 const EntrevistasApp = lazy(() => import('./apps/entrevistas/EntrevistasApp').then(m => ({ default: m.EntrevistasApp })));
 const TcgApp = lazy(() => import('./apps/tcg/TcgApp').then(m => ({ default: m.TcgApp })));
+const AgendaApp = lazy(() => import('./apps/agenda/AgendaApp').then(m => ({ default: m.AgendaApp })));
 const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
 const ActivityLogs = lazy(() => import('./components/ActivityLogs').then(m => ({ default: m.ActivityLogs })));
 
@@ -66,6 +67,7 @@ const MainLayout: React.FC = () => {
       case 'lore': return 'App Lore & Rutas';
       case 'entrevistas': return 'Mecalux Talent & Entrevistas';
       case 'tcg': return 'Pokémon TCG Tracker';
+      case 'agenda': return 'Agenda Personal';
       case 'permissions': return 'Matriz de Permisos (RBAC)';
       case 'logs': return 'Registro de Actividad';
       default: return 'Catálogo de Proyectos';
@@ -100,6 +102,10 @@ const MainLayout: React.FC = () => {
       case 'tcg':
         if (!hasAccessToApp('tcg')) return <AccessDeniedView onBack={handleBackToDashboard} appName="COLECCIONISMO TCG" />;
         return <TcgApp onBack={handleBackToDashboard} />;
+
+      case 'agenda':
+        if (!hasAccessToApp('agenda')) return <AccessDeniedView onBack={handleBackToDashboard} appName="AGENDA PERSONAL" />;
+        return <AgendaApp onBack={handleBackToDashboard} />;
 
       case 'permissions':
         if (currentUser.role !== 'admin') return <AccessDeniedView onBack={handleBackToDashboard} appName="Matriz de Permisos" />;
@@ -207,6 +213,20 @@ const MainLayout: React.FC = () => {
           >
             <Building className="w-4 h-4" />
             <span className="text-[10px]">Entrevistas</span>
+          </button>
+        )}
+
+        {hasAccessToApp('agenda') && (
+          <button
+            onClick={() => handleSelectTab('agenda')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
+              currentTab === 'agenda'
+                ? 'text-blue-400 font-bold'
+                : 'text-slate-400 hover:text-white font-medium'
+            }`}
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span className="text-[10px]">Agenda</span>
           </button>
         )}
 

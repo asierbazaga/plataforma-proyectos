@@ -2,7 +2,7 @@ export type Role = 'admin' | 'user' | 'guest';
 
 export type UserStatus = 'active' | 'pending' | 'suspended';
 
-export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas' | 'tcg';
+export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas' | 'tcg' | 'agenda';
 
 export interface UserProfile {
   id: string;
@@ -501,4 +501,72 @@ export interface TcgRelease {
   date_japan?: string;
   date_west?: string;
   status: 'Rumor' | 'Pre-order' | 'Imminent' | 'Released';
+}
+
+
+// ============================================================================
+// AGENDA PERSONAL
+// ============================================================================
+
+export type AgendaTaskStatus = 'pending' | 'in_progress' | 'completed';
+export type AgendaTaskPriority = 'low' | 'medium' | 'high';
+
+export interface AgendaSubtask {
+  id: string;
+  task_id: string;
+  title: string;
+  is_completed: boolean;
+  created_at: string;
+}
+
+export interface AgendaTask {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  status: AgendaTaskStatus;
+  priority: AgendaTaskPriority;
+  due_date?: string;
+  is_recurring: boolean;
+  recurrence_pattern?: string;
+  subtasks?: AgendaSubtask[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgendaEvent {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  is_all_day: boolean;
+  created_at: string;
+}
+
+export interface AgendaHabit {
+  id: string;
+  user_id: string;
+  name: string;
+  frequency: string;
+  color: string;
+  created_at: string;
+}
+
+export interface AgendaHabitLog {
+  id: string;
+  habit_id: string;
+  completed_date: string;
+  created_at: string;
+}
+
+export interface AgendaNote {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  date: string;
+  created_at: string;
+  updated_at: string;
 }

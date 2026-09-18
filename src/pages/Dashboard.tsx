@@ -24,7 +24,9 @@ import {
   PhoneCall,
   Building,
   FileSpreadsheet,
-  Package
+  Package,
+  CalendarDays,
+  ListTodo
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { storageService } from '../services/storageService';
@@ -176,6 +178,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
         { text: 'Portfolio & ROI', label: 'Portfolio & ROI', icon: TrendingUp },
         { text: 'API de Cartas', label: 'API de Cartas', icon: Sparkles },
         { text: 'Radar Tiendas', label: 'Radar Tiendas', icon: MapPin }
+      ]
+    },
+    {
+      id: 'agenda' as AppId,
+      number: '07',
+      category: 'Productividad Personal',
+      title: 'Agenda Personal',
+      subtitle: 'Tareas, time blocking y productividad',
+      description: 'Chief of Staff personal. Integra gestión de tareas avanzadas (GTD), calendario, seguimiento de hábitos y notas rápidas.',
+      icon: CalendarDays,
+      glowColor: 'group-hover:shadow-blue-500/20 group-hover:border-blue-500/50',
+      iconGradient: 'from-blue-500 via-indigo-500 to-cyan-500 shadow-blue-500/30',
+      tagColor: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+      btnGradient: 'from-blue-500 via-indigo-600 to-cyan-600 hover:from-blue-400 hover:to-cyan-500 shadow-blue-500/25',
+      highlights: [
+        { text: 'Tareas & Hábitos', label: 'Tareas & Hábitos', icon: ListTodo },
+        { text: 'Time Blocking', label: 'Time Blocking', icon: CalendarDays },
+        { text: 'Modo Concentración', label: 'Modo Concentración', icon: Zap }
       ]
     }
   ];

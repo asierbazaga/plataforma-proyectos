@@ -457,3 +457,101 @@ INSERT INTO public.interview_candidates (id, user_id, full_name, email, phone, r
 INSERT INTO public.user_library (id, user_id, title, media_type, genre, status, rating, progress_percentage) VALUES
 ('lib_1', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Clean Code: A Handbook of Agile Software Craftsmanship', 'book', 'Software & Arquitectura', 'completed', 5, 100),
 ('lib_2', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Witcher 3: Wild Hunt', 'game', 'RPG / Aventura', 'completed', 5, 100);
+
+
+-- ==========================================
+-- MODULE: AGENDA PERSONAL
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.agenda_tasks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT CHECK (status IN ('pending', 'in_progress', 'completed')) DEFAULT 'pending',
+  priority TEXT CHECK (priority IN ('low', 'medium', 'high')) DEFAULT 'medium',
+  due_date TIMESTAMPTZ,
+  is_recurring BOOLEAN DEFAULT FALSE,
+  recurrence_pattern TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.agenda_subtasks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  task_id UUID REFERENCES public.agenda_tasks(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  is_completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.agenda_events (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  start_time TIMESTAMPTZ NOT NULL,
+  end_time TIMESTAMPTZ NOT NULL,
+  is_all_day BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.agenda_habits (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  frequency TEXT DEFAULT 'daily',
+  color TEXT DEFAULT '#3B82F6',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.agenda_habit_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  habit_id UUID REFERENCES public.agenda_habits(id) ON DELETE CASCADE,
+  completed_date DATE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(habit_id, completed_date)
+);
+
+CREATE TABLE IF NOT EXISTS public.agenda_notes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  content TEXT,
+  date DATE DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS POLICIES FOR AGENDA
+
+ALTER TABLE public.agenda_tasks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own agenda tasks" ON public.agenda_tasks FOR ALL USING (auth.uid() = user_id);
+
+ALTER TABLE public.agenda_subtasks ENABLE ROW LEVEL SECURITY;
+-- For subtasks, auth is linked to the parent task
+CREATE POLICY "Users can manage their own agenda subtasks" ON public.agenda_subtasks FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.agenda_tasks
+    WHERE agenda_tasks.id = agenda_subtasks.task_id
+    AND agenda_tasks.user_id = auth.uid()
+  )
+);
+
+ALTER TABLE public.agenda_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own agenda events" ON public.agenda_events FOR ALL USING (auth.uid() = user_id);
+
+ALTER TABLE public.agenda_habits ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own agenda habits" ON public.agenda_habits FOR ALL USING (auth.uid() = user_id);
+
+ALTER TABLE public.agenda_habit_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own agenda habit logs" ON public.agenda_habit_logs FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.agenda_habits
+    WHERE agenda_habits.id = agenda_habit_logs.habit_id
+    AND agenda_habits.user_id = auth.uid()
+  )
+);
+
+ALTER TABLE public.agenda_notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own agenda notes" ON public.agenda_notes FOR ALL USING (auth.uid() = user_id);
