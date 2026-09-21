@@ -570,3 +570,16 @@ export interface AgendaNote {
   created_at: string;
   updated_at: string;
 }
+
+export interface AgendaCompensatoryDay {
+  id: string;
+  user_id: string;
+  title: string;
+  total_days: number;
+  spent_days: number;
+  date: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+

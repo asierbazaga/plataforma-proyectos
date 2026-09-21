@@ -532,3 +532,18 @@ ALTER TABLE public.agenda_habit_logs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agenda_notes DISABLE ROW LEVEL SECURITY;
 
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+
+CREATE TABLE IF NOT EXISTS public.agenda_compensatory_days (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT,
+  title TEXT NOT NULL,
+  total_days NUMERIC(5,2) DEFAULT 1,
+  spent_days NUMERIC(5,2) DEFAULT 0,
+  date DATE DEFAULT CURRENT_DATE,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.agenda_compensatory_days DISABLE ROW LEVEL SECURITY;
+

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckSquare, CalendarDays, Activity, FileText, Timer } from 'lucide-react';
+import { ArrowLeft, CheckSquare, CalendarDays, Activity, FileText, Timer, Briefcase } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -8,12 +8,13 @@ import { CalendarView } from './components/CalendarView';
 import { HabitsView } from './components/HabitsView';
 import { NotesView } from './components/NotesView';
 import { PomodoroTimer } from './components/PomodoroTimer';
+import { WorkView } from './components/WorkView';
 
 interface AgendaAppProps {
   onBack: () => void;
 }
 
-type TabId = 'tasks' | 'calendar' | 'habits' | 'notes' | 'pomodoro';
+type TabId = 'tasks' | 'calendar' | 'habits' | 'notes' | 'pomodoro' | 'work';
 
 export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
   const { isDark } = useTheme();
@@ -25,6 +26,7 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
     { id: 'habits', label: 'Hábitos', icon: Activity },
     { id: 'notes', label: 'Notas', icon: FileText },
     { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
+    { id: 'work', label: 'Trabajo', icon: Briefcase },
   ] as const;
 
   return (
@@ -78,6 +80,7 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
         {activeTab === 'habits' && <HabitsView />}
         {activeTab === 'notes' && <NotesView />}
         {activeTab === 'pomodoro' && <PomodoroTimer />}
+        {activeTab === 'work' && <WorkView />}
       </div>
     </div>
   );

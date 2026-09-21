@@ -5,7 +5,8 @@ import {
   AgendaEvent, 
   AgendaHabit, 
   AgendaHabitLog, 
-  AgendaNote 
+  AgendaNote,
+  AgendaCompensatoryDay 
 } from '../types';
 
 export const agendaService = {
@@ -236,6 +237,50 @@ export const agendaService = {
       .from('agenda_notes')
       .delete()
       .eq('id', noteId);
+
+    if (error) throw error;
+  },
+
+  // --- COMPENSATORY DAYS ---
+  async getCompensatoryDays(userId: string): Promise<AgendaCompensatoryDay[]> {
+    const { data, error } = await supabase
+      .from('agenda_compensatory_days')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async createCompensatoryDay(day: Partial<AgendaCompensatoryDay>): Promise<AgendaCompensatoryDay> {
+    const { data, error } = await supabase
+      .from('agenda_compensatory_days')
+      .insert([day])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateCompensatoryDay(dayId: string, updates: Partial<AgendaCompensatoryDay>): Promise<AgendaCompensatoryDay> {
+    const { data, error } = await supabase
+      .from('agenda_compensatory_days')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', dayId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteCompensatoryDay(dayId: string): Promise<void> {
+    const { error } = await supabase
+      .from('agenda_compensatory_days')
+      .delete()
+      .eq('id', dayId);
 
     if (error) throw error;
   }
