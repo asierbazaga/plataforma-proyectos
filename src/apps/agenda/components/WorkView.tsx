@@ -261,7 +261,7 @@ export const WorkView: React.FC = () => {
                     <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                       <div 
                         className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                        style={{ width: \`\${Math.min(100, progress)}%\` }}
+                        style={{ width: `${Math.min(100, progress)}%` }}
                       />
                     </div>
                   </div>
