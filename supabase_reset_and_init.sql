@@ -547,3 +547,7 @@ CREATE TABLE IF NOT EXISTS public.agenda_compensatory_days (
 
 ALTER TABLE public.agenda_compensatory_days DISABLE ROW LEVEL SECURITY;
 
+
+-- Update for compensatory days logs
+ALTER TABLE public.agenda_compensatory_days ADD COLUMN IF NOT EXISTS spent_logs JSONB DEFAULT '[]'::jsonb;
+

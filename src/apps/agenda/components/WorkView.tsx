@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Plus, Trash2, CheckCircle2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Briefcase, Plus, Trash2, CheckCircle2, TrendingUp, TrendingDown, Calendar, X } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { agendaService } from '../../../services/agendaService';
@@ -16,6 +16,9 @@ export const WorkView: React.FC = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newTotal, setNewTotal] = useState<number>(1);
   const [newNotes, setNewNotes] = useState('');
+
+  // Date selection state for logging spent days
+  const [spendDateInputs, setSpendDateInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -46,6 +49,7 @@ export const WorkView: React.FC = () => {
         total_days: newTotal,
         spent_days: 0,
         notes: newNotes,
+        spent_logs: [],
         date: new Date().toISOString().split('T')[0]
       });
       
@@ -60,29 +64,48 @@ export const WorkView: React.FC = () => {
     }
   };
 
-  const updateSpent = async (day: AgendaCompensatoryDay, amount: number) => {
-    const newSpent = Math.max(0, Math.min(day.total_days, day.spent_days + amount));
-    if (newSpent === day.spent_days) return;
+  const addSpentLog = async (day: AgendaCompensatoryDay) => {
+    if (day.spent_days >= day.total_days) return;
+
+    const dateToLog = spendDateInputs[day.id] || new Date().toISOString().split('T')[0];
+    const newLog = { id: Date.now().toString(), date: dateToLog };
+    const newLogs = [...(day.spent_logs || []), newLog];
+    const newSpent = day.spent_days + 1;
 
     // Optimistic
-    setDays(days.map(d => d.id === day.id ? { ...d, spent_days: newSpent } : d));
+    setDays(days.map(d => d.id === day.id ? { ...d, spent_days: newSpent, spent_logs: newLogs } : d));
+    setSpendDateInputs(prev => ({ ...prev, [day.id]: '' })); // reset input
 
     try {
-      await agendaService.updateCompensatoryDay(day.id, { spent_days: newSpent });
+      await agendaService.updateCompensatoryDay(day.id, { spent_days: newSpent, spent_logs: newLogs });
     } catch (error) {
-      console.error('Error updating spent days:', error);
-      setDays(days.map(d => d.id === day.id ? { ...d, spent_days: day.spent_days } : d));
+      console.error('Error adding spent log:', error);
+      setDays(days.map(d => d.id === day.id ? { ...d, spent_days: day.spent_days, spent_logs: day.spent_logs } : d));
+    }
+  };
+
+  const removeSpentLog = async (day: AgendaCompensatoryDay, logId: string) => {
+    const newLogs = (day.spent_logs || []).filter(l => l.id !== logId);
+    const newSpent = Math.max(0, day.spent_days - 1);
+
+    // Optimistic
+    setDays(days.map(d => d.id === day.id ? { ...d, spent_days: newSpent, spent_logs: newLogs } : d));
+
+    try {
+      await agendaService.updateCompensatoryDay(day.id, { spent_days: newSpent, spent_logs: newLogs });
+    } catch (error) {
+      console.error('Error removing spent log:', error);
+      setDays(days.map(d => d.id === day.id ? { ...d, spent_days: day.spent_days, spent_logs: day.spent_logs } : d));
     }
   };
 
   const deleteDay = async (id: string) => {
-    // Optimistic delete
     setDays(days.filter(d => d.id !== id));
     try {
       await agendaService.deleteCompensatoryDay(id);
     } catch (error) {
       console.error('Error deleting day:', error);
-      loadDays(); // reload on error
+      loadDays();
     }
   };
 
@@ -175,8 +198,8 @@ export const WorkView: React.FC = () => {
                 <label className="block text-xs font-medium text-slate-400 mb-1">Días Totales Ganados</label>
                 <input
                   type="number"
-                  step="0.5"
-                  min="0.5"
+                  step="1"
+                  min="1"
                   value={newTotal}
                   onChange={(e) => setNewTotal(Number(e.target.value))}
                   className={`w-full px-4 py-2 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${
@@ -235,68 +258,88 @@ export const WorkView: React.FC = () => {
             return (
               <div
                 key={day.id}
-                className={`relative flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all ${
+                className={`relative flex flex-col p-4 sm:p-5 rounded-2xl border transition-all ${
                   isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'
-                } ${isCompleted ? 'opacity-50' : ''}`}
+                } ${isCompleted ? 'opacity-70' : ''}`}
               >
-                <div className="flex-1 mb-4 sm:mb-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'} ${isCompleted ? 'line-through' : ''}`}>
-                      {day.title}
-                    </h3>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400">
-                      {new Date(day.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {day.notes && (
-                    <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{day.notes}</p>
-                  )}
-                  
-                  {/* Progress Bar */}
-                  <div className="mt-2 max-w-sm">
-                    <div className="flex justify-between text-xs mb-1 font-medium text-slate-400">
-                      <span>Gastados: {day.spent_days}</span>
-                      <span>Total: {day.total_days}</span>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'} ${isCompleted ? 'line-through' : ''}`}>
+                        {day.title}
+                      </h3>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400">
+                        {new Date(day.date).toLocaleDateString()}
+                      </span>
                     </div>
-                    <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
-                      <div 
-                        className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                        style={{ width: `${Math.min(100, progress)}%` }}
-                      />
-                    </div>
+                    {day.notes && (
+                      <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{day.notes}</p>
+                    )}
                   </div>
-                </div>
-
-                <div className="flex items-center gap-4 sm:ml-4 border-t sm:border-t-0 sm:border-l border-slate-700/30 pt-4 sm:pt-0 sm:pl-4">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => updateSpent(day, -0.5)}
-                      disabled={day.spent_days <= 0}
-                      className="p-2 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
-                      title="Restar medio día gastado"
-                    >
-                      <Minus className="w-5 h-5" />
-                    </button>
-                    <span className={`w-12 text-center font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                      {day.spent_days}
-                    </span>
-                    <button
-                      onClick={() => updateSpent(day, 0.5)}
-                      disabled={isCompleted}
-                      className="p-2 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
-                      title="Sumar medio día gastado"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
                   <button
                     onClick={() => deleteDay(day.id)}
-                    className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors ml-auto sm:ml-0"
+                    className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                     title="Eliminar bolsa completa"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs mb-1 font-medium text-slate-400">
+                    <span>Gastados: {day.spent_days}</span>
+                    <span>Total: {day.total_days}</span>
+                  </div>
+                  <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                    <div 
+                      className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                      style={{ width: `${Math.min(100, progress)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Spent Logs & Add Spends */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end mt-2 pt-4 border-t border-slate-700/30">
+                  <div className="flex flex-wrap gap-2 flex-1">
+                    {(day.spent_logs || []).map((log) => (
+                      <div key={log.id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                        <Calendar className="w-3 h-3 text-indigo-400" />
+                        <span>{new Date(log.date).toLocaleDateString()}</span>
+                        <button 
+                          onClick={() => removeSpentLog(day, log.id)}
+                          className="ml-1 hover:text-rose-500 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {(day.spent_logs?.length === 0 || !day.spent_logs) && (
+                      <span className="text-xs text-slate-500 italic">No hay días gastados registrados.</span>
+                    )}
+                  </div>
+
+                  {!isCompleted && (
+                    <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0">
+                      <input
+                        type="date"
+                        value={spendDateInputs[day.id] || ''}
+                        onChange={(e) => setSpendDateInputs(prev => ({ ...prev, [day.id]: e.target.value }))}
+                        className={`px-3 py-1.5 rounded-xl border text-sm outline-none transition-all h-9 ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                        }`}
+                        style={{ colorScheme: isDark ? 'dark' : 'light' }}
+                        title="Fecha en la que gastas el día"
+                      />
+                      <button
+                        onClick={() => addSpentLog(day)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 h-9 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Gastar 1 día</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

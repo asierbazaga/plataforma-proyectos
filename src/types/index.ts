@@ -579,6 +579,7 @@ export interface AgendaCompensatoryDay {
   spent_days: number;
   date: string;
   notes?: string;
+  spent_logs?: { id: string; date: string }[];
   created_at: string;
   updated_at: string;
 }
