@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Plus, Trash2, CheckCircle2, TrendingUp, TrendingDown, Calendar, X } from 'lucide-react';
+import { Briefcase, Plus, Trash2, CheckCircle2, TrendingUp, TrendingDown, Calendar, X, Calculator } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { agendaService } from '../../../services/agendaService';
@@ -12,10 +12,13 @@ export const WorkView: React.FC = () => {
   const [days, setDays] = useState<AgendaCompensatoryDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   
   const [newTitle, setNewTitle] = useState('');
-  const [newTotal, setNewTotal] = useState<number>(1);
+  const [newTotal, setNewTotal] = useState<number | string>(1);
   const [newNotes, setNewNotes] = useState('');
+
+  const [augustDays, setAugustDays] = useState<number | string>('');
 
   // Date selection state for logging spent days
   const [spendDateInputs, setSpendDateInputs] = useState<Record<string, string>>({});
@@ -40,13 +43,14 @@ export const WorkView: React.FC = () => {
 
   const handleAddDay = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim() || !currentUser?.id) return;
+    const totalNum = Number(newTotal);
+    if (!newTitle.trim() || !currentUser?.id || !totalNum || totalNum <= 0) return;
 
     try {
       const day = await agendaService.createCompensatoryDay({
         user_id: currentUser.id,
         title: newTitle,
-        total_days: newTotal,
+        total_days: totalNum,
         spent_days: 0,
         notes: newNotes,
         spent_logs: [],
@@ -121,6 +125,17 @@ export const WorkView: React.FC = () => {
   const totalSpent = days.reduce((sum, d) => sum + Number(d.spent_days), 0);
   const totalRemaining = totalEarned - totalSpent;
 
+  const getAugustCompensation = () => {
+    const d = Number(augustDays);
+    if (!d || isNaN(d) || d <= 0) return { hours: 0, minutes: 0 };
+    const totalMins = 36 * d;
+    return {
+      hours: Math.floor(totalMins / 60),
+      minutes: totalMins % 60
+    };
+  };
+  const augResult = getAugustCompensation();
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -132,16 +147,62 @@ export const WorkView: React.FC = () => {
           <p className="text-sm text-slate-400">Controla los días de descanso que has ganado y gastado.</p>
         </div>
         
-        {!isAdding && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20"
+            onClick={() => setShowCalculator(!showCalculator)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors border ${
+              isDark ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            Añadir Días
+            <Calculator className="w-4 h-4" />
+            <span className="hidden sm:inline">Calc. Agosto</span>
           </button>
-        )}
+          {!isAdding && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20"
+            >
+              <Plus className="w-4 h-4" />
+              Añadir Días
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Calculator Section */}
+      {showCalculator && (
+        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-slate-800/80 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200'}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1">
+              <h3 className={`font-semibold mb-1 ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>
+                Calculadora de Agosto
+              </h3>
+              <p className="text-sm text-slate-400">Introduce los días trabajados para ver tu compensación generada (36 min / día).</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Días trabajados"
+                value={augustDays}
+                onChange={(e) => setAugustDays(e.target.value === '' ? '' : Number(e.target.value))}
+                className={`w-32 px-4 py-2 rounded-xl border text-center font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${
+                  isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
+                }`}
+              />
+              <div className="text-right min-w-[120px]">
+                <div className={`text-xl font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                  {augResult.hours}h {augResult.minutes}m
+                </div>
+                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">
+                  Generados
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Global Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -201,7 +262,7 @@ export const WorkView: React.FC = () => {
                   step="1"
                   min="1"
                   value={newTotal}
-                  onChange={(e) => setNewTotal(Number(e.target.value))}
+                  onChange={(e) => setNewTotal(e.target.value === '' ? '' : Number(e.target.value))}
                   className={`w-full px-4 py-2 rounded-xl border text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${
                     isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
                   }`}
