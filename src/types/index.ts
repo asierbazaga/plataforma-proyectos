@@ -2,7 +2,7 @@ export type Role = 'admin' | 'user' | 'guest';
 
 export type UserStatus = 'active' | 'pending' | 'suspended';
 
-export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas' | 'tcg' | 'agenda';
+export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas' | 'inversiones' | 'agenda';
 
 export interface UserProfile {
   id: string;

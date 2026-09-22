@@ -163,21 +163,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
       ]
     },
     {
-      id: 'tcg' as AppId,
+      id: 'inversiones' as AppId,
       number: '06',
-      category: 'Coleccionismo TCG',
-      title: 'Pokémon TCG Tracker',
-      subtitle: 'Portfolio, precios y radar de tiendas',
-      description: 'Seguimiento de la colección de cartas y productos sellados, valoración de mercado (ROI), calendario de lanzamientos y feed de noticias.',
-      icon: Package,
+      category: 'Inversiones',
+      title: 'Inversiones & Coleccionismo',
+      subtitle: 'Criptomonedas y Coleccionismo TCG',
+      description: 'Gestión de portafolio de criptomonedas, seguimiento de la colección de cartas (TCG), valoración de mercado (ROI) y radar.',
+      icon: TrendingUp,
       glowColor: 'group-hover:shadow-yellow-500/20 group-hover:border-yellow-500/50',
       iconGradient: 'from-yellow-500 via-amber-500 to-red-500 shadow-yellow-500/30',
       tagColor: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
       btnGradient: 'from-yellow-500 via-amber-500 to-red-500 hover:from-yellow-400 hover:to-red-400 shadow-yellow-500/25',
       highlights: [
-        { text: 'Portfolio & ROI', label: 'Portfolio & ROI', icon: TrendingUp },
-        { text: 'API de Cartas', label: 'API de Cartas', icon: Sparkles },
-        { text: 'Radar Tiendas', label: 'Radar Tiendas', icon: MapPin }
+        { text: 'Portfolio Cripto', label: 'Portfolio Cripto', icon: Zap },
+        { text: 'Coleccionismo TCG', label: 'Coleccionismo TCG', icon: Package },
+        { text: 'Mercado & ROI', label: 'Mercado & ROI', icon: TrendingUp }
       ]
     },
     {

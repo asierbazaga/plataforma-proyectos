@@ -14,7 +14,7 @@ const GastosApp = lazy(() => import('./apps/gastos/GastosApp').then(m => ({ defa
 const LibrosJuegosApp = lazy(() => import('./apps/libros-juegos/LibrosJuegosApp').then(m => ({ default: m.LibrosJuegosApp })));
 const LoreApp = lazy(() => import('./apps/lore/LoreApp').then(m => ({ default: m.LoreApp })));
 const EntrevistasApp = lazy(() => import('./apps/entrevistas/EntrevistasApp').then(m => ({ default: m.EntrevistasApp })));
-const TcgApp = lazy(() => import('./apps/tcg/TcgApp').then(m => ({ default: m.TcgApp })));
+const InversionesApp = lazy(() => import('./apps/inversiones/InversionesApp').then(m => ({ default: m.InversionesApp })));
 const AgendaApp = lazy(() => import('./apps/agenda/AgendaApp').then(m => ({ default: m.AgendaApp })));
 const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
 const ActivityLogs = lazy(() => import('./components/ActivityLogs').then(m => ({ default: m.ActivityLogs })));
@@ -66,7 +66,7 @@ const MainLayout: React.FC = () => {
       case 'libros-juegos': return 'App Libros & Juegos';
       case 'lore': return 'App Lore & Rutas';
       case 'entrevistas': return 'Mecalux Talent & Entrevistas';
-      case 'tcg': return 'Pokémon TCG Tracker';
+      case 'inversiones': return 'Inversiones & Coleccionismo';
       case 'agenda': return 'Agenda Personal';
       case 'permissions': return 'Matriz de Permisos (RBAC)';
       case 'logs': return 'Registro de Actividad';
@@ -99,9 +99,9 @@ const MainLayout: React.FC = () => {
         if (!hasAccessToApp('entrevistas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="ENTREVISTAS MECALUX" />;
         return <EntrevistasApp onBack={handleBackToDashboard} />;
         
-      case 'tcg':
-        if (!hasAccessToApp('tcg')) return <AccessDeniedView onBack={handleBackToDashboard} appName="COLECCIONISMO TCG" />;
-        return <TcgApp onBack={handleBackToDashboard} />;
+      case 'inversiones':
+        if (!hasAccessToApp('inversiones')) return <AccessDeniedView onBack={handleBackToDashboard} appName="INVERSIONES" />;
+        return <InversionesApp onBack={handleBackToDashboard} />;
 
       case 'agenda':
         if (!hasAccessToApp('agenda')) return <AccessDeniedView onBack={handleBackToDashboard} appName="AGENDA PERSONAL" />;
@@ -230,17 +230,17 @@ const MainLayout: React.FC = () => {
           </button>
         )}
 
-        {hasAccessToApp('tcg') && (
+        {hasAccessToApp('inversiones') && (
           <button
-            onClick={() => handleSelectTab('tcg')}
+            onClick={() => handleSelectTab('inversiones')}
             className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              currentTab === 'tcg'
+              currentTab === 'inversiones'
                 ? 'text-yellow-400 font-bold'
                 : 'text-slate-400 hover:text-white font-medium'
             }`}
           >
             <Package className="w-4 h-4" />
-            <span className="text-[10px]">TCG</span>
+            <span className="text-[10px]">Inversiones</span>
           </button>
         )}
       </nav>

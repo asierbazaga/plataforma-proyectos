@@ -20,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
     { id: 'lore', name: 'APP LORE', icon: BookMarked, color: 'text-blue-400' },
     { id: 'entrevistas', name: 'ENTREVISTAS MECALUX', icon: Building, color: 'text-cyan-400' },
     { id: 'agenda', name: 'AGENDA PERSONAL', icon: CalendarDays, color: 'text-blue-400' },
-    { id: 'tcg', name: 'COLECCIONISMO TCG', icon: Package, color: 'text-yellow-400' },
+    { id: 'inversiones', name: 'INVERSIONES & COLECCIONISMO', icon: Package, color: 'text-yellow-400' },
   ];
 
   return (
