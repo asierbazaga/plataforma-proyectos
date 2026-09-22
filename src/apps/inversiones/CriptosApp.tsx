@@ -31,7 +31,7 @@ export const CriptosApp: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [selectedCoin, setSelectedCoin] = useState(POPULAR_COINS[0]);
   const [amount, setAmount] = useState<number | ''>('');
-  const [totalInvestedInput, setTotalInvestedInput] = useState<number | ''>('');
+  const [buyPriceInput, setBuyPriceInput] = useState<number | ''>('');
   const [buyCurrency, setBuyCurrency] = useState<Currency>('USD');
 
   useEffect(() => {
@@ -72,23 +72,21 @@ export const CriptosApp: React.FC = () => {
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !totalInvestedInput) return;
-
-    const buyPricePerUnit = Number(totalInvestedInput) / Number(amount);
+    if (!amount || !buyPriceInput) return;
 
     await storageService.addCryptoAsset({
       coin_id: selectedCoin.id,
       symbol: selectedCoin.symbol,
       name: selectedCoin.name,
       amount: Number(amount),
-      buy_price: buyPricePerUnit,
+      buy_price: Number(buyPriceInput),
       buy_currency: buyCurrency,
       created_at: new Date().toISOString()
     });
 
     setIsAdding(false);
     setAmount('');
-    setTotalInvestedInput('');
+    setBuyPriceInput('');
     loadData(); // Reloads assets and updates prices
   };
 
@@ -288,14 +286,14 @@ export const CriptosApp: React.FC = () => {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-2">Total Dinero Invertido</label>
+              <label className="block text-xs font-bold text-slate-400 mb-2">Precio de Compra por Unidad</label>
               <input 
                 type="number" 
                 step="any"
                 required 
-                value={totalInvestedInput} 
-                onChange={e => setTotalInvestedInput(Number(e.target.value))} 
-                placeholder="Ej. 3000"
+                value={buyPriceInput} 
+                onChange={e => setBuyPriceInput(Number(e.target.value))} 
+                placeholder="Ej. 60000"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-indigo-500" 
               />
             </div>
