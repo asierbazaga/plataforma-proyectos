@@ -514,7 +514,8 @@ export interface CryptoAsset {
   symbol: string;  // ej. "BTC"
   name: string;    // ej. "Bitcoin"
   amount: number;
-  buy_price_eur: number;
+  buy_price: number;
+  buy_currency: 'USD' | 'EUR';
   created_at: string;
 }
 

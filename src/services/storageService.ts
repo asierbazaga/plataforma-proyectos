@@ -1999,7 +1999,8 @@ class StorageService {
             symbol: row.symbol,
             name: row.name,
             amount: Number(row.amount),
-            buy_price_eur: Number(row.buy_price_eur),
+            buy_price: Number(row.buy_price || row.buy_price_eur),
+            buy_currency: row.buy_currency || 'EUR',
             created_at: row.created_at
           }));
           this.setLocal('crypto_assets', formatted);
@@ -2007,20 +2008,25 @@ class StorageService {
         }
       } catch (e) {}
     }
-    return this.getLocal<import('../types').CryptoAsset[]>('crypto_assets', []);
+    return this.getLocal<import('../types').CryptoAsset[]>('crypto_assets', []).map(a => ({
+      ...a,
+      buy_price: a.buy_price || (a as any).buy_price_eur || 0,
+      buy_currency: a.buy_currency || 'EUR'
+    }));
   }
 
   async addCryptoAsset(asset: Omit<import('../types').CryptoAsset, 'id'>, userId?: string): Promise<import('../types').CryptoAsset> {
     const newItem: import('../types').CryptoAsset = {
       ...asset,
       amount: Number(asset.amount),
-      buy_price_eur: Number(asset.buy_price_eur),
+      buy_price: Number(asset.buy_price),
+      buy_currency: asset.buy_currency,
       id: generateId('cryp'),
       user_id: userId || asset.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       created_at: new Date().toISOString()
     };
 
-    const current = this.getLocal<import('../types').CryptoAsset[]>('crypto_assets', []);
+    const current = await this.getCryptoAssets(userId);
     this.setLocal('crypto_assets', [newItem, ...current]);
     this.broadcastChange();
 
@@ -2033,7 +2039,8 @@ class StorageService {
           symbol: newItem.symbol,
           name: newItem.name,
           amount: newItem.amount,
-          buy_price_eur: newItem.buy_price_eur,
+          buy_price: newItem.buy_price,
+          buy_currency: newItem.buy_currency,
           created_at: newItem.created_at
         });
       } catch (e) {}
