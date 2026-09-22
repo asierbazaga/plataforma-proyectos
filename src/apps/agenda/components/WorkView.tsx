@@ -127,26 +127,47 @@ export const WorkView: React.FC = () => {
 
   const getAugustCompensation = () => {
     const d = Number(augustDays);
-    if (!d || isNaN(d) || d <= 0) return { hours: 0, minutes: 0, extraMsg: null, isSuccess: false };
+    if (!d || isNaN(d) || d <= 0) return { hours: 0, minutes: 0, extraMsg: null, subMsg: null, isSuccess: false };
     const totalMins = 36 * d;
     
     let extraMsg = null;
+    let subMsg = null;
     let isSuccess = false;
 
-    if (totalMins > 240 && totalMins < 480) { // More than 4h, less than 8h
-      const rem = 480 - totalMins;
-      const h = Math.floor(rem / 60);
-      const m = rem % 60;
-      extraMsg = `Faltan ${h > 0 ? `${h}h ` : ''}${m}m para el día extra (8h)`;
-    } else if (totalMins >= 480) {
-      extraMsg = '¡Has alcanzado las 8h! (1 día extra)';
+    const targetMins = 480; // 8 hours
+    const thresholdMins = 240; // 4 hours
+
+    const earnedDays = Math.floor(totalMins / targetMins);
+    const remainder = totalMins % targetMins;
+
+    if (earnedDays === 0) {
+      if (remainder > thresholdMins) {
+        const rem = targetMins - remainder;
+        const h = Math.floor(rem / 60);
+        const m = rem % 60;
+        extraMsg = `Faltan ${h > 0 ? `${h}h ` : ''}${m}m para 1 día extra`;
+      }
+    } else {
       isSuccess = true;
+      extraMsg = `¡Generado ${earnedDays} día${earnedDays > 1 ? 's' : ''} extra!`;
+      
+      if (remainder > thresholdMins) {
+        const rem = targetMins - remainder;
+        const h = Math.floor(rem / 60);
+        const m = rem % 60;
+        subMsg = `Faltan ${h > 0 ? `${h}h ` : ''}${m}m para el siguiente`;
+      } else if (remainder > 0) {
+        const rh = Math.floor(remainder / 60);
+        const rm = remainder % 60;
+        subMsg = `(Sobran ${rh > 0 ? `${rh}h ` : ''}${rm}m)`;
+      }
     }
 
     return {
       hours: Math.floor(totalMins / 60),
       minutes: totalMins % 60,
       extraMsg,
+      subMsg,
       isSuccess
     };
   };
@@ -218,12 +239,17 @@ export const WorkView: React.FC = () => {
                 </div>
                 
                 {augResult.extraMsg && (
-                  <div className={`text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-lg max-w-[160px] text-center ${
+                  <div className={`text-[10px] sm:text-xs font-semibold px-2 py-1.5 rounded-lg max-w-[160px] text-center ${
                     augResult.isSuccess 
                       ? 'bg-emerald-500/10 text-emerald-500' 
                       : 'bg-indigo-500/10 text-indigo-500'
                   }`}>
-                    {augResult.extraMsg}
+                    <div>{augResult.extraMsg}</div>
+                    {augResult.subMsg && (
+                      <div className="mt-1 pt-1 border-t border-current/20 opacity-90 text-[10px]">
+                        {augResult.subMsg}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
