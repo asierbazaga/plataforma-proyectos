@@ -503,6 +503,21 @@ export interface TcgRelease {
   status: 'Rumor' | 'Pre-order' | 'Imminent' | 'Released';
 }
 
+// ============================================================================
+// CRIPTOMONEDAS
+// ============================================================================
+
+export interface CryptoAsset {
+  id: string;
+  user_id?: string;
+  coin_id: string; // ID de CoinGecko (ej. "bitcoin")
+  symbol: string;  // ej. "BTC"
+  name: string;    // ej. "Bitcoin"
+  amount: number;
+  buy_price_eur: number;
+  created_at: string;
+}
+
 
 // ============================================================================
 // AGENDA PERSONAL

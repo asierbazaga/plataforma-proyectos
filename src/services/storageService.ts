@@ -1982,6 +1982,77 @@ class StorageService {
     this.setLocal('tcg_watchlist_' + (userId || 'default'), updated);
     this.broadcastChange();
   }
+
+  // ==========================================
+  // CRIPTOMONEDAS
+  // ==========================================
+  
+  async getCryptoAssets(userId?: string): Promise<import('../types').CryptoAsset[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('crypto_assets').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
+        if (!error && data) {
+          const formatted = (data as any[]).map(row => ({
+            id: row.id,
+            user_id: row.user_id,
+            coin_id: row.coin_id,
+            symbol: row.symbol,
+            name: row.name,
+            amount: Number(row.amount),
+            buy_price_eur: Number(row.buy_price_eur),
+            created_at: row.created_at
+          }));
+          this.setLocal('crypto_assets', formatted);
+          return formatted;
+        }
+      } catch (e) {}
+    }
+    return this.getLocal<import('../types').CryptoAsset[]>('crypto_assets', []);
+  }
+
+  async addCryptoAsset(asset: Omit<import('../types').CryptoAsset, 'id'>, userId?: string): Promise<import('../types').CryptoAsset> {
+    const newItem: import('../types').CryptoAsset = {
+      ...asset,
+      amount: Number(asset.amount),
+      buy_price_eur: Number(asset.buy_price_eur),
+      id: generateId('cryp'),
+      user_id: userId || asset.user_id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      created_at: new Date().toISOString()
+    };
+
+    const current = this.getLocal<import('../types').CryptoAsset[]>('crypto_assets', []);
+    this.setLocal('crypto_assets', [newItem, ...current]);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('crypto_assets').insert({
+          id: newItem.id,
+          user_id: newItem.user_id,
+          coin_id: newItem.coin_id,
+          symbol: newItem.symbol,
+          name: newItem.name,
+          amount: newItem.amount,
+          buy_price_eur: newItem.buy_price_eur,
+          created_at: newItem.created_at
+        });
+      } catch (e) {}
+    }
+
+    return newItem;
+  }
+
+  async deleteCryptoAsset(id: string, userId?: string): Promise<void> {
+    const current = this.getLocal<import('../types').CryptoAsset[]>('crypto_assets', []);
+    this.setLocal('crypto_assets', current.filter(a => a.id !== id));
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('crypto_assets').delete().eq('id', id);
+      } catch (e) {}
+    }
+  }
 }
 
 export const storageService = new StorageService();
