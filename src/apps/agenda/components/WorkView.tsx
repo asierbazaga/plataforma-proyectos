@@ -149,6 +149,8 @@ export const WorkView: React.FC = () => {
     if (earnedDays === 0) {
       if (remainder > thresholdMins) {
         extraMsg = `Llevas ${formatTime(remainder)}. Faltan ${formatTime(targetMins - remainder)} para 1 día extra.`;
+      } else if (remainder > 0) {
+        extraMsg = `Llevas ${formatTime(remainder)} (insuficiente al no superar las 4h).`;
       }
     } else {
       isSuccess = true;
@@ -157,7 +159,7 @@ export const WorkView: React.FC = () => {
       if (remainder > thresholdMins) {
         subMsg = `Llevas ${formatTime(remainder)}. Faltan ${formatTime(targetMins - remainder)} para el siguiente.`;
       } else if (remainder > 0) {
-        subMsg = `Llevas ${formatTime(remainder)} para el siguiente.`;
+        subMsg = `Sobran ${formatTime(remainder)} (insuficiente al no superar las 4h).`;
       }
     }
 
