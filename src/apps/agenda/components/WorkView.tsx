@@ -127,11 +127,27 @@ export const WorkView: React.FC = () => {
 
   const getAugustCompensation = () => {
     const d = Number(augustDays);
-    if (!d || isNaN(d) || d <= 0) return { hours: 0, minutes: 0 };
+    if (!d || isNaN(d) || d <= 0) return { hours: 0, minutes: 0, extraMsg: null, isSuccess: false };
     const totalMins = 36 * d;
+    
+    let extraMsg = null;
+    let isSuccess = false;
+
+    if (totalMins > 240 && totalMins < 480) { // More than 4h, less than 8h
+      const rem = 480 - totalMins;
+      const h = Math.floor(rem / 60);
+      const m = rem % 60;
+      extraMsg = `Faltan ${h > 0 ? `${h}h ` : ''}${m}m para el día extra (8h)`;
+    } else if (totalMins >= 480) {
+      extraMsg = '¡Has alcanzado las 8h! (1 día extra)';
+      isSuccess = true;
+    }
+
     return {
       hours: Math.floor(totalMins / 60),
-      minutes: totalMins % 60
+      minutes: totalMins % 60,
+      extraMsg,
+      isSuccess
     };
   };
   const augResult = getAugustCompensation();
@@ -191,13 +207,25 @@ export const WorkView: React.FC = () => {
                   isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
                 }`}
               />
-              <div className="text-right min-w-[120px]">
-                <div className={`text-xl font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                  {augResult.hours}h {augResult.minutes}m
+              <div className="text-right min-w-[120px] flex flex-col items-end">
+                <div>
+                  <span className={`text-xl font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                    {augResult.hours}h {augResult.minutes}m
+                  </span>
                 </div>
-                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">
+                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-2">
                   Generados
                 </div>
+                
+                {augResult.extraMsg && (
+                  <div className={`text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-lg max-w-[160px] text-center ${
+                    augResult.isSuccess 
+                      ? 'bg-emerald-500/10 text-emerald-500' 
+                      : 'bg-indigo-500/10 text-indigo-500'
+                  }`}>
+                    {augResult.extraMsg}
+                  </div>
+                )}
               </div>
             </div>
           </div>
