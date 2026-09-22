@@ -140,26 +140,24 @@ export const WorkView: React.FC = () => {
     const earnedDays = Math.floor(totalMins / targetMins);
     const remainder = totalMins % targetMins;
 
+    const formatTime = (mins: number) => {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${h > 0 ? `${h}h ` : ''}${m}m`;
+    };
+
     if (earnedDays === 0) {
       if (remainder > thresholdMins) {
-        const rem = targetMins - remainder;
-        const h = Math.floor(rem / 60);
-        const m = rem % 60;
-        extraMsg = `Faltan ${h > 0 ? `${h}h ` : ''}${m}m para 1 día extra`;
+        extraMsg = `Llevas ${formatTime(remainder)}. Faltan ${formatTime(targetMins - remainder)} para 1 día extra.`;
       }
     } else {
       isSuccess = true;
       extraMsg = `¡Generado ${earnedDays} día${earnedDays > 1 ? 's' : ''} extra!`;
       
       if (remainder > thresholdMins) {
-        const rem = targetMins - remainder;
-        const h = Math.floor(rem / 60);
-        const m = rem % 60;
-        subMsg = `Faltan ${h > 0 ? `${h}h ` : ''}${m}m para el siguiente`;
+        subMsg = `Llevas ${formatTime(remainder)}. Faltan ${formatTime(targetMins - remainder)} para el siguiente.`;
       } else if (remainder > 0) {
-        const rh = Math.floor(remainder / 60);
-        const rm = remainder % 60;
-        subMsg = `(Sobran ${rh > 0 ? `${rh}h ` : ''}${rm}m)`;
+        subMsg = `Llevas ${formatTime(remainder)} para el siguiente.`;
       }
     }
 
