@@ -306,8 +306,8 @@ export const CriptosApp: React.FC = () => {
         </form>
       )}
 
-      {/* Assets Table */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm">
+      {/* Assets Desktop Table */}
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-800 text-xs font-black text-slate-400 uppercase tracking-wider bg-slate-900/80">
@@ -397,6 +397,85 @@ export const CriptosApp: React.FC = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Assets Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {assets.map(asset => {
+          const liveData = livePrices[asset.coin_id];
+          const currentPriceView = liveData?.[viewCurrency.toLowerCase() as 'usd' | 'eur'] || convertToViewCurrency(asset.buy_price, asset.buy_currency);
+          
+          const investedView = convertToViewCurrency(asset.amount * asset.buy_price, asset.buy_currency);
+          const currentValView = asset.amount * currentPriceView;
+          
+          const profitView = currentValView - investedView;
+          const profitPct = investedView > 0 ? (profitView / investedView) * 100 : 0;
+          const isProfitable = profitView >= 0;
+
+          return (
+            <div key={asset.id} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-sm font-black text-white border border-slate-700 shadow-inner">
+                    {asset.symbol.substring(0, 3)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-white text-base">{asset.name}</p>
+                    <p className="text-xs font-medium text-slate-500">{asset.amount} {asset.symbol}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleDelete(asset.id)}
+                  className="p-2 rounded-lg text-slate-500 hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800/50">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase">Compra</p>
+                  <p className="font-bold text-slate-300">
+                    {formatCurrency(convertToViewCurrency(asset.buy_price, asset.buy_currency), viewCurrency)}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Total: {formatCurrency(asset.amount * asset.buy_price, asset.buy_currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase">Actual</p>
+                  {liveData ? (
+                    <p className="font-bold text-white">
+                      {formatCurrency(currentPriceView, viewCurrency)}
+                    </p>
+                  ) : (
+                    <span className="text-xs text-slate-500">Cargando...</span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-slate-800/50 flex justify-between items-center">
+                <p className="text-[10px] font-bold text-slate-500 uppercase">Beneficio / Pérdida</p>
+                <div className="text-right">
+                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black ${isProfitable ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                    {isProfitable ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    <span>{isProfitable ? '+' : ''}{formatCurrency(profitView, viewCurrency)}</span>
+                  </div>
+                  <p className={`text-[10px] font-bold mt-1 ${isProfitable ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {isProfitable ? '+' : ''}{profitPct.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {assets.length === 0 && !isLoading && (
+          <div className="py-16 text-center text-slate-500 border border-slate-800 border-dashed rounded-2xl">
+            <Wallet className="w-12 h-12 mx-auto mb-4 opacity-20" />
+            <p className="font-bold text-lg text-slate-400">Sin inversiones</p>
+            <p className="text-sm mt-1">Registra tu primera compra.</p>
+          </div>
+        )}
       </div>
     </div>
   );

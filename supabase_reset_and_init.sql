@@ -551,3 +551,23 @@ ALTER TABLE public.agenda_compensatory_days DISABLE ROW LEVEL SECURITY;
 -- Update for compensatory days logs
 ALTER TABLE public.agenda_compensatory_days ADD COLUMN IF NOT EXISTS spent_logs JSONB DEFAULT '[]'::jsonb;
 
+
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+ - -   M O D U L E :   C R I P T O M O N E D A S 
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+ C R E A T E   T A B L E   I F   N O T   E X I S T S   p u b l i c . c r y p t o _ a s s e t s   ( 
+         i d   T E X T   P R I M A R Y   K E Y , 
+         u s e r _ i d   T E X T , 
+         c o i n _ i d   T E X T   N O T   N U L L , 
+         s y m b o l   T E X T   N O T   N U L L , 
+         n a m e   T E X T   N O T   N U L L , 
+         a m o u n t   N U M E R I C ( 1 8 ,   8 )   N O T   N U L L , 
+         b u y _ p r i c e   N U M E R I C ( 1 8 ,   8 )   N O T   N U L L , 
+         b u y _ c u r r e n c y   T E X T   D E F A U L T   ' U S D ' , 
+         c r e a t e d _ a t   T I M E S T A M P   W I T H   T I M E   Z O N E   D E F A U L T   N O W ( ) 
+ ) ; 
+ 
+ A L T E R   T A B L E   p u b l i c . c r y p t o _ a s s e t s   D I S A B L E   R O W   L E V E L   S E C U R I T Y ; 
+ G R A N T   A L L   O N   T A B L E   p u b l i c . c r y p t o _ a s s e t s   T O   a n o n ,   a u t h e n t i c a t e d ,   s e r v i c e _ r o l e ; 
+  
+ 
