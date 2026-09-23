@@ -25,6 +25,7 @@ export const CriptosApp: React.FC = () => {
   const [livePrices, setLivePrices] = useState<Record<string, { eur: number; usd: number }>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [apiError, setApiError] = useState(false);
   const [viewCurrency, setViewCurrency] = useState<Currency>('USD');
   
   // Add Form State
@@ -54,6 +55,7 @@ export const CriptosApp: React.FC = () => {
 
   const fetchLivePrices = async (currentAssets: CryptoAsset[], force = false) => {
     setIsRefreshing(true);
+    setApiError(false);
     try {
       const CACHE_KEY = 'crypto_prices_cache';
       const CACHE_TTL = 3 * 60 * 1000; // 3 minutos
@@ -84,6 +86,7 @@ export const CriptosApp: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching crypto prices:', error);
+      setApiError(true);
       const cached = localStorage.getItem('crypto_prices_cache');
       if (cached) {
         setLivePrices(JSON.parse(cached).data);
@@ -199,14 +202,6 @@ export const CriptosApp: React.FC = () => {
               </div>
               <h3 className="text-sm font-bold text-slate-400">Valor Actual</h3>
             </div>
-            <button 
-              onClick={() => fetchLivePrices(assets, true)}
-              disabled={isRefreshing}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors text-slate-300 text-xs font-bold ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <RefreshCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Actualizar Precio</span>
-            </button>
           </div>
           <p className="text-3xl font-black text-white relative z-10">
             {formatCurrency(totalCurrent, viewCurrency)}
@@ -249,15 +244,25 @@ export const CriptosApp: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex justify-between items-center mt-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-8">
         <h2 className="text-xl font-bold text-white">Tus Activos</h2>
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          {isAdding ? 'Cancelar' : 'Añadir Compra'}
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => fetchLivePrices(assets, true)}
+            disabled={isRefreshing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors text-white font-medium ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Actualizar Precios
+          </button>
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            {isAdding ? 'Cancelar' : 'Añadir Compra'}
+          </button>
+        </div>
       </div>
 
       {isAdding && (
@@ -382,6 +387,8 @@ export const CriptosApp: React.FC = () => {
                       <p className="font-bold text-white">
                         {formatCurrency(currentPriceView, viewCurrency)}
                       </p>
+                    ) : apiError ? (
+                      <span className="text-xs font-bold text-rose-500">Error de conexión</span>
                     ) : (
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 rounded-full border-2 border-slate-500 border-t-transparent animate-spin"></span>
@@ -472,6 +479,8 @@ export const CriptosApp: React.FC = () => {
                     <p className="font-bold text-white">
                       {formatCurrency(currentPriceView, viewCurrency)}
                     </p>
+                  ) : apiError ? (
+                    <span className="text-xs font-bold text-rose-500">Error</span>
                   ) : (
                     <span className="text-xs text-slate-500">Cargando...</span>
                   )}
