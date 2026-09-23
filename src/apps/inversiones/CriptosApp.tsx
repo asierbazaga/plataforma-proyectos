@@ -52,19 +52,42 @@ export const CriptosApp: React.FC = () => {
     setIsLoading(false);
   };
 
-  const fetchLivePrices = async (currentAssets: CryptoAsset[]) => {
+  const fetchLivePrices = async (currentAssets: CryptoAsset[], force = false) => {
     setIsRefreshing(true);
     try {
-      // Siempre incluimos bitcoin para calcular el tipo de cambio USD/EUR de forma indirecta
+      const CACHE_KEY = 'crypto_prices_cache';
+      const CACHE_TTL = 3 * 60 * 1000; // 3 minutos
+      
+      if (!force) {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < CACHE_TTL) {
+            setLivePrices(data);
+            setIsRefreshing(false);
+            return;
+          }
+        }
+      }
+
       const coinIds = new Set(currentAssets.map(a => a.coin_id));
       coinIds.add('bitcoin'); 
       const uniqueIds = Array.from(coinIds).join(',');
       
       const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${uniqueIds}&vs_currencies=eur,usd`);
+      if (!res.ok) throw new Error('Rate limit o error de API');
       const data = await res.json();
-      setLivePrices(data);
+      
+      if (Object.keys(data).length > 0) {
+        setLivePrices(data);
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+      }
     } catch (error) {
       console.error('Error fetching crypto prices:', error);
+      const cached = localStorage.getItem('crypto_prices_cache');
+      if (cached) {
+        setLivePrices(JSON.parse(cached).data);
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -177,11 +200,12 @@ export const CriptosApp: React.FC = () => {
               <h3 className="text-sm font-bold text-slate-400">Valor Actual</h3>
             </div>
             <button 
-              onClick={() => fetchLivePrices(assets)}
+              onClick={() => fetchLivePrices(assets, true)}
               disabled={isRefreshing}
-              className={`p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors text-slate-400 ${isRefreshing ? 'animate-spin' : ''}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors text-slate-300 text-xs font-bold ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <RefreshCcw className="w-4 h-4" />
+              <RefreshCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Actualizar Precio</span>
             </button>
           </div>
           <p className="text-3xl font-black text-white relative z-10">
