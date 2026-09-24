@@ -402,11 +402,19 @@ export const LoreGoalsCalculator: React.FC = () => {
                 </p>
               </div>
 
-              <p className="text-xs font-medium text-slate-400">
-                Semanal: <span className="font-bold text-slate-300">
-                  {faltaPara100 <= 0 ? '0,00 €' : `${ritmoSemanal100.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
-                </span>
-              </p>
+              <div className="w-full space-y-2 mt-1">
+                <p className="text-xs font-medium text-slate-400">
+                  Semanal: <span className="font-bold text-slate-300">
+                    {faltaPara100 <= 0 ? '0,00 €' : `${ritmoSemanal100.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
+                  </span>
+                </p>
+                <div className="bg-[#1e293b]/50 border border-indigo-500/20 rounded-lg py-1.5 px-3 w-full flex justify-between items-center shadow-sm">
+                  <span className="text-[11px] font-medium text-slate-300">Falta Total:</span>
+                  <span className="text-xs font-black text-indigo-400">
+                    {faltaPara100 <= 0 ? '0,00 €' : `${faltaPara100.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
