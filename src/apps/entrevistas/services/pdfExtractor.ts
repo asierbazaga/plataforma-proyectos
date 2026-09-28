@@ -136,7 +136,10 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
 
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
+      const textContent = await page.getTextContent({
+        includeMarkedContent: true,
+        disableNormalization: true
+      });
       
       const rawItems: PdfTextItem[] = [];
       for (const item of textContent.items as any[]) {
