@@ -1,5 +1,5 @@
 // Worker url via Vite for async loading
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 
 interface PdfTextItem {
   str: string;
@@ -109,12 +109,13 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
   
   if (typeof window !== 'undefined') {
     try {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+      pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker();
     } catch (e) {
+      console.warn('No se pudo inicializar worker de PDF.js usando ?worker', e);
       try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
       } catch (err) {
-        console.warn('No se pudo inicializar worker de PDF.js', err);
+        console.warn('No se pudo inicializar worker de PDF.js via unpkg', err);
       }
     }
   }
@@ -123,7 +124,10 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
     const loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(arrayBuffer),
       useWorkerFetch: true,
-      useSystemFonts: true
+      useSystemFonts: true,
+      standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
+      cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
+      cMapPacked: true,
     });
 
     const pdf = await loadingTask.promise;
