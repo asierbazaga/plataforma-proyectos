@@ -1,5 +1,6 @@
 // Worker url via Vite for async loading
 import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
+import Tesseract from 'tesseract.js';
 
 interface PdfTextItem {
   str: string;
@@ -170,6 +171,33 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
     if (extractedText.trim().length > 15) {
       return extractedText;
     }
+
+    console.warn('Texto vacío extraído, intentando OCR con Tesseract.js para CVs vectorizados/imágenes...');
+    const ocrTexts: string[] = [];
+    const numPagesToOcr = Math.min(pdf.numPages, 3);
+    
+    for (let i = 1; i <= numPagesToOcr; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (context) {
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: context, canvas: canvas, viewport: viewport }).promise;
+        const imageUrl = canvas.toDataURL('image/png');
+        const { data: { text } } = await Tesseract.recognize(imageUrl, 'spa');
+        if (text.trim()) {
+          ocrTexts.push(text);
+        }
+      }
+    }
+    
+    const ocrResult = ocrTexts.join('\n\n--- PÁGINA SIGUIENTE (OCR) ---\n\n');
+    if (ocrResult.trim().length > 15) {
+      return ocrResult;
+    }
+    
   } catch (pdfError) {
     console.warn('Error leyendo PDF con PDF.js, intentando extractor de streams crudos...', pdfError);
   }
