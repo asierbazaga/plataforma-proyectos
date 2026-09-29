@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChefHat, Wand2, Search, Plus, Clock, Flame, Info, Check } from 'lucide-react';
+import { ChefHat, Wand2, Search, Plus, Clock, Flame, Info, Check, X } from 'lucide-react';
 import { FitnessRecipe } from '../../types';
 import { FITNESS_RECIPES } from '../fitness/data/fitnessRecipes';
 import { generateRecipeWithAI } from '../../services/aiRecipeService';
@@ -14,6 +14,7 @@ interface RecetasAppProps {
 export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<Tab>('my_recipes');
   const [recipes, setRecipes] = useState<FitnessRecipe[]>(FITNESS_RECIPES);
+  const [selectedRecipe, setSelectedRecipe] = useState<FitnessRecipe | null>(null);
   
   // AI State
   const [ingredientsInput, setIngredientsInput] = useState('');
@@ -149,7 +150,10 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
                     ))}
                   </div>
                   
-                  <button className="w-full mt-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center space-x-2">
+                  <button 
+                    onClick={() => setSelectedRecipe(recipe)}
+                    className="w-full mt-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center space-x-2"
+                  >
                     <span>Ver Receta Completa</span>
                   </button>
                 </div>
@@ -291,6 +295,99 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
           </div>
         )}
       </div>
+
+      {/* Recipe Modal */}
+      {selectedRecipe && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar relative shadow-2xl">
+            <button 
+              onClick={() => setSelectedRecipe(null)}
+              className="absolute top-4 right-4 p-2 bg-slate-800 rounded-full text-gray-400 hover:text-white hover:bg-slate-700 transition-colors z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            {selectedRecipe.image_url && (
+              <div className="w-full h-48 bg-slate-800">
+                <img src={selectedRecipe.image_url} alt={selectedRecipe.title} className="w-full h-full object-cover" />
+              </div>
+            )}
+            
+            <div className="p-6 md:p-8">
+              <h2 className="text-2xl font-bold text-white mb-4 pr-8">{selectedRecipe.title}</h2>
+              
+              <div className="flex flex-wrap gap-3 mb-6">
+                <span className="px-3 py-1 bg-orange-500/10 rounded-full text-xs font-medium text-orange-400 border border-orange-500/20">
+                  {selectedRecipe.calories} kcal
+                </span>
+                <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-gray-300 border border-slate-700">
+                  ⏱ {selectedRecipe.prep_time_minutes} min
+                </span>
+                {selectedRecipe.difficulty && (
+                  <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-gray-300 border border-slate-700">
+                    🎓 {selectedRecipe.difficulty}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div>
+                  <h4 className="font-bold text-white mb-4 flex items-center space-x-2">
+                    <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">🥘</span>
+                    <span>Ingredientes</span>
+                  </h4>
+                  <ul className="space-y-2">
+                    {selectedRecipe.ingredients?.map((ing, idx) => (
+                      <li key={idx} className="text-sm text-gray-300 flex items-start space-x-2">
+                        <span className="text-orange-500 mt-0.5">•</span>
+                        <span>{ing}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div>
+                  <h4 className="font-bold text-white mb-4 flex items-center space-x-2">
+                    <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">📝</span>
+                    <span>Macros</span>
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+                      <span className="text-sm text-gray-400">Proteínas</span>
+                      <span className="font-bold text-indigo-400">{selectedRecipe.protein}g</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+                      <span className="text-sm text-gray-400">Carbohidratos</span>
+                      <span className="font-bold text-emerald-400">{selectedRecipe.carbs}g</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+                      <span className="text-sm text-gray-400">Grasas</span>
+                      <span className="font-bold text-amber-400">{selectedRecipe.fat}g</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-white mb-4 flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">👨‍🍳</span>
+                  <span>Instrucciones</span>
+                </h4>
+                <ol className="space-y-4">
+                  {selectedRecipe.instructions?.map((inst, idx) => (
+                    <li key={idx} className="text-sm text-gray-300 flex items-start space-x-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-xs font-bold text-gray-400">
+                        {idx + 1}
+                      </span>
+                      <span className="pt-0.5">{inst}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
