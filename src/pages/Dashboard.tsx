@@ -26,7 +26,8 @@ import {
   FileSpreadsheet,
   Package,
   CalendarDays,
-  ListTodo
+  ListTodo,
+  ChefHat
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { storageService } from '../services/storageService';
@@ -197,9 +198,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
         { text: 'Time Blocking', label: 'Time Blocking', icon: CalendarDays },
         { text: 'Modo Concentración', label: 'Modo Concentración', icon: Zap }
       ]
+    },
+    {
+      id: 'recetas' as AppId,
+      number: '08',
+      category: 'Salud & Rendimiento',
+      title: 'Recetas & Nutrición',
+      subtitle: 'Chef IA y gestión de recetario',
+      description: 'Guarda tus recetas, calcula macros y pídele al Chef IA que invente platos con los ingredientes de tu nevera.',
+      icon: ChefHat,
+      glowColor: 'group-hover:shadow-rose-500/20 group-hover:border-rose-500/50',
+      iconGradient: 'from-orange-500 to-rose-500 shadow-rose-500/30',
+      tagColor: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+      btnGradient: 'from-orange-500 to-rose-500 hover:from-orange-400 hover:to-rose-400 shadow-rose-500/25',
+      highlights: [
+        { text: 'Chef IA', label: 'Chef IA', icon: Zap },
+        { text: 'Recetario', label: 'Recetario', icon: ChefHat },
+        { text: 'Macros', label: 'Macros', icon: Flame }
+      ]
     }
   ];
-
   // Si es Lore, ordenar para que su aplicación comercial aparezca en primer lugar
   const sortedApps = isLore 
     ? [...apps.filter(a => a.id === 'lore'), ...apps.filter(a => a.id !== 'lore')]

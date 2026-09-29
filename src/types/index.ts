@@ -2,7 +2,7 @@ export type Role = 'admin' | 'user' | 'guest';
 
 export type UserStatus = 'active' | 'pending' | 'suspended';
 
-export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas' | 'inversiones' | 'agenda';
+export type AppId = 'fitness' | 'gastos' | 'libros-juegos' | 'lore' | 'entrevistas' | 'inversiones' | 'agenda' | 'recetas';
 
 export interface UserProfile {
   id: string;
@@ -174,6 +174,7 @@ export interface FitnessRecipe {
   carbs: number;
   fat: number;
   prep_time_minutes: number;
+  difficulty?: 'Fácil' | 'Media' | 'Difícil';
   ingredients: string[];
   instructions: string[];
   tags: string[];

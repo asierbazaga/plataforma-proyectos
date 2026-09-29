@@ -16,6 +16,7 @@ const LoreApp = lazy(() => import('./apps/lore/LoreApp').then(m => ({ default: m
 const EntrevistasApp = lazy(() => import('./apps/entrevistas/EntrevistasApp').then(m => ({ default: m.EntrevistasApp })));
 const InversionesApp = lazy(() => import('./apps/inversiones/InversionesApp').then(m => ({ default: m.InversionesApp })));
 const AgendaApp = lazy(() => import('./apps/agenda/AgendaApp').then(m => ({ default: m.AgendaApp })));
+const RecetasApp = lazy(() => import('./apps/recetas/RecetasApp').then(m => ({ default: m.RecetasApp })));
 const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
 const ActivityLogs = lazy(() => import('./components/ActivityLogs').then(m => ({ default: m.ActivityLogs })));
 
@@ -68,6 +69,7 @@ const MainLayout: React.FC = () => {
       case 'entrevistas': return 'Mecalux Talent & Entrevistas';
       case 'inversiones': return 'Inversiones & Coleccionismo';
       case 'agenda': return 'Agenda Personal';
+      case 'recetas': return 'Recetas & Nutrición';
       case 'permissions': return 'Matriz de Permisos (RBAC)';
       case 'logs': return 'Registro de Actividad';
       default: return 'Catálogo de Proyectos';
@@ -106,6 +108,10 @@ const MainLayout: React.FC = () => {
       case 'agenda':
         if (!hasAccessToApp('agenda')) return <AccessDeniedView onBack={handleBackToDashboard} appName="AGENDA PERSONAL" />;
         return <AgendaApp onBack={handleBackToDashboard} />;
+
+      case 'recetas':
+        if (!hasAccessToApp('recetas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="APP RECETAS" />;
+        return <RecetasApp onBack={handleBackToDashboard} />;
 
       case 'permissions':
         if (currentUser.role !== 'admin') return <AccessDeniedView onBack={handleBackToDashboard} appName="Matriz de Permisos" />;

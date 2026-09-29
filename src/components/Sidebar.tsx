@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight, Building, Package, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight, Building, Package, CalendarDays, ChefHat } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { AppId } from '../types';
@@ -21,6 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
     { id: 'entrevistas', name: 'ENTREVISTAS MECALUX', icon: Building, color: 'text-cyan-400' },
     { id: 'agenda', name: 'AGENDA PERSONAL', icon: CalendarDays, color: 'text-blue-400' },
     { id: 'inversiones', name: 'INVERSIONES & COLECCIONISMO', icon: Package, color: 'text-yellow-400' },
+    { id: 'recetas', name: 'RECETAS & NUTRICIÓN', icon: ChefHat, color: 'text-rose-400' },
   ];
 
   return (

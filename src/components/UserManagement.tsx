@@ -24,7 +24,11 @@ import {
   AlertTriangle,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Building,
+  Package,
+  CalendarDays,
+  ChefHat
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -84,6 +88,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     { id: 'gastos', name: 'Gastos & Finanzas', icon: DollarSign, color: 'text-emerald-400' },
     { id: 'libros-juegos', name: 'Libros & Juegos', icon: BookOpen, color: 'text-purple-400' },
     { id: 'lore', name: 'Lore CRM & Rutas', icon: BookMarked, color: 'text-sky-400' },
+    { id: 'entrevistas', name: 'Entrevistas Mecalux', icon: Building, color: 'text-cyan-400' },
+    { id: 'inversiones', name: 'Inversiones', icon: Package, color: 'text-yellow-400' },
+    { id: 'agenda', name: 'Agenda Personal', icon: CalendarDays, color: 'text-blue-400' },
+    { id: 'recetas', name: 'Recetas & Nutrición', icon: ChefHat, color: 'text-rose-400' },
   ];
 
   // Métricas KPIs
