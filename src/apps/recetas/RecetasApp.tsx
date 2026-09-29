@@ -9,6 +9,8 @@ import {
   Info,
   Check,
   X,
+  Trash2,
+  Edit2,
 } from "lucide-react";
 import { FitnessRecipe } from "../../types";
 import { FITNESS_RECIPES } from "../fitness/data/fitnessRecipes";
@@ -36,6 +38,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
     null,
   );
   const [showAddManualModal, setShowAddManualModal] = useState(false);
+  const [recipeToEdit, setRecipeToEdit] = useState<FitnessRecipe | null>(null);
 
   const { currentUser } = useAuth();
 
@@ -502,6 +505,34 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
                   ))}
                 </ol>
               </div>
+
+
+              <div className="mt-8 flex items-center justify-end space-x-3 pt-6 border-t border-slate-700/50">
+                <button
+                  onClick={() => {
+                    setRecipeToEdit(selectedRecipe);
+                    setSelectedRecipe(null);
+                    setShowAddManualModal(true);
+                  }}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors flex items-center space-x-2 text-sm font-medium"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  <span>Editar</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    if (window.confirm('¿Estás seguro de que deseas eliminar esta receta?')) {
+                      await storageService.deleteSharedRecipe(selectedRecipe.id);
+                      setSelectedRecipe(null);
+                      addToast('Receta eliminada correctamente', 'success');
+                    }
+                  }}
+                  className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-colors flex items-center space-x-2 text-sm font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Eliminar</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -510,8 +541,15 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
       {/* Manual Add Modal */}
       {showAddManualModal && (
         <AddRecipeModal
-          onClose={() => setShowAddManualModal(false)}
-          onSuccess={() => setShowAddManualModal(false)}
+          initialRecipe={recipeToEdit || undefined}
+          onClose={() => {
+            setShowAddManualModal(false);
+            setRecipeToEdit(null);
+          }}
+          onSuccess={() => {
+            setShowAddManualModal(false);
+            setRecipeToEdit(null);
+          }}
         />
       )}
     </div>

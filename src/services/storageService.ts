@@ -2126,6 +2126,20 @@ class StorageService {
 
     return newItem;
   }
+
+  async deleteSharedRecipe(id: string): Promise<void> {
+    const current = this.getLocal<import('../types').FitnessRecipe[]>('shared_recipes', []);
+    this.setLocal('shared_recipes', current.filter(r => r.id !== id));
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('fitness_recipes').delete().eq('id', id);
+      } catch (e) {
+        console.error('Error deleting shared recipe:', e);
+      }
+    }
+  }
 }
 
 export const storageService = new StorageService();

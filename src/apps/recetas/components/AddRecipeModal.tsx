@@ -10,23 +10,24 @@ import { Calculator } from 'lucide-react';
 interface Props {
   onClose: () => void;
   onSuccess: () => void;
+  initialRecipe?: FitnessRecipe;
 }
 
-export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
+export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess, initialRecipe }) => {
   const { currentUser } = useAuth();
   const { addToast } = useToast();
   
   const [formData, setFormData] = useState({
-    title: '',
-    category: 'lunch' as any,
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    prep_time_minutes: 15,
-    difficulty: 'Media' as any,
-    ingredientsText: '',
-    instructionsText: ''
+    title: initialRecipe?.title || '',
+    category: initialRecipe?.category || 'lunch' as any,
+    calories: initialRecipe?.calories || 0,
+    protein: initialRecipe?.protein || 0,
+    carbs: initialRecipe?.carbs || 0,
+    fat: initialRecipe?.fat || 0,
+    prep_time_minutes: initialRecipe?.prep_time_minutes || 15,
+    difficulty: initialRecipe?.difficulty || 'Media' as any,
+    ingredientsText: initialRecipe?.ingredients?.join('\n') || '',
+    instructionsText: initialRecipe?.instructions?.join('\n') || ''
   });
 
   const handleCalculateMacros = () => {
@@ -47,6 +48,7 @@ export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     if (!formData.title) return;
 
     const newRecipe: Partial<FitnessRecipe> = {
+      ...(initialRecipe ? { id: initialRecipe.id } : {}),
       title: formData.title,
       category: formData.category,
       calories: Number(formData.calories),
@@ -57,7 +59,9 @@ export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
       difficulty: formData.difficulty,
       ingredients: formData.ingredientsText.split('\n').filter(Boolean),
       instructions: formData.instructionsText.split('\n').filter(Boolean),
-      tags: ['Manual']
+      tags: initialRecipe?.tags || ['Manual'],
+      image_url: initialRecipe?.image_url
+
     };
 
     try {
@@ -79,7 +83,9 @@ export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-2xl font-bold text-white mb-6">Añadir Receta Manual</h2>
+        <h2 className="text-2xl font-bold text-white mb-6">
+          {initialRecipe ? 'Editar Receta' : 'Añadir Receta Manual'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
