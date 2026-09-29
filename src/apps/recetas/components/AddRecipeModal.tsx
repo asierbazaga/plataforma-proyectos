@@ -4,6 +4,8 @@ import { FitnessRecipe } from '../../../types';
 import { useToast } from '../../../context/ToastContext';
 import { storageService } from '../../../services/storageService';
 import { useAuth } from '../../../context/AuthContext';
+import { estimateMacrosFromText } from '../../../services/aiRecipeService';
+import { Calculator } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -26,6 +28,19 @@ export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     ingredientsText: '',
     instructionsText: ''
   });
+
+  const handleCalculateMacros = () => {
+    if (!formData.ingredientsText.trim()) {
+      addToast('Añade primero algunos ingredientes con sus cantidades (ej. 150g pollo)', 'warning');
+      return;
+    }
+    const macros = estimateMacrosFromText(formData.ingredientsText);
+    setFormData(prev => ({
+      ...prev,
+      ...macros
+    }));
+    addToast('Macros calculados automáticamente basándose en los ingredientes', 'success');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,25 +92,6 @@ export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Calorías</label>
-              <input type="number" required value={formData.calories} onChange={e => setFormData({ ...formData, calories: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Prot (g)</label>
-              <input type="number" required value={formData.protein} onChange={e => setFormData({ ...formData, protein: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Carbs (g)</label>
-              <input type="number" required value={formData.carbs} onChange={e => setFormData({ ...formData, carbs: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Grasas (g)</label>
-              <input type="number" required value={formData.fat} onChange={e => setFormData({ ...formData, fat: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
-            </div>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Tiempo (min)</label>
@@ -112,7 +108,17 @@ export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Ingredientes (uno por línea)</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-400">Ingredientes (uno por línea, añade cantidades ej. 150g)</label>
+              <button 
+                type="button"
+                onClick={handleCalculateMacros}
+                className="text-xs bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 px-3 py-1 rounded-md transition-colors flex items-center space-x-1"
+              >
+                <Calculator className="w-3 h-3" />
+                <span>Auto-Calcular Macros</span>
+              </button>
+            </div>
             <textarea 
               rows={4}
               required
@@ -120,6 +126,25 @@ export const AddRecipeModal: React.FC<Props> = ({ onClose, onSuccess }) => {
               onChange={e => setFormData({ ...formData, ingredientsText: e.target.value })}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white" 
             />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Calorías</label>
+              <input type="number" required value={formData.calories} onChange={e => setFormData({ ...formData, calories: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Prot (g)</label>
+              <input type="number" required value={formData.protein} onChange={e => setFormData({ ...formData, protein: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Carbs (g)</label>
+              <input type="number" required value={formData.carbs} onChange={e => setFormData({ ...formData, carbs: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Grasas (g)</label>
+              <input type="number" required value={formData.fat} onChange={e => setFormData({ ...formData, fat: Number(e.target.value) })} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
+            </div>
           </div>
 
           <div>

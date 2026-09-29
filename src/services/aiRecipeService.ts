@@ -2,7 +2,7 @@ import { FitnessRecipe } from '../types';
 
 // Diccionario de ingredientes comunes con sus macros estimados (por ración habitual)
 // Categorías: 'protein', 'carb', 'fat', 'veg', 'other'
-const ingredientDB: Record<string, { category: string; protein: number; carbs: number; fat: number; calories: number; serving: string }> = {
+export const ingredientDB: Record<string, { category: string; protein: number; carbs: number; fat: number; calories: number; serving: string }> = {
   pollo: { category: 'protein', protein: 30, carbs: 0, fat: 3, calories: 165, serving: '150g' },
   ternera: { category: 'protein', protein: 26, carbs: 0, fat: 15, calories: 250, serving: '150g' },
   huevo: { category: 'protein', protein: 12, carbs: 1, fat: 10, calories: 140, serving: '2 unidades' },
@@ -31,6 +31,61 @@ const ingredientDB: Record<string, { category: string; protein: number; carbs: n
   espinaca: { category: 'veg', protein: 3, carbs: 1, fat: 0, calories: 23, serving: '100g' },
   lechuga: { category: 'veg', protein: 1, carbs: 3, fat: 0, calories: 15, serving: '100g' },
 };
+
+export function estimateMacrosFromText(text: string) {
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFat = 0;
+  let totalCalories = 0;
+
+  const lines = text.split('\n').filter(Boolean);
+  
+  lines.forEach(line => {
+    const words = line.toLowerCase().split(/\s+/);
+    let matched = false;
+    for (const word of words) {
+      // Basic cleanup (remove commas, points)
+      const cleanWord = word.replace(/[,.]/g, '');
+      if (ingredientDB[cleanWord]) {
+        const data = ingredientDB[cleanWord];
+        
+        // Simple multiplier heuristic (very basic)
+        // Check if there's a number in the line to act as a multiplier (e.g. 300g pollo -> 2x ración)
+        let multiplier = 1;
+        const matchNums = line.match(/(\d+)(?:g|ml)?/i);
+        if (matchNums) {
+          const qty = parseInt(matchNums[1]);
+          // Default serving size extraction
+          const servingMatch = data.serving.match(/(\d+)/);
+          if (servingMatch) {
+            const baseQty = parseInt(servingMatch[1]);
+            multiplier = qty / baseQty;
+          }
+        }
+
+        totalProtein += (data.protein * multiplier);
+        totalCarbs += (data.carbs * multiplier);
+        totalFat += (data.fat * multiplier);
+        totalCalories += (data.calories * multiplier);
+        
+        matched = true;
+        break; // Matched primary ingredient in this line
+      }
+    }
+    
+    if (!matched) {
+      // Add a little bit for unknown ingredients
+      totalCalories += 10;
+    }
+  });
+
+  return {
+    protein: Math.round(totalProtein),
+    carbs: Math.round(totalCarbs),
+    fat: Math.round(totalFat),
+    calories: Math.round(totalCalories)
+  };
+}
 
 // Generador de Recetas Algorítmico (Simulación de IA)
 export async function generateRecipeWithAI(ingredientsInput: string[]): Promise<Partial<FitnessRecipe> | null> {
