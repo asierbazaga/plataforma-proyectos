@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChefHat, Wand2, Search, Plus, Clock, Flame, Info, Check, X } from 'lucide-react';
 import { FitnessRecipe } from '../../types';
 import { FITNESS_RECIPES } from '../fitness/data/fitnessRecipes';
 import { generateRecipeWithAI } from '../../services/aiRecipeService';
 import { useToast } from '../../context/ToastContext';
+import { storageService } from '../../services/storageService';
+import { useAuth } from '../../context/AuthContext';
 
 type Tab = 'my_recipes' | 'ai_chef';
 
@@ -13,8 +15,31 @@ interface RecetasAppProps {
 
 export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<Tab>('my_recipes');
-  const [recipes, setRecipes] = useState<FitnessRecipe[]>(FITNESS_RECIPES);
+  const [recipes, setRecipes] = useState<FitnessRecipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<FitnessRecipe | null>(null);
+  
+  const { currentUser } = useAuth();
+
+  useEffect(() => {
+    const loadRecipes = async () => {
+      let data = await storageService.getSharedRecipes();
+      if (data.length === 0) {
+        // Fallback a las iniciales si la tabla está vacía
+        data = FITNESS_RECIPES;
+      }
+      setRecipes(data);
+    };
+    
+    loadRecipes();
+    
+    // Suscripción a cambios
+    const unsubscribe = storageService.onSync(() => {
+      loadRecipes();
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
   
   // AI State
   const [ingredientsInput, setIngredientsInput] = useState('');
@@ -42,16 +67,16 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
     }
   };
 
-  const handleSaveAiRecipe = () => {
+  const handleSaveAiRecipe = async () => {
     if (generatedRecipe) {
-      const fullRecipe = {
-        ...generatedRecipe,
-        id: 'rec-' + Date.now(),
-      } as FitnessRecipe;
-      setRecipes([...recipes, fullRecipe]);
-      addToast('Receta guardada en tu recetario.', 'success');
-      setGeneratedRecipe(null);
-      setActiveTab('my_recipes');
+      try {
+        await storageService.saveSharedRecipe(generatedRecipe, currentUser?.id);
+        addToast('Receta guardada para todos los usuarios.', 'success');
+        setGeneratedRecipe(null);
+        setActiveTab('my_recipes');
+      } catch (error) {
+        addToast('Error al guardar la receta.', 'error');
+      }
     }
   };
 
