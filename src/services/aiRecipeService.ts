@@ -55,7 +55,7 @@ export async function generateRecipeWithAI(ingredientsInput: string[]): Promise<
   // Analizar ingredientes dados
   normalizedInput.forEach(ing => {
     // Buscar si alguna palabra clave del ingrediente está en nuestra base de datos
-    const words = ing.split(/\s+/);
+    const words = ing.split(/s+/);
     let matched = false;
 
     for (const word of words) {
@@ -65,7 +65,7 @@ export async function generateRecipeWithAI(ingredientsInput: string[]): Promise<
         totalCarbs += data.carbs;
         totalFat += data.fat;
         totalCalories += data.calories;
-        usedIngredientsList.push(\`\${data.serving} de \${ing}\`);
+        usedIngredientsList.push(`${data.serving} de ${ing}`);
 
         if (data.category === 'protein') foundProteins.push(ing);
         else if (data.category === 'carb') foundCarbs.push(ing);
@@ -80,7 +80,7 @@ export async function generateRecipeWithAI(ingredientsInput: string[]): Promise<
     if (!matched) {
       unclassified.push(ing);
       // Asumimos macros mínimos para cosas desconocidas (especias, verduras raras, etc)
-      usedIngredientsList.push(\`Al gusto: \${ing}\`);
+      usedIngredientsList.push(`Al gusto: ${ing}`);
       totalCalories += 10; 
     }
   });
@@ -92,49 +92,49 @@ export async function generateRecipeWithAI(ingredientsInput: string[]): Promise<
   if (foundProteins.includes('huevo') || foundProteins.includes('huevos') || foundCarbs.includes('avena')) {
     category = "breakfast";
     if (foundProteins.length > 0) {
-      title = \`Revoltillo energético de \${foundProteins[0]}\`;
+      title = `Revoltillo energético de ${foundProteins[0]}`;
     } else {
-      title = \`Desayuno nutritivo con \${foundCarbs[0]}\`;
+      title = `Desayuno nutritivo con ${foundCarbs[0]}`;
     }
   } else if (foundCarbs.length > 0 && foundProteins.length > 0) {
-    if (foundCarbs.includes('arroz')) title = \`Wok de arroz con \${foundProteins[0]}\`;
-    else if (foundCarbs.includes('pasta')) title = \`Pasta proteica con \${foundProteins[0]}\`;
-    else title = \`Bol saludable de \${foundProteins[0]} y \${foundCarbs[0]}\`;
+    if (foundCarbs.includes('arroz')) title = `Wok de arroz con ${foundProteins[0]}`;
+    else if (foundCarbs.includes('pasta')) title = `Pasta proteica con ${foundProteins[0]}`;
+    else title = `Bol saludable de ${foundProteins[0]} y ${foundCarbs[0]}`;
   } else if (foundProteins.length > 0 && foundVegs.length > 0) {
     category = "dinner"; // Sin carbos suele ser cena
-    title = \`\${foundProteins[0].charAt(0).toUpperCase() + foundProteins[0].slice(1)} a la plancha con guarnición de \${foundVegs[0]}\`;
+    title = `${foundProteins[0].charAt(0).toUpperCase() + foundProteins[0].slice(1)} a la plancha con guarnición de ${foundVegs[0]}`;
   } else if (foundProteins.length > 0) {
-    title = \`Sartén proteica de \${foundProteins.join(' y ')}\`;
+    title = `Sartén proteica de ${foundProteins.join(' y ')}`;
   } else {
-    title = \`Salteado ligero de \${ingredientsInput.slice(0, 2).join(' y ')}\`;
+    title = `Salteado ligero de ${ingredientsInput.slice(0, 2).join(' y ')}`;
   }
 
   // Si hay más cosas, las mencionamos
   if (foundVegs.length > 0 && !title.includes('guarnición')) {
-    title += \` al toque de \${foundVegs[0]}\`;
+    title += ` al toque de ${foundVegs[0]}`;
   }
 
   // Generar instrucciones
   const instructions: string[] = [];
   
   if (foundVegs.length > 0 || unclassified.length > 0) {
-    instructions.push(\`Lava y trocea finamente los vegetales: \${[...foundVegs, ...unclassified].join(', ')}.\`);
+    instructions.push(`Lava y trocea finamente los vegetales: ${[...foundVegs, ...unclassified].join(', ')}.`);
   }
   
   if (foundCarbs.length > 0) {
-    instructions.push(\`Pon a cocer o preparar tu fuente de carbohidratos (\${foundCarbs.join(', ')}) según las indicaciones habituales.\`);
+    instructions.push(`Pon a cocer o preparar tu fuente de carbohidratos (${foundCarbs.join(', ')}) según las indicaciones habituales.`);
   }
   
   if (foundProteins.length > 0) {
-    instructions.push(\`En una sartén a fuego medio-alto con unas gotas de aceite, cocina \${foundProteins.join(', ')} hasta que quede dorado.\`);
+    instructions.push(`En una sartén a fuego medio-alto con unas gotas de aceite, cocina ${foundProteins.join(', ')} hasta que quede dorado.`);
   }
   
-  instructions.push(\`Mezcla todos los ingredientes en la sartén o en un bol grande, añade sal, pimienta y tus especias favoritas.\`);
+  instructions.push(`Mezcla todos los ingredientes en la sartén o en un bol grande, añade sal, pimienta y tus especias favoritas.`);
   
   if (foundFats.length > 0) {
-    instructions.push(\`Sirve en un plato y corona con \${foundFats.join(', ')} para aportar grasas saludables al final.\`);
+    instructions.push(`Sirve en un plato y corona con ${foundFats.join(', ')} para aportar grasas saludables al final.`);
   } else {
-    instructions.push(\`Sirve caliente y ¡a disfrutar de tu comida fit!\`);
+    instructions.push(`Sirve caliente y ¡a disfrutar de tu comida fit!`);
   }
 
   // Asegurar mínimos si no se detectó nada (por si escriben cosas muy raras)

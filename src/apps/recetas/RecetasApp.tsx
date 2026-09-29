@@ -19,11 +19,11 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
   const [ingredientsInput, setIngredientsInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<Partial<FitnessRecipe> | null>(null);
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   const handleGenerateRecipe = async () => {
     if (!ingredientsInput.trim()) {
-      showToast('Por favor, introduce al menos un ingrediente.', 'warning');
+      addToast('Por favor, introduce al menos un ingrediente.', 'warning');
       return;
     }
     
@@ -33,9 +33,9 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
       const ingredientsList = ingredientsInput.split(',').map(i => i.trim()).filter(i => i);
       const newRecipe = await generateRecipeWithAI(ingredientsList);
       setGeneratedRecipe(newRecipe);
-      showToast('¡Receta generada con éxito!', 'success');
+      addToast('¡Receta generada con éxito!', 'success');
     } catch (error: any) {
-      showToast(error.message || 'Error al generar la receta.', 'error');
+      addToast(error.message || 'Error al generar la receta.', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -48,7 +48,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
         id: 'rec-' + Date.now(),
       } as FitnessRecipe;
       setRecipes([...recipes, fullRecipe]);
-      showToast('Receta guardada en tu recetario.', 'success');
+      addToast('Receta guardada en tu recetario.', 'success');
       setGeneratedRecipe(null);
       setActiveTab('my_recipes');
     }
@@ -70,22 +70,22 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
       <div className="flex space-x-2 bg-slate-800/50 p-1 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab('my_recipes')}
-          className={\`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 \${
+          className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 ${
             activeTab === 'my_recipes'
               ? 'bg-slate-700 text-white shadow-md'
               : 'text-gray-400 hover:text-white hover:bg-slate-700/50'
-          }\`}
+          }`}
         >
           <Search className="w-4 h-4" />
           <span>Mi Recetario</span>
         </button>
         <button
           onClick={() => setActiveTab('ai_chef')}
-          className={\`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 \${
+          className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 ${
             activeTab === 'ai_chef'
               ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md'
               : 'text-gray-400 hover:text-white hover:bg-slate-700/50'
-          }\`}
+          }`}
         >
           <Wand2 className="w-4 h-4" />
           <span>Chef IA</span>
