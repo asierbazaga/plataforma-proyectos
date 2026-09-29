@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bitcoin, LineChart, Wallet, Plus, Trash2, TrendingUp, TrendingDown, RefreshCcw, DollarSign, Euro } from 'lucide-react';
+import { Bitcoin, LineChart, Wallet, Plus, Trash2, TrendingUp, TrendingDown, RefreshCcw, DollarSign, Euro, AlertCircle, CheckCircle } from 'lucide-react';
 import { storageService } from '../../services/storageService';
 import { CryptoAsset } from '../../types';
 
@@ -27,6 +27,7 @@ export const CriptosApp: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [viewCurrency, setViewCurrency] = useState<Currency>('USD');
+  const [updateMessage, setUpdateMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
   
   // Add Form State
   const [isAdding, setIsAdding] = useState(false);
@@ -51,6 +52,11 @@ export const CriptosApp: React.FC = () => {
     
     await fetchLivePrices(data);
     setIsLoading(false);
+  };
+
+  const showMessage = (text: string, type: 'success' | 'error') => {
+    setUpdateMessage({ text, type });
+    setTimeout(() => setUpdateMessage(null), 3000);
   };
 
   const fetchLivePrices = async (currentAssets: CryptoAsset[], force = false) => {
@@ -83,10 +89,12 @@ export const CriptosApp: React.FC = () => {
       if (Object.keys(data).length > 0) {
         setLivePrices(data);
         localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+        if (force) showMessage('Precios actualizados correctamente', 'success');
       }
     } catch (error) {
       console.error('Error fetching crypto prices:', error);
       setApiError(true);
+      if (force) showMessage('Error al actualizar precios (Límite de API alcanzado)', 'error');
       const cached = localStorage.getItem('crypto_prices_cache');
       if (cached) {
         setLivePrices(JSON.parse(cached).data);
@@ -510,6 +518,17 @@ export const CriptosApp: React.FC = () => {
           </div>
         )}
       </div>
+
+      {updateMessage && (
+        <div className={`fixed bottom-4 right-4 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border animate-in fade-in slide-in-from-bottom-5 z-50 ${
+          updateMessage.type === 'success' 
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+            : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+        }`}>
+          {updateMessage.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          <span className="font-medium text-sm">{updateMessage.text}</span>
+        </div>
+      )}
     </div>
   );
 };
