@@ -26,7 +26,12 @@ interface RecetasAppProps {
 
 export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<Tab>("my_recipes");
-  const [recipes, setRecipes] = useState<FitnessRecipe[]>([]);
+  const [recipes, setRecipes] = useState<FitnessRecipe[]>(() => {
+    const local = storageService.getSharedRecipesSync ? storageService.getSharedRecipesSync() : [];
+    const existingIds = new Set(local.map(r => r.id));
+    const examplesToAdd = FITNESS_RECIPES.filter(r => !existingIds.has(r.id));
+    return [...local, ...examplesToAdd];
+  });
   const [selectedRecipe, setSelectedRecipe] = useState<FitnessRecipe | null>(
     null,
   );
@@ -37,10 +42,14 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
   useEffect(() => {
     const loadRecipes = async () => {
       let data = await storageService.getSharedRecipes();
-      if (data.length === 0) {
-        // Fallback a las iniciales si la tabla está vacía
-        data = FITNESS_RECIPES;
-      }
+      
+      // Siempre incluimos las recetas de ejemplo para que no desaparezcan,
+      // filtrando para no duplicar si por casualidad tienen el mismo ID
+      const existingIds = new Set(data.map(r => r.id));
+      const examplesToAdd = FITNESS_RECIPES.filter(r => !existingIds.has(r.id));
+      
+      data = [...data, ...examplesToAdd];
+      
       setRecipes(data);
     };
 

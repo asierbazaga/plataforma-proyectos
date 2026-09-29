@@ -152,18 +152,22 @@ class StorageService {
 
       this.initRealtimeChannel();
 
-      window.addEventListener('focus', () => {
-        this.initRealtimeChannel();
-        this.notifySubscribers();
-      });
-      window.addEventListener('online', () => {
-        this.initRealtimeChannel();
-        this.notifySubscribers();
-      });
+      let lastFocusFetch = 0;
+      const handleFocus = () => {
+        const now = Date.now();
+        // Solo refrescar datos si ha pasado al menos 1 minuto desde el último focus
+        // para evitar picos de egress y consumos de red innecesarios
+        if (now - lastFocusFetch > 60000) {
+          lastFocusFetch = now;
+          this.notifySubscribers();
+        }
+      };
+
+      window.addEventListener('focus', handleFocus);
+      window.addEventListener('online', handleFocus);
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          this.initRealtimeChannel();
-          this.notifySubscribers();
+          handleFocus();
         }
       });
 
@@ -2064,18 +2068,34 @@ class StorageService {
   // ==========================================
   // SHARED RECIPES (RECETAS COMPARTIDAS)
   // ==========================================
+  getSharedRecipesSync(): import('../types').FitnessRecipe[] {
+    return this.getLocal<import('../types').FitnessRecipe[]>('shared_recipes', []);
+  }
+
   async getSharedRecipes(): Promise<import('../types').FitnessRecipe[]> {
+    let cloudData: import('../types').FitnessRecipe[] = [];
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('fitness_recipes').select('*').order('created_at', { ascending: false });
         if (!error && data) {
-          return data as import('../types').FitnessRecipe[];
+          cloudData = data as import('../types').FitnessRecipe[];
         }
       } catch (e) {
         console.error('Error fetching shared recipes:', e);
       }
     }
-    return this.getLocal<import('../types').FitnessRecipe[]>('shared_recipes', []);
+    
+    // Merge optimista: incluir recetas locales que aún no estén en Supabase
+    const local = this.getLocal<import('../types').FitnessRecipe[]>('shared_recipes', []);
+    const merged = [...cloudData];
+    for (const l of local) {
+      if (!merged.find(m => m.id === l.id)) {
+        merged.push(l);
+      }
+    }
+    
+    this.setLocal('shared_recipes', merged);
+    return merged;
   }
 
   async saveSharedRecipe(recipe: Partial<import('../types').FitnessRecipe>, userId?: string): Promise<import('../types').FitnessRecipe> {
