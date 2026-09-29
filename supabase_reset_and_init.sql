@@ -39,7 +39,7 @@ CREATE TABLE public.profiles (
 CREATE TABLE public.app_permissions (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
-    app_id TEXT NOT NULL CHECK (app_id IN ('fitness', 'gastos', 'libros-juegos', 'lore', 'entrevistas')),
+    app_id TEXT NOT NULL CHECK (app_id IN ('fitness', 'gastos', 'libros-juegos', 'lore', 'entrevistas', 'inversiones', 'agenda', 'recetas')),
     can_access BOOLEAN DEFAULT TRUE,
     can_edit BOOLEAN DEFAULT TRUE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

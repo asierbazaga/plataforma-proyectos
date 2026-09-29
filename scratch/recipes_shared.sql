@@ -1,6 +1,6 @@
 -- Tabla para Recetas (Compartida por todos los usuarios)
 CREATE TABLE IF NOT EXISTS public.fitness_recipes (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id TEXT DEFAULT uuid_generate_v4()::text PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Autor de la receta (opcional si queremos saber quién la creó)
     title TEXT NOT NULL,
     category TEXT NOT NULL,
