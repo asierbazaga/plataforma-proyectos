@@ -605,3 +605,17 @@ export interface AgendaCompensatoryDay {
   updated_at: string;
 }
 
+
+export interface AgendaLoan {
+  id: string;
+  user_id: string;
+  name: string;
+  total_amount: number;
+  paid_amount: number;
+  installment_amount: number;
+  start_date: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+

@@ -8,12 +8,14 @@ import { CalendarView } from './components/CalendarView';
 import { NotesView } from './components/NotesView';
 import { RentView } from './components/RentView';
 import { WorkView } from './components/WorkView';
+import { LoansView } from './components/LoansView';
+import { TrendingDown } from 'lucide-react';
 
 interface AgendaAppProps {
   onBack: () => void;
 }
 
-type TabId = 'tasks' | 'calendar' | 'rent' | 'notes' | 'work';
+type TabId = 'tasks' | 'calendar' | 'rent' | 'loans' | 'notes' | 'work';
 
 export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
   const { isDark } = useTheme();
@@ -22,6 +24,7 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
   const tabs = [
     { id: 'tasks', label: 'Tareas', icon: CheckSquare },
     { id: 'calendar', label: 'Calendario', icon: CalendarDays },
+    { id: 'loans', label: 'Préstamos', icon: TrendingDown },
     { id: 'rent', label: 'Alquiler', icon: Home },
     { id: 'notes', label: 'Notas', icon: FileText },
     { id: 'work', label: 'Trabajo', icon: Briefcase },
@@ -75,6 +78,7 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
       <div className={`min-h-[500px] rounded-3xl border p-4 sm:p-6 ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
         {activeTab === 'tasks' && <TasksView />}
         {activeTab === 'calendar' && <CalendarView />}
+        {activeTab === 'loans' && <LoansView />}
         {activeTab === 'rent' && <RentView />}
         {activeTab === 'notes' && <NotesView />}
         {activeTab === 'work' && <WorkView />}

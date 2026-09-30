@@ -2139,6 +2139,81 @@ class StorageService {
         console.error('Error deleting shared recipe:', e);
       }
     }
+  // ==========================================
+  // AGENDA LOANS (PRÉSTAMOS)
+  // ==========================================
+  async getAgendaLoans(userId: string): Promise<import('../types').AgendaLoan[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('agenda_loans').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+        if (!error && data) {
+          const formatted = data.map((row: any) => ({
+            id: row.id,
+            user_id: row.user_id,
+            name: row.name,
+            total_amount: Number(row.total_amount),
+            paid_amount: Number(row.paid_amount),
+            installment_amount: Number(row.installment_amount),
+            start_date: row.start_date,
+            notes: row.notes,
+            created_at: row.created_at,
+            updated_at: row.updated_at
+          }));
+          this.setLocal(`agenda_loans_${userId}`, formatted);
+          return formatted;
+        }
+      } catch (e) {}
+    }
+    return this.getLocal<import('../types').AgendaLoan[]>(`agenda_loans_${userId}`, []);
+  }
+
+  async addAgendaLoan(loan: Omit<import('../types').AgendaLoan, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<import('../types').AgendaLoan> {
+    const newItem: import('../types').AgendaLoan = {
+      ...loan,
+      total_amount: Number(loan.total_amount),
+      paid_amount: Number(loan.paid_amount),
+      installment_amount: Number(loan.installment_amount),
+      id: generateId('loan'),
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const current = await this.getAgendaLoans(userId);
+    this.setLocal(`agenda_loans_${userId}`, [newItem, ...current]);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('agenda_loans').insert([newItem]);
+      } catch (e) {}
+    }
+    return newItem;
+  }
+
+  async updateAgendaLoan(id: string, updates: Partial<import('../types').AgendaLoan>, userId: string): Promise<void> {
+    const current = await this.getAgendaLoans(userId);
+    const updatedList = current.map(item => item.id === id ? { ...item, ...updates, updated_at: new Date().toISOString() } : item);
+    this.setLocal(`agenda_loans_${userId}`, updatedList);
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('agenda_loans').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+      } catch (e) {}
+    }
+  }
+
+  async deleteAgendaLoan(id: string, userId: string): Promise<void> {
+    const current = await this.getAgendaLoans(userId);
+    this.setLocal(`agenda_loans_${userId}`, current.filter(item => item.id !== id));
+    this.broadcastChange();
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('agenda_loans').delete().eq('id', id);
+      } catch (e) {}
+    }
   }
 }
 
