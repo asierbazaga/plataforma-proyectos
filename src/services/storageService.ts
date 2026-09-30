@@ -2139,6 +2139,7 @@ class StorageService {
         console.error('Error deleting shared recipe:', e);
       }
     }
+  }
   // ==========================================
   // AGENDA LOANS (PRÉSTAMOS)
   // ==========================================

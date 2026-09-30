@@ -77,6 +77,7 @@ export const LoansView: React.FC = () => {
         toast.success('Préstamo actualizado');
       } else {
         await storageService.addAgendaLoan({
+          user_id: currentUser.id,
           name,
           total_amount: t,
           paid_amount: p,
