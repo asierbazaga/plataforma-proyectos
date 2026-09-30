@@ -11,10 +11,11 @@ import {
   X,
   Trash2,
   Edit2,
+  Calculator,
 } from "lucide-react";
 import { FitnessRecipe } from "../../types";
 import { FITNESS_RECIPES } from "../fitness/data/fitnessRecipes";
-import { generateRecipeWithAI } from "../../services/aiRecipeService";
+import { generateRecipeWithAI, estimateMacrosFromText } from "../../services/aiRecipeService";
 import { useToast } from "../../context/ToastContext";
 import { storageService } from "../../services/storageService";
 import { useAuth } from "../../context/AuthContext";
@@ -453,12 +454,27 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
                 </div>
 
                 <div>
-                  <h4 className="font-bold text-white mb-4 flex items-center space-x-2">
-                    <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">
-                      📝
-                    </span>
-                    <span>Macros</span>
-                  </h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold text-white flex items-center space-x-2">
+                      <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">
+                        📝
+                      </span>
+                      <span>Macros</span>
+                    </h4>
+                    <button
+                      onClick={async () => {
+                        const newMacros = estimateMacrosFromText(selectedRecipe.ingredients?.join('\n') || '');
+                        const updatedRecipe = { ...selectedRecipe, ...newMacros };
+                        await storageService.saveSharedRecipe(updatedRecipe, currentUser?.id);
+                        setSelectedRecipe(updatedRecipe);
+                        addToast('Macros calculados y guardados', 'success');
+                      }}
+                      className="text-xs bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 px-2 py-1 rounded-md transition-colors flex items-center space-x-1"
+                    >
+                      <Calculator className="w-3 h-3" />
+                      <span>Recalcular</span>
+                    </button>
+                  </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
                       <span className="text-sm text-gray-400">Proteínas</span>

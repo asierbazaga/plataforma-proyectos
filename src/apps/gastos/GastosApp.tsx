@@ -111,6 +111,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [category, setCategory] = useState('Alimentación');
   const [transactionAccount, setTransactionAccount] = useState<WalletAccount>('abanca');
+  const [isRetained, setIsRetained] = useState(false);
 
   // Formulario Objetivo de Ahorro
   const [goalTitle, setGoalTitle] = useState('');
@@ -221,7 +222,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       return;
     }
 
-    const finalDescription = description.trim() || (type === 'expense' ? 'Gasto' : 'Ingreso');
+    const finalDescriptionBase = description.trim() || (type === 'expense' ? 'Gasto' : 'Ingreso');
+    const finalDescription = (type === 'expense' && isRetained) ? `[RETENIDO] ${finalDescriptionBase}` : finalDescriptionBase;
 
     try {
       if (editingExpense) {
@@ -253,6 +255,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
       setDescription('');
       setAmount('');
+      setIsRetained(false);
       setShowTransactionModal(false);
       setEditingExpense(null);
       await loadData();
@@ -268,16 +271,19 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     setType('expense');
     setCategory('Alimentación');
     setTransactionAccount('abanca');
+    setIsRetained(false);
     setShowTransactionModal(true);
   };
 
   const handleOpenEditTransaction = (expense: ExpenseItem) => {
     setEditingExpense(expense);
-    setDescription(expense.description);
+    const hasRetained = expense.description.startsWith('[RETENIDO] ');
+    setDescription(hasRetained ? expense.description.replace('[RETENIDO] ', '') : expense.description);
     setAmount(expense.amount);
     setType(expense.type);
     setCategory(expense.category);
     setTransactionAccount(expense.account || 'abanca');
+    setIsRetained(hasRetained);
     setShowTransactionModal(true);
   };
 
@@ -292,6 +298,20 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       } catch (e: any) {
         toast.error('Error al eliminar movimiento');
       }
+    }
+  };
+
+  const handleReleaseRetained = async (expense: ExpenseItem) => {
+    const newDescription = expense.description.replace('[RETENIDO] ', '');
+    try {
+      const saved = await storageService.updateExpense(expense.id, { description: newDescription }, currentUser?.id);
+      if (saved) {
+        setExpenses(prev => prev.map(x => x.id === saved.id ? saved : x));
+        toast.success('Gasto convertido a normal');
+        await loadData();
+      }
+    } catch (e) {
+      toast.error('Error al liberar gasto retenido');
     }
   };
 
@@ -875,56 +895,75 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               filteredExpenses.map(item => {
                 const isAbanca = (item.account || 'abanca') === 'abanca';
                 const isIncome = item.type === 'income';
+                const isRetained = item.description.startsWith('[RETENIDO] ');
+                const displayDescription = isRetained ? item.description.replace('[RETENIDO] ', '') : item.description;
 
                 return (
                   <div 
                     key={item.id}
-                    className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/90 flex items-center justify-between gap-3 shadow-md"
+                    className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/90 flex flex-col gap-2 shadow-md"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        isIncome ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                      }`}>
-                        {isIncome ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
-                      </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                          isIncome ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                        }`}>
+                          {isIncome ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                        </div>
 
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate">{item.description}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                            isAbanca ? 'bg-indigo-500/20 text-indigo-300' : 'bg-orange-500/20 text-orange-300'
-                          }`}>
-                            {isAbanca ? walletConfig.account_1_name : walletConfig.account_2_name}
-                          </span>
-                          <span className="text-[10px] text-slate-500">•</span>
-                          <span className="text-[10px] text-slate-400">{item.category}</span>
-                          <span className="text-[10px] text-slate-500">•</span>
-                          <span className="text-[10px] text-slate-500">{item.transaction_date ? String(item.transaction_date).slice(5) : ''}</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate flex items-center gap-2">
+                            {displayDescription}
+                            {isRetained && (
+                              <span className="px-1.5 py-0.5 rounded text-[8px] bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                RETENIDO
+                              </span>
+                            )}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                              isAbanca ? 'bg-indigo-500/20 text-indigo-300' : 'bg-orange-500/20 text-orange-300'
+                            }`}>
+                              {isAbanca ? walletConfig.account_1_name : walletConfig.account_2_name}
+                            </span>
+                            <span className="text-[10px] text-slate-500">•</span>
+                            <span className="text-[10px] text-slate-400">{item.category}</span>
+                            <span className="text-[10px] text-slate-500">•</span>
+                            <span className="text-[10px] text-slate-500">{item.transaction_date ? String(item.transaction_date).slice(5) : ''}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <p className={`text-xs font-black ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {isIncome ? '+' : '-'}{item.amount.toFixed(2)} €
-                      </p>
-                      {canEdit && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleOpenEditTransaction(item)}
-                            className="p-1 text-slate-600 hover:text-indigo-400 transition-colors"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTransaction(item.id)}
-                            className="p-1 text-slate-600 hover:text-rose-400 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <p className={`text-xs font-black ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {isIncome ? '+' : '-'}{item.amount.toFixed(2)} €
+                        </p>
+                        {canEdit && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenEditTransaction(item)}
+                              className="p-1 text-slate-600 hover:text-indigo-400 transition-colors"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTransaction(item.id)}
+                              className="p-1 text-slate-600 hover:text-rose-400 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    {isRetained && canEdit && (
+                      <button 
+                        onClick={() => handleReleaseRetained(item)}
+                        className="w-full py-1.5 mt-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg border border-amber-500/20 transition-colors"
+                      >
+                        Pasar a gasto normal
+                      </button>
+                    )}
                   </div>
                 );
               })
@@ -966,6 +1005,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   ) : (
                     filteredExpenses.map(item => {
                       const isAbanca = (item.account || 'abanca') === 'abanca';
+                      const isRetained = item.description.startsWith('[RETENIDO] ');
+                      const displayDescription = isRetained ? item.description.replace('[RETENIDO] ', '') : item.description;
+
                       return (
                         <tr key={item.id} className="hover:bg-slate-800/40 transition-colors group">
                           <td className="py-3 px-4 font-bold text-white flex items-center gap-2.5">
@@ -978,7 +1020,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                                 <ArrowDownRight className="w-4 h-4" />
                               </span>
                             )}
-                            <span>{item.description}</span>
+                            <span className="flex items-center gap-2">
+                              {displayDescription}
+                              {isRetained && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                  RETENIDO
+                                </span>
+                              )}
+                            </span>
                           </td>
 
                           {/* Cuenta asignada */}
@@ -1013,6 +1062,15 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           {canEdit && (
                             <td className="py-3 px-4 text-center">
                               <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                                {isRetained && (
+                                  <button
+                                    onClick={() => handleReleaseRetained(item)}
+                                    title="Pasar a gasto normal"
+                                    className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg transition-colors"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleOpenEditTransaction(item)}
                                   title="Editar transacción"
@@ -1712,6 +1770,17 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     onChange={e => setDescription(e.target.value)}
                     className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:border-emerald-500 text-xs sm:text-sm font-semibold"
                   />
+                  {type === 'expense' && (
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer w-max hover:opacity-80 transition-opacity">
+                      <input 
+                        type="checkbox" 
+                        checked={isRetained} 
+                        onChange={(e) => setIsRetained(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-slate-600 text-amber-500 focus:ring-amber-500/30 bg-slate-800 cursor-pointer accent-amber-500"
+                      />
+                      <span className="text-xs font-bold text-amber-400/90">Retener gasto (se cobrará más adelante)</span>
+                    </label>
+                  )}
                 </div>
 
                 {/* Importe y Categoría */}

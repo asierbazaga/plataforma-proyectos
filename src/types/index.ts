@@ -14,6 +14,7 @@ export interface UserProfile {
   department?: string;
   avatar_url?: string;
   created_at?: string;
+  is_retained?: boolean;
   last_login?: string;
   security_question?: string;
   security_answer?: string;
@@ -251,6 +252,7 @@ export interface ExpenseItem {
   transaction_date: string;
   account?: WalletAccount;
   created_at?: string;
+  is_retained?: boolean;
 }
 
 export interface SavingsGoal {
@@ -263,6 +265,7 @@ export interface SavingsGoal {
   target_date?: string;
   notes?: string;
   created_at?: string;
+  is_retained?: boolean;
 }
 
 export interface CategoryBudget {
@@ -301,6 +304,7 @@ export interface LibraryItem {
   completed_date?: string;
   started_date?: string;
   created_at?: string;
+  is_retained?: boolean;
 }
 
 // Módulo Lore: Clientes y Rutas
