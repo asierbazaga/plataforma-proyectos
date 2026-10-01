@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -44,17 +44,17 @@ interface GastosAppProps {
   onBack?: () => void;
 }
 
-// Iconos y colores estándar por categoría
+// Iconos y colores estÃ¡ndar por categorÃ­a
 const CATEGORY_META: Record<string, { icon: string; color: string }> = {
-  'Alimentación': { icon: '🛒', color: '#10B981' },
-  'Hogar / Alquiler': { icon: '🏠', color: '#6366F1' },
-  'Transporte / Gasolina': { icon: '🚗', color: '#F59E0B' },
-  'Ocio & Restaurantes': { icon: '🍿', color: '#EC4899' },
-  'Servicios / Suministros': { icon: '⚡', color: '#06B6D4' },
-  'Tecnología': { icon: '💻', color: '#8B5CF6' },
-  'Salud & Bienestar': { icon: '💊', color: '#14B8A6' },
-  'Ahorro/Común': { icon: '💰', color: '#3B82F6' },
-  'Otros': { icon: '📦', color: '#64748B' }
+  'AlimentaciÃ³n': { icon: 'ðŸ›’', color: '#10B981' },
+  'Hogar / Alquiler': { icon: 'ðŸ ', color: '#6366F1' },
+  'Transporte / Gasolina': { icon: 'ðŸš—', color: '#F59E0B' },
+  'Ocio & Restaurantes': { icon: 'ðŸ¿', color: '#EC4899' },
+  'Servicios / Suministros': { icon: 'âš¡', color: '#06B6D4' },
+  'TecnologÃ­a': { icon: 'ðŸ’»', color: '#8B5CF6' },
+  'Salud & Bienestar': { icon: 'ðŸ’Š', color: '#14B8A6' },
+  'Ahorro/ComÃºn': { icon: 'ðŸ’°', color: '#3B82F6' },
+  'Otros': { icon: 'ðŸ“¦', color: '#64748B' }
 };
 
 export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
@@ -62,13 +62,18 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const canEdit = canEditApp('gastos');
   const toast = useToast();
 
-  // Sub-pestañas: 1. Movimientos & Cuentas | 2. Distribución & Presupuestos | 3. Metas Ahorro
+  // Sub-pestaÃ±as: 1. Movimientos & Cuentas | 2. DistribuciÃ³n & Presupuestos | 3. Metas Ahorro
   const [activeTab, setActiveTab] = useState<'movements' | 'analytics' | 'goals'>('movements');
 
   // Filtro de Cartera Activa: 'all' | 'abanca' | 'ing'
   const [selectedWallet, setSelectedWallet] = useState<'all' | WalletAccount>('all');
 
-  // Configuración de Cartera del Usuario
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `-`;
+  });
+
+  // ConfiguraciÃ³n de Cartera del Usuario
   const [walletConfig, setWalletConfig] = useState<WalletConfig>({
     account_1_name: 'Cuenta Principal',
     account_1_initial_balance: 0,
@@ -78,7 +83,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     onboarding_completed: false
   });
 
-  // Modal de Configuración / Onboarding de Cuentas
+  // Modal de ConfiguraciÃ³n / Onboarding de Cuentas
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupAcc1Name, setSetupAcc1Name] = useState('');
   const [setupAcc1Balance, setSetupAcc1Balance] = useState<number | string>('');
@@ -98,18 +103,18 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
 
-  // Modal para editar límite de presupuesto de una categoría
+  // Modal para editar lÃ­mite de presupuesto de una categorÃ­a
   const [editingBudgetCategory, setEditingBudgetCategory] = useState<string | null>(null);
   const [budgetLimitInput, setBudgetLimitInput] = useState<number | string>('');
 
   const [contributeGoalId, setContributeGoalId] = useState<string | null>(null);
   const [contributionAmount, setContributionAmount] = useState<number | string>('');
 
-  // Formulario Transacción
+  // Formulario TransacciÃ³n
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | string>('');
   const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [category, setCategory] = useState('Alimentación');
+  const [category, setCategory] = useState('AlimentaciÃ³n');
   const [transactionAccount, setTransactionAccount] = useState<WalletAccount>('abanca');
   const [isRetained, setIsRetained] = useState(false);
 
@@ -182,14 +187,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       onboarding_completed: true
     }, userId);
 
-    // Si introduce saldo inicial en cuenta 1 y no existían movimientos
+    // Si introduce saldo inicial en cuenta 1 y no existÃ­an movimientos
     const cleanAcc1Bal = Number(String(setupAcc1Balance).replace(',', '.'));
     if (cleanAcc1Bal > 0) {
       await storageService.addExpense({
         description: `Saldo Inicial - ${acc1}`,
         amount: cleanAcc1Bal,
         type: 'income',
-        category: 'Ahorro/Común',
+        category: 'Ahorro/ComÃºn',
         account: 'abanca',
         transaction_date: new Date().toISOString().split('T')[0]
       }, userId);
@@ -202,7 +207,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         description: `Saldo Inicial - ${acc2}`,
         amount: cleanAcc2Bal,
         type: 'income',
-        category: 'Ahorro/Común',
+        category: 'Ahorro/ComÃºn',
         account: 'ing',
         transaction_date: new Date().toISOString().split('T')[0]
       }, userId);
@@ -212,13 +217,13 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     await loadData();
   };
 
-  // Guardar nueva transacción o actualizar existente
+  // Guardar nueva transacciÃ³n o actualizar existente
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawVal = String(amount).replace(',', '.');
     const parsedAmount = Math.abs(parseFloat(rawVal));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      toast.error('Por favor, introduce un importe numérico válido.');
+      toast.error('Por favor, introduce un importe numÃ©rico vÃ¡lido.');
       return;
     }
 
@@ -269,7 +274,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     setDescription('');
     setAmount('');
     setType('expense');
-    setCategory('Alimentación');
+    setCategory('AlimentaciÃ³n');
     setTransactionAccount('abanca');
     setIsRetained(false);
     setShowTransactionModal(true);
@@ -287,9 +292,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     setShowTransactionModal(true);
   };
 
-  // Eliminar transacción individual
+  // Eliminar transacciÃ³n individual
   const handleDeleteTransaction = async (id: string) => {
-    if (confirm('¿Eliminar este movimiento?')) {
+    if (confirm('Â¿Eliminar este movimiento?')) {
       try {
         setExpenses(prev => prev.filter(e => e.id !== id));
         await storageService.deleteExpense(id, currentUser?.id);
@@ -317,7 +322,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
   // Limpiar todos los movimientos
   const handleClearAllExpenses = async () => {
-    if (confirm('¿Estás seguro de que quieres borrar todos los movimientos de tu cartera para empezar desde cero?')) {
+    if (confirm('Â¿EstÃ¡s seguro de que quieres borrar todos los movimientos de tu cartera para empezar desde cero?')) {
       try {
         setExpenses([]);
         await storageService.clearAllExpenses(currentUser?.id);
@@ -329,7 +334,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     }
   };
 
-  // Guardar límite de presupuesto
+  // Guardar lÃ­mite de presupuesto
   const handleSaveBudgetLimit = async () => {
     if (!editingBudgetCategory || !budgetLimitInput || Number(budgetLimitInput) < 0) return;
     await storageService.updateCategoryBudget(editingBudgetCategory, Number(budgetLimitInput), currentUser?.id);
@@ -362,7 +367,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     setShowGoalModal(true);
   };
 
-  // Guardar objetivo (Creación o Edición)
+  // Guardar objetivo (CreaciÃ³n o EdiciÃ³n)
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanTarget = Number(String(goalTargetAmount).replace(',', '.'));
@@ -411,7 +416,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
   // Eliminar objetivo
   const handleDeleteGoal = async (id: string) => {
-    if (confirm('¿Eliminar esta meta de ahorro?')) {
+    if (confirm('Â¿Eliminar esta meta de ahorro?')) {
       await storageService.deleteSavingsGoal(id, currentUser?.id);
       await loadData();
     }
@@ -422,11 +427,27 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     abancaIncome, abancaExpense, abancaBalance,
     ingIncome, ingExpense, ingBalance,
     totalIncome, totalExpense, netBalance,
-    filteredExpenses
+    filteredExpenses, monthlyFilteredExpenses, availableMonths
   } = React.useMemo(() => {
     const filtered = expenses.filter(e => {
       if (selectedWallet === 'all') return true;
       return (e.account || 'abanca') === selectedWallet;
+    });
+
+    const monthsSet = new Set<string>();
+    expenses.forEach(e => {
+      if (e.transaction_date) {
+        monthsSet.add(e.transaction_date.substring(0, 7));
+      }
+    });
+    const now = new Date();
+    const currentMonthKey = `-`;
+    monthsSet.add(currentMonthKey);
+    const availableMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
+
+    const monthlyFiltered = filtered.filter(e => {
+      if (selectedMonth === 'all') return true;
+      return String(e.transaction_date || '').startsWith(selectedMonth);
     });
 
     const abInc = expenses.filter(e => (e.account || 'abanca') === 'abanca' && e.type === 'income').reduce((acc, c) => acc + c.amount, 0);
@@ -441,9 +462,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       abancaIncome: abInc, abancaExpense: abExp, abancaBalance: abInc - abExp,
       ingIncome: inInc, ingExpense: inExp, ingBalance: inInc - inExp,
       totalIncome: tInc, totalExpense: tExp, netBalance: tInc - tExp,
-      filteredExpenses: filtered
+      filteredExpenses: filtered,
+      monthlyFilteredExpenses: monthlyFiltered,
+      availableMonths
     };
-  }, [expenses, selectedWallet]);
+  }, [expenses, selectedWallet, selectedMonth]);
 
   // Totales de Objetivos
   const { totalTargetGoals, totalSavedGoals, totalGoalsPct } = React.useMemo(() => {
@@ -456,9 +479,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     };
   }, [goals]);
 
-  // CÁLCULO DE DISTRIBUCIÓN POR CATEGORÍA PARA EL GRÁFICO
+  // CÃLCULO DE DISTRIBUCIÃ“N POR CATEGORÃA PARA EL GRÃFICO
   const { categoryBreakdown, totalMonthlyBudget, totalBudgetConsumedPct } = React.useMemo(() => {
-    const onlyExpenses = filteredExpenses.filter(e => e.type === 'expense');
+    const onlyExpenses = monthlyFilteredExpenses.filter(e => e.type === 'expense');
     const totalExpenseSum = onlyExpenses.reduce((acc, c) => acc + c.amount, 0);
 
     const breakdown = categories.map(cat => {
@@ -493,10 +516,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
   }, [filteredExpenses, budgets]);
 
   // =========================================================================
-  // CÁLCULO DE COMPARATIVA MES A MES (HISTÓRICO ÚLTIMOS 6 MESES)
+  // CÃLCULO DE COMPARATIVA MES A MES (HISTÃ“RICO ÃšLTIMOS 6 MESES)
   // =========================================================================
   const { last6Months, currentMonthData, previousMonthData, expenseDiff, incomeDiff, savingsDiff, maxMonthlyBar } = React.useMemo(() => {
-    const currentDate = new Date();
+      let currentDate = new Date();
+      if (selectedMonth !== 'all') {
+        const [y, m] = selectedMonth.split('-');
+        currentDate = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+      }
     const l6m = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - (5 - i), 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -551,7 +578,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       savingsDiff: sDiff,
       maxMonthlyBar: maxBar
     };
-  }, [filteredExpenses]);
+  }, [filteredExpenses, selectedMonth]);
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 font-sans">
@@ -562,7 +589,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             {onBack && (
               <button
                 onClick={onBack}
-                title="Volver al Catálogo"
+                title="Volver al CatÃ¡logo"
                 className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 hover:bg-emerald-600 text-slate-300 hover:text-white border border-slate-700 transition-all flex items-center justify-center flex-shrink-0"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -579,7 +606,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 </span>
               </div>
               <p className="text-slate-400 text-[11px] sm:text-xs">
-                {walletConfig.account_1_name} {walletConfig.has_account_2 && walletConfig.account_2_name ? `• ${walletConfig.account_2_name}` : ''} • Control & Presupuestos
+                {walletConfig.account_1_name} {walletConfig.has_account_2 && walletConfig.account_2_name ? `â€¢ ${walletConfig.account_2_name}` : ''} â€¢ Control & Presupuestos
               </p>
             </div>
           </div>
@@ -607,7 +634,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Acciones Rápidas */}
+        {/* Acciones RÃ¡pidas */}
         {canEdit && (
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
@@ -629,7 +656,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         )}
       </div>
 
-      {/* Subnavegación Principal: 3 Pestañas */}
+      {/* SubnavegaciÃ³n Principal: 3 PestaÃ±as */}
       <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs font-bold">
         <button
           onClick={() => setActiveTab('movements')}
@@ -654,8 +681,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
-          <span className="hidden xs:inline">Análisis & Mes a Mes</span>
-          <span className="xs:hidden">Análisis</span>
+          <span className="hidden xs:inline">AnÃ¡lisis & Mes a Mes</span>
+          <span className="xs:hidden">AnÃ¡lisis</span>
         </button>
 
         <button
@@ -672,48 +699,70 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
         </button>
       </div>
 
-      {/* Selector de Cartera Activa (Sólo si tiene más de 1 cuenta activada) */}
-      {walletConfig.has_account_2 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
-          <button
-            onClick={() => setSelectedWallet('all')}
-            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-              selectedWallet === 'all'
-                ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5 text-slate-400" />
-            <span>Todas las Cuentas</span>
-          </button>
+      {/* Filtros Globales (Cartera y Mes) */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        {walletConfig.has_account_2 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
+            <button
+              onClick={() => setSelectedWallet('all')}
+              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+                selectedWallet === 'all'
+                  ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
+                  : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-slate-400" />
+              <span>Todas las Cuentas</span>
+            </button>
 
-          <button
-            onClick={() => setSelectedWallet('abanca')}
-            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-              selectedWallet === 'abanca'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 border border-indigo-500'
-                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-          >
-            <span>🏦</span>
-            <span>{walletConfig.account_1_name}</span>
-          </button>
+            <button
+              onClick={() => setSelectedWallet('abanca')}
+              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+                selectedWallet === 'abanca'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 border border-indigo-500'
+                  : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+              }`}
+            >
+              <span>🏦</span>
+              <span>{walletConfig.account_1_name}</span>
+            </button>
 
-          <button
-            onClick={() => setSelectedWallet('ing')}
-            className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
-              selectedWallet === 'ing'
-                ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20 border border-orange-500'
-                : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-          >
-            <span>🤝</span>
-            <span>{walletConfig.account_2_name}</span>
-          </button>
-        </div>
-      )}
+            <button
+              onClick={() => setSelectedWallet('ing')}
+              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1.5 ${
+                selectedWallet === 'ing'
+                  ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20 border border-orange-500'
+                  : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-white'
+              }`}
+            >
+              <span>🤝</span>
+              <span>{walletConfig.account_2_name}</span>
+            </button>
+          </div>
+        )}
 
-      {/* ========================================================================= */}
+        {/* Filtro de Mes (Sólo en Movimientos y Análisis) */}
+        {(activeTab === 'movements' || activeTab === 'analytics') && (
+          <div className="flex items-center gap-2 sm:ml-auto overflow-x-auto pb-1">
+            <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-slate-900/80 border border-slate-700 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+            >
+              <option value="all">Todo el Histórico</option>
+              {availableMonths.map(m => {
+                const [year, month] = m.split('-');
+                const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                const monthName = monthNames[parseInt(month, 10) - 1];
+                return (
+                  <option key={m} value={m}>{monthName} {year}</option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+      </div>
       {/* VISTA 1: MOVIMIENTOS & CUENTAS */}
       {/* ========================================================================= */}
       {activeTab === 'movements' && (
@@ -733,7 +782,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
-                      🏦
+                      ðŸ¦
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_1_name}</h3>
@@ -747,13 +796,13 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <div className="space-y-0.5">
                   <p className="text-[11px] text-slate-400">Saldo Disponible</p>
                   <p className={`text-xl sm:text-2xl font-black ${abancaBalance >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
-                    {abancaBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                    {abancaBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} â‚¬
                   </p>
                 </div>
 
                 <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
-                  <span>Ing: <b className="text-emerald-400">+{abancaIncome.toFixed(0)}€</b></span>
-                  <span>Gas: <b className="text-rose-400">-{abancaExpense.toFixed(0)}€</b></span>
+                  <span>Ing: <b className="text-emerald-400">+{abancaIncome.toFixed(0)}â‚¬</b></span>
+                  <span>Gas: <b className="text-rose-400">-{abancaExpense.toFixed(0)}â‚¬</b></span>
                 </div>
               </div>
 
@@ -769,27 +818,27 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-orange-600/30 text-orange-300 flex items-center justify-center font-bold text-xs border border-orange-500/30">
-                      🤝
+                      ðŸ¤
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-white uppercase tracking-wider">{walletConfig.account_2_name}</h3>
                     </div>
                   </div>
                   <span className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 font-bold border border-orange-500/30">
-                    Ahorro / Común
+                    Ahorro / ComÃºn
                   </span>
                 </div>
 
                 <div className="space-y-0.5">
                   <p className="text-[11px] text-slate-400">Saldo Disponible</p>
                   <p className={`text-xl sm:text-2xl font-black ${ingBalance >= 0 ? 'text-orange-300' : 'text-rose-400'}`}>
-                    {ingBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                    {ingBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} â‚¬
                   </p>
                 </div>
 
                 <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
-                  <span>Ing: <b className="text-emerald-400">+{ingIncome.toFixed(0)}€</b></span>
-                  <span>Gas: <b className="text-rose-400">-{ingExpense.toFixed(0)}€</b></span>
+                  <span>Ing: <b className="text-emerald-400">+{ingIncome.toFixed(0)}â‚¬</b></span>
+                  <span>Gas: <b className="text-rose-400">-{ingExpense.toFixed(0)}â‚¬</b></span>
                 </div>
               </div>
 
@@ -805,7 +854,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-emerald-600/30 text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-500/30">
-                      💰
+                      ðŸ’°
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-white uppercase tracking-wider">Patrimonio Global</h3>
@@ -819,25 +868,25 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <div className="space-y-0.5">
                   <p className="text-[11px] text-slate-400">Balance Neto Total</p>
                   <p className={`text-xl sm:text-2xl font-black ${netBalance >= 0 ? 'text-emerald-300' : 'text-rose-400'}`}>
-                    {netBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                    {netBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} â‚¬
                   </p>
                 </div>
 
                 <div className="flex justify-between items-center text-[10px] sm:text-[11px] pt-2 mt-2 border-t border-slate-800 text-slate-400">
-                  <span>Ing: <b className="text-emerald-400">+{totalIncome.toFixed(0)}€</b></span>
-                  <span>Gas: <b className="text-rose-400">-{totalExpense.toFixed(0)}€</b></span>
+                  <span>Ing: <b className="text-emerald-400">+{totalIncome.toFixed(0)}â‚¬</b></span>
+                  <span>Gas: <b className="text-rose-400">-{totalExpense.toFixed(0)}â‚¬</b></span>
                 </div>
               </div>
             </div>
           ) : (
-            /* Vista para usuario con 1 sóla cuenta configurada */
+            /* Vista para usuario con 1 sÃ³la cuenta configurada */
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Tarjeta Cuenta Principal */}
               <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-950/70 to-slate-900 border border-indigo-500/40 shadow-xl space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold text-sm border border-indigo-500/30">
-                      🏦
+                      ðŸ¦
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">{walletConfig.account_1_name}</h3>
@@ -852,17 +901,17 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 <div className="space-y-0.5">
                   <p className="text-xs text-slate-400">Saldo Disponible</p>
                   <p className={`text-2xl sm:text-3xl font-black ${abancaBalance >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
-                    {abancaBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                    {abancaBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })} â‚¬
                   </p>
                 </div>
 
                 <div className="flex justify-between items-center text-xs pt-3 border-t border-slate-800/80 text-slate-400">
-                  <span>Total Ingresos: <b className="text-emerald-400">+{abancaIncome.toFixed(0)}€</b></span>
-                  <span>Total Gastos: <b className="text-rose-400">-{abancaExpense.toFixed(0)}€</b></span>
+                  <span>Total Ingresos: <b className="text-emerald-400">+{abancaIncome.toFixed(0)}â‚¬</b></span>
+                  <span>Total Gastos: <b className="text-rose-400">-{abancaExpense.toFixed(0)}â‚¬</b></span>
                 </div>
               </div>
 
-              {/* Botón Card: Añadir Cuenta Secundaria Opcional */}
+              {/* BotÃ³n Card: AÃ±adir Cuenta Secundaria Opcional */}
               <div
                 onClick={handleOpenAccountConfig}
                 className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-slate-800 hover:border-emerald-500/50 bg-slate-900/30 hover:bg-slate-900/70 transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2.5 group min-h-[140px]"
@@ -871,28 +920,28 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   <Plus className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">+ Añadir Cuenta Secundaria</p>
-                  <p className="text-[10px] text-slate-500">Ahorro, conjunta, inversión o segundo banco (opcional)</p>
+                  <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">+ AÃ±adir Cuenta Secundaria</p>
+                  <p className="text-[10px] text-slate-500">Ahorro, conjunta, inversiÃ³n o segundo banco (opcional)</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* LISTA DE MOVIMIENTOS EN MÓVIL (sm:hidden) */}
+          {/* LISTA DE MOVIMIENTOS EN MÃ“VIL (sm:hidden) */}
           <div className="sm:hidden space-y-2.5">
             <div className="flex justify-between items-center px-1">
               <span className="text-xs font-bold text-slate-300">
-                Historial de Movimientos ({filteredExpenses.length})
+                Historial de Movimientos ({monthlyFilteredExpenses.length})
               </span>
             </div>
 
-            {filteredExpenses.length === 0 ? (
+            {monthlyFilteredExpenses.length === 0 ? (
               <div className="p-8 text-center bg-slate-900/60 border border-slate-800 rounded-2xl text-slate-400 space-y-2">
-                <p className="text-sm font-bold text-white">✨ Cartera limpia y lista para usar</p>
+                <p className="text-sm font-bold text-white">âœ¨ Cartera limpia y lista para usar</p>
                 <p className="text-xs text-slate-500">No hay movimientos registrados. Pulsa "+ Movimiento" para registrar tu primer ingreso o gasto.</p>
               </div>
             ) : (
-              filteredExpenses.map(item => {
+              monthlyFilteredExpenses.map(item => {
                 const isAbanca = (item.account || 'abanca') === 'abanca';
                 const isIncome = item.type === 'income';
                 const isRetained = item.description.startsWith('[RETENIDO] ');
@@ -926,9 +975,9 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             }`}>
                               {isAbanca ? walletConfig.account_1_name : walletConfig.account_2_name}
                             </span>
-                            <span className="text-[10px] text-slate-500">•</span>
+                            <span className="text-[10px] text-slate-500">â€¢</span>
                             <span className="text-[10px] text-slate-400">{item.category}</span>
-                            <span className="text-[10px] text-slate-500">•</span>
+                            <span className="text-[10px] text-slate-500">â€¢</span>
                             <span className="text-[10px] text-slate-500">{item.transaction_date ? String(item.transaction_date).slice(5) : ''}</span>
                           </div>
                         </div>
@@ -936,7 +985,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <p className={`text-xs font-black ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {isIncome ? '+' : '-'}{item.amount.toFixed(2)} €
+                          {isIncome ? '+' : '-'}{item.amount.toFixed(2)} â‚¬
                         </p>
                         {canEdit && (
                           <div className="flex items-center gap-1">
@@ -975,10 +1024,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             <div className="flex justify-between items-center">
               <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-400" />
-                <span>Movimientos {selectedWallet === 'abanca' ? `• ${walletConfig.account_1_name}` : selectedWallet === 'ing' ? `• ${walletConfig.account_2_name}` : '• Todas las Cuentas'}</span>
+                <span>Movimientos {selectedWallet === 'abanca' ? `â€¢ ${walletConfig.account_1_name}` : selectedWallet === 'ing' ? `â€¢ ${walletConfig.account_2_name}` : 'â€¢ Todas las Cuentas'}</span>
               </h2>
               <span className="text-xs font-semibold text-slate-400">
-                {filteredExpenses.length} movimientos
+                {monthlyFilteredExpenses.length} movimientos
               </span>
             </div>
 
@@ -988,22 +1037,22 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   <tr>
                     <th className="py-3 px-4">Concepto</th>
                     <th className="py-3 px-4">Cartera / Cuenta</th>
-                    <th className="py-3 px-4">Categoría</th>
+                    <th className="py-3 px-4">CategorÃ­a</th>
                     <th className="py-3 px-4">Fecha</th>
                     <th className="py-3 px-4 text-right">Importe</th>
                     {canEdit && <th className="py-3 px-4 text-center">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium">
-                  {filteredExpenses.length === 0 ? (
+                  {monthlyFilteredExpenses.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-10 text-center text-slate-400 space-y-2">
-                        <p className="text-sm font-bold text-white">✨ Cartera limpia y lista para usar</p>
+                        <p className="text-sm font-bold text-white">âœ¨ Cartera limpia y lista para usar</p>
                         <p className="text-xs text-slate-500">No hay movimientos registrados. Pulsa "+ Movimiento" para registrar tu primer ingreso o gasto.</p>
                       </td>
                     </tr>
                   ) : (
-                    filteredExpenses.map(item => {
+                    monthlyFilteredExpenses.map(item => {
                       const isAbanca = (item.account || 'abanca') === 'abanca';
                       const isRetained = item.description.startsWith('[RETENIDO] ');
                       const displayDescription = isRetained ? item.description.replace('[RETENIDO] ', '') : item.description;
@@ -1034,16 +1083,16 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           <td className="py-3 px-4">
                             {isAbanca ? (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs font-bold">
-                                <span>🏦</span> {walletConfig.account_1_name}
+                                <span>ðŸ¦</span> {walletConfig.account_1_name}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-950/60 border border-orange-500/30 text-orange-300 text-xs font-bold">
-                                <span>🤝</span> {walletConfig.account_2_name}
+                                <span>ðŸ¤</span> {walletConfig.account_2_name}
                               </span>
                             )}
                           </td>
 
-                          {/* Categoría */}
+                          {/* CategorÃ­a */}
                           <td className="py-3 px-4">
                             <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 text-xs border border-slate-700/60">
                               {item.category}
@@ -1055,7 +1104,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
                           {/* Importe */}
                           <td className={`py-3 px-4 text-right font-black ${item.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {item.type === 'income' ? '+' : '-'}{item.amount.toFixed(2)} €
+                            {item.type === 'income' ? '+' : '-'}{item.amount.toFixed(2)} â‚¬
                           </td>
 
                           {/* Acciones */}
@@ -1073,14 +1122,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                                 )}
                                 <button
                                   onClick={() => handleOpenEditTransaction(item)}
-                                  title="Editar transacción"
+                                  title="Editar transacciÃ³n"
                                   className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteTransaction(item.id)}
-                                  title="Eliminar transacción"
+                                  title="Eliminar transacciÃ³n"
                                   className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1100,16 +1149,16 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* VISTA 2: ANÁLISIS & COMPARATIVA MES A MES */}
+      {/* VISTA 2: ANÃLISIS & COMPARATIVA MES A MES */}
       {/* ========================================================================= */}
       {activeTab === 'analytics' && (
         <div className="space-y-6">
-          {/* MÓDULO 1: COMPARATIVA MES A MES & KPIS */}
+          {/* MÃ“DULO 1: COMPARATIVA MES A MES & KPIS */}
           <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-950/50 via-slate-900 to-slate-900 border border-indigo-500/30 space-y-5 shadow-xl">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
-                  Evolución Temporal
+                  EvoluciÃ³n Temporal
                 </span>
                 <h2 className="text-xl sm:text-2xl font-black text-white mt-1 flex items-center gap-2">
                   <BarChart3 className="w-6 h-6 text-indigo-400" />
@@ -1151,10 +1200,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   </span>
                 </div>
                 <p className="text-xl font-black text-rose-400">
-                  {currentMonthData.expenseTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                  {currentMonthData.expenseTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} â‚¬
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  Mes anterior: <b className="text-slate-400">{previousMonthData.expenseTotal.toFixed(2)} €</b>
+                  Mes anterior: <b className="text-slate-400">{previousMonthData.expenseTotal.toFixed(2)} â‚¬</b>
                 </p>
               </div>
 
@@ -1169,14 +1218,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   </span>
                 </div>
                 <p className="text-xl font-black text-emerald-400">
-                  {currentMonthData.incomeTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                  {currentMonthData.incomeTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} â‚¬
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  Mes anterior: <b className="text-slate-400">{previousMonthData.incomeTotal.toFixed(2)} €</b>
+                  Mes anterior: <b className="text-slate-400">{previousMonthData.incomeTotal.toFixed(2)} â‚¬</b>
                 </p>
               </div>
 
-              {/* 3. Ahorro Neto / Superávit */}
+              {/* 3. Ahorro Neto / SuperÃ¡vit */}
               <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Capacidad Ahorro</span>
@@ -1185,20 +1234,20 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   </span>
                 </div>
                 <p className={`text-xl font-black ${currentMonthData.netSavings >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
-                  {currentMonthData.netSavings.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                  {currentMonthData.netSavings.toLocaleString('es-ES', { minimumFractionDigits: 2 })} â‚¬
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  Variación neta: <b className={savingsDiff >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{savingsDiff >= 0 ? `+${savingsDiff.toFixed(2)}` : savingsDiff.toFixed(2)} €</b>
+                  VariaciÃ³n neta: <b className={savingsDiff >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{savingsDiff >= 0 ? `+${savingsDiff.toFixed(2)}` : savingsDiff.toFixed(2)} â‚¬</b>
                 </p>
               </div>
             </div>
 
-            {/* Gráfico de Barras: Histórico de los Últimos 6 Meses */}
+            {/* GrÃ¡fico de Barras: HistÃ³rico de los Ãšltimos 6 Meses */}
             <div className="space-y-3 pt-2">
               <div className="flex justify-between items-center">
                 <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Histórico de Evolución (Últimos 6 Meses)</span>
+                  <span>HistÃ³rico de EvoluciÃ³n (Ãšltimos 6 Meses)</span>
                 </h3>
                 <div className="flex items-center gap-3 text-[10px] font-bold">
                   <span className="flex items-center gap-1 text-emerald-400">
@@ -1224,14 +1273,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         <div 
                           className="w-3 sm:w-4 bg-emerald-500/80 hover:bg-emerald-400 rounded-t-md transition-all duration-500 relative group-hover:scale-105"
                           style={{ height: `${Math.max(6, incomeBarHeight)}%` }}
-                          title={`Ingresos ${m.label}: ${m.incomeTotal.toFixed(2)} €`}
+                          title={`Ingresos ${m.label}: ${m.incomeTotal.toFixed(2)} â‚¬`}
                         />
 
                         {/* Barra Gastos */}
                         <div 
                           className="w-3 sm:w-4 bg-rose-500/80 hover:bg-rose-400 rounded-t-md transition-all duration-500 relative group-hover:scale-105"
                           style={{ height: `${Math.max(6, expenseBarHeight)}%` }}
-                          title={`Gastos ${m.label}: ${m.expenseTotal.toFixed(2)} €`}
+                          title={`Gastos ${m.label}: ${m.expenseTotal.toFixed(2)} â‚¬`}
                         />
                       </div>
 
@@ -1243,7 +1292,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           {m.label}
                         </span>
                         <span className="text-[9px] text-slate-500 block font-mono">
-                          {m.expenseTotal.toFixed(0)}€
+                          {m.expenseTotal.toFixed(0)}â‚¬
                         </span>
                       </div>
                     </div>
@@ -1253,20 +1302,20 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
           </div>
 
-          {/* MÓDULO 2: DISTRIBUCIÓN POR CATEGORÍA Y LÍMITES PRESUPUESTARIOS */}
+          {/* MÃ“DULO 2: DISTRIBUCIÃ“N POR CATEGORÃA Y LÃMITES PRESUPUESTARIOS */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {/* Columna 1: Gráfico Visual de Donut (5 Cols) */}
+            {/* Columna 1: GrÃ¡fico Visual de Donut (5 Cols) */}
             <div className="lg:col-span-5 glass-panel bg-slate-900/90 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center space-y-4 shadow-xl">
               <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider text-center flex items-center gap-2">
                 <PieChart className="w-4 h-4 text-teal-400" />
-                <span>Distribución del Mes</span>
+                <span>DistribuciÃ³n del Mes</span>
               </h3>
 
               {totalExpense === 0 ? (
                 <div className="py-12 text-center text-slate-500 text-xs space-y-2">
                   <PieChart className="w-12 h-12 mx-auto text-slate-700 animate-pulse" />
-                  <p>Aún no hay gastos registrados este mes.</p>
-                  <p className="text-[10px] text-slate-600">Añade movimientos para ver el gráfico circular.</p>
+                  <p>AÃºn no hay gastos registrados este mes.</p>
+                  <p className="text-[10px] text-slate-600">AÃ±ade movimientos para ver el grÃ¡fico circular.</p>
                 </div>
               ) : (
                 <div className="space-y-4 w-full flex flex-col items-center">
@@ -1302,11 +1351,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     {/* Centro del Donut */}
                     <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
                       <span className="text-[10px] uppercase font-bold text-slate-400">Total Gastos</span>
-                      <span className="text-base font-black text-white">{totalExpense.toFixed(0)} €</span>
+                      <span className="text-base font-black text-white">{totalExpense.toFixed(0)} â‚¬</span>
                     </div>
                   </div>
 
-                  {/* Leyenda rápida */}
+                  {/* Leyenda rÃ¡pida */}
                   <div className="flex flex-wrap gap-2 justify-center pt-2">
                     {categoryBreakdown.filter(c => c.total > 0).map((cat, i) => (
                       <span 
@@ -1323,14 +1372,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               )}
             </div>
 
-            {/* Columna 2: Límites por Categoría con Barras de Alerta (7 Cols) */}
+            {/* Columna 2: LÃ­mites por CategorÃ­a con Barras de Alerta (7 Cols) */}
             <div className="lg:col-span-7 glass-panel bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-purple-400" />
-                  <span>Presupuestos & Alertas por Categoría</span>
+                  <span>Presupuestos & Alertas por CategorÃ­a</span>
                 </h3>
-                <span className="text-[11px] text-slate-500 font-semibold">Toca ✏️ para cambiar límite</span>
+                <span className="text-[11px] text-slate-500 font-semibold">Toca âœï¸ para cambiar lÃ­mite</span>
               </div>
 
               <div className="space-y-3">
@@ -1350,7 +1399,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
                       }`}
                     >
-                      {/* Cabecera de Categoría y Cifras */}
+                      {/* Cabecera de CategorÃ­a y Cifras */}
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                           <span className="text-base">{cat.icon}</span>
@@ -1359,26 +1408,26 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                           {/* Insignia de Alerta */}
                           {isOverLimit ? (
                             <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> ¡Límite Superado (+{(cat.total - cat.monthlyLimit).toFixed(0)}€)!
+                              <AlertTriangle className="w-3 h-3" /> Â¡LÃ­mite Superado (+{(cat.total - cat.monthlyLimit).toFixed(0)}â‚¬)!
                             </span>
                           ) : isWarning ? (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              ⚠️ Alerta {cat.budgetConsumedPct.toFixed(0)}%
+                              âš ï¸ Alerta {cat.budgetConsumedPct.toFixed(0)}%
                             </span>
                           ) : (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              ✓ OK
+                              âœ“ OK
                             </span>
                           )}
                         </div>
 
-                        {/* Importes y botón de ajuste de límite */}
+                        {/* Importes y botÃ³n de ajuste de lÃ­mite */}
                         <div className="flex items-center gap-2">
                           <div className="text-right">
                             <span className="text-xs sm:text-sm font-black text-white">
-                              {cat.total.toFixed(0)} €
+                              {cat.total.toFixed(0)} â‚¬
                             </span>
-                            <span className="text-[10px] text-slate-400 font-medium"> / {cat.monthlyLimit} €</span>
+                            <span className="text-[10px] text-slate-400 font-medium"> / {cat.monthlyLimit} â‚¬</span>
                           </div>
 
                           {canEdit && (
@@ -1388,7 +1437,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                                 setBudgetLimitInput(cat.monthlyLimit);
                               }}
                               className="p-1 text-slate-500 hover:text-white rounded-lg transition-colors"
-                              title="Ajustar límite mensual"
+                              title="Ajustar lÃ­mite mensual"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
@@ -1396,10 +1445,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         </div>
                       </div>
 
-                      {/* Input rápido si está editando límite */}
+                      {/* Input rÃ¡pido si estÃ¡ editando lÃ­mite */}
                       {editingBudgetCategory === cat.category ? (
                         <div className="flex items-center gap-2 pt-1 animate-fadeIn">
-                          <span className="text-[11px] text-slate-400 font-bold">Nuevo tope mensual (€):</span>
+                          <span className="text-[11px] text-slate-400 font-bold">Nuevo tope mensual (â‚¬):</span>
                           <input
                             type="number"
                             step="10"
@@ -1418,7 +1467,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             onClick={() => setEditingBudgetCategory(null)}
                             className="px-2 py-1 text-slate-400 hover:text-white text-xs"
                           >
-                            ✕
+                            âœ•
                           </button>
                         </div>
                       ) : (
@@ -1441,8 +1490,8 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             <span>Consumido: <b className="text-slate-200">{cat.budgetConsumedPct.toFixed(1)}%</b></span>
                             <span>
                               {isOverLimit 
-                                ? <b className="text-rose-400">Excedido en {(cat.total - cat.monthlyLimit).toFixed(2)} €</b> 
-                                : <span>Disponible: <b className="text-emerald-400">{remaining.toFixed(2)} €</b></span>}
+                                ? <b className="text-rose-400">Excedido en {(cat.total - cat.monthlyLimit).toFixed(2)} â‚¬</b> 
+                                : <span>Disponible: <b className="text-emerald-400">{remaining.toFixed(2)} â‚¬</b></span>}
                             </span>
                           </div>
                         </div>
@@ -1474,7 +1523,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               <div className="text-left sm:text-right">
                 <p className="text-[11px] font-bold text-slate-400 uppercase">Ahorrado / Total</p>
                 <p className="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                  {totalSavedGoals.toLocaleString('es-ES')} € / {totalTargetGoals.toLocaleString('es-ES')} €
+                  {totalSavedGoals.toLocaleString('es-ES')} â‚¬ / {totalTargetGoals.toLocaleString('es-ES')} â‚¬
                 </p>
                 <p className="text-[11px] font-bold text-emerald-400">{totalGoalsPct.toFixed(1)}% Conseguido</p>
               </div>
@@ -1489,7 +1538,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
             </div>
           </div>
 
-          {/* Grid de Tarjetas de Objetivos o Estado Vacío */}
+          {/* Grid de Tarjetas de Objetivos o Estado VacÃ­o */}
           {goals.length === 0 ? (
             <div className="p-8 sm:p-12 text-center bg-slate-900/60 border border-slate-800 rounded-3xl text-slate-400 space-y-3 shadow-xl">
               <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
@@ -1498,7 +1547,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-white">No tienes metas de ahorro activas</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  La cartera de objetivos está 100% limpia. Pulsa el botón de abajo para definir tu propio objetivo (ej. Play, Viaje, Coche, Fondo).
+                  La cartera de objetivos estÃ¡ 100% limpia. Pulsa el botÃ³n de abajo para definir tu propio objetivo (ej. Play, Viaje, Coche, Fondo).
                 </p>
               </div>
               {canEdit && (
@@ -1532,17 +1581,17 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         <div className="flex items-center gap-1.5">
                           {goal.account === 'abanca' ? (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                              🏦 Abanca
+                              ðŸ¦ Abanca
                             </span>
                           ) : (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                              🤝 ING Conjunta
+                              ðŸ¤ ING Conjunta
                             </span>
                           )}
 
                           {isCompleted && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> ¡Completado!
+                              <CheckCircle2 className="w-3 h-3" /> Â¡Completado!
                             </span>
                           )}
                         </div>
@@ -1580,15 +1629,15 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     <div className="grid grid-cols-3 gap-1.5 sm:gap-2 bg-slate-950/60 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80 text-center">
                       <div>
                         <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Precio / Meta</p>
-                        <p className="text-xs sm:text-base font-black text-white">{goal.target_amount.toLocaleString('es-ES')} €</p>
+                        <p className="text-xs sm:text-base font-black text-white">{goal.target_amount.toLocaleString('es-ES')} â‚¬</p>
                       </div>
                       <div>
                         <p className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase">Ahorrado</p>
-                        <p className="text-xs sm:text-base font-black text-emerald-400">{goal.current_amount.toLocaleString('es-ES')} €</p>
+                        <p className="text-xs sm:text-base font-black text-emerald-400">{goal.current_amount.toLocaleString('es-ES')} â‚¬</p>
                       </div>
                       <div>
                         <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Falta</p>
-                        <p className="text-xs sm:text-base font-black text-slate-300">{remaining.toLocaleString('es-ES')} €</p>
+                        <p className="text-xs sm:text-base font-black text-slate-300">{remaining.toLocaleString('es-ES')} â‚¬</p>
                       </div>
                     </div>
 
@@ -1612,7 +1661,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                       </div>
                     </div>
 
-                    {/* Botón de Aportación Rápida */}
+                    {/* BotÃ³n de AportaciÃ³n RÃ¡pida */}
                     {canEdit && (
                       <div className="pt-2 border-t border-slate-800/80">
                         {contributeGoalId === goal.id ? (
@@ -1620,7 +1669,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             <input
                               type="number"
                               step="10"
-                              placeholder="Aportar (+€)"
+                              placeholder="Aportar (+â‚¬)"
                               value={contributionAmount}
                               onChange={e => setContributionAmount(e.target.value)}
                               className="flex-1 bg-slate-800 border border-purple-500/50 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
@@ -1636,7 +1685,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                               onClick={() => { setContributeGoalId(null); setContributionAmount(''); }}
                               className="px-2 py-2 text-slate-400 hover:text-white text-xs"
                             >
-                              ✕
+                              âœ•
                             </button>
                           </div>
                         ) : (
@@ -1672,7 +1721,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: NUEVA TRANSACCIÓN */}
+      {/* MODAL: NUEVA TRANSACCIÃ“N */}
       {/* ========================================================================= */}
       {showTransactionModal && (
         <div 
@@ -1699,7 +1748,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
             <form onSubmit={handleAddTransaction} className="flex flex-col flex-1 overflow-hidden pt-2">
               <div className="space-y-3 overflow-y-auto pr-1 flex-1 py-1">
-                {/* Cartera / Cuenta Asignada (Sólo si tiene más de 1 cuenta) */}
+                {/* Cartera / Cuenta Asignada (SÃ³lo si tiene mÃ¡s de 1 cuenta) */}
                 {walletConfig.has_account_2 && (
                   <div>
                     <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cartera / Cuenta</label>
@@ -1713,7 +1762,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        <span className="truncate">🏦 {walletConfig.account_1_name}</span>
+                        <span className="truncate">ðŸ¦ {walletConfig.account_1_name}</span>
                       </button>
                       <button
                         type="button"
@@ -1724,7 +1773,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        <span className="truncate">🤝 {walletConfig.account_2_name}</span>
+                        <span className="truncate">ðŸ¤ {walletConfig.account_2_name}</span>
                       </button>
                     </div>
                   </div>
@@ -1778,15 +1827,15 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                         onChange={(e) => setIsRetained(e.target.checked)}
                         className="w-3.5 h-3.5 rounded border-slate-600 text-amber-500 focus:ring-amber-500/30 bg-slate-800 cursor-pointer accent-amber-500"
                       />
-                      <span className="text-xs font-bold text-amber-400/90">Retener gasto (se cobrará más adelante)</span>
+                      <span className="text-xs font-bold text-amber-400/90">Retener gasto (se cobrarÃ¡ mÃ¡s adelante)</span>
                     </label>
                   )}
                 </div>
 
-                {/* Importe y Categoría */}
+                {/* Importe y CategorÃ­a */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Importe (€)</label>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Importe (â‚¬)</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -1799,7 +1848,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   </div>
 
                   <div>
-                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Categoría</label>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">CategorÃ­a</label>
                     <select
                       value={category}
                       onChange={e => setCategory(e.target.value)}
@@ -1868,7 +1917,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
             <form onSubmit={handleSaveGoal} className="flex flex-col flex-1 overflow-hidden pt-2">
               <div className="space-y-3 overflow-y-auto pr-1 flex-1 py-1">
-                {/* Título del Objetivo */}
+                {/* TÃ­tulo del Objetivo */}
                 <div>
                   <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nombre del Objetivo</label>
                   <input
@@ -1881,10 +1930,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   />
                 </div>
 
-                {/* Precio / Meta Total (€) y Aportación Actual */}
+                {/* Precio / Meta Total (â‚¬) y AportaciÃ³n Actual */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Precio / Meta (€)</label>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Precio / Meta (â‚¬)</label>
                     <input
                       type="number"
                       step="10"
@@ -1897,7 +1946,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   </div>
 
                   <div>
-                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ahorrado (€)</label>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ahorrado (â‚¬)</label>
                     <input
                       type="number"
                       step="10"
@@ -1909,7 +1958,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   </div>
                 </div>
 
-                {/* Cuenta Asignada (Sólo si tiene 2 cuentas) */}
+                {/* Cuenta Asignada (SÃ³lo si tiene 2 cuentas) */}
                 {walletConfig.has_account_2 && (
                   <div>
                     <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cuenta Asociada</label>
@@ -1923,7 +1972,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        <span className="truncate">🤝 {walletConfig.account_2_name}</span>
+                        <span className="truncate">ðŸ¤ {walletConfig.account_2_name}</span>
                       </button>
                       <button
                         type="button"
@@ -1934,7 +1983,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                             : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        <span className="truncate">🏦 {walletConfig.account_1_name}</span>
+                        <span className="truncate">ðŸ¦ {walletConfig.account_1_name}</span>
                       </button>
                     </div>
                   </div>
@@ -1953,7 +2002,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
 
                 {/* Notas */}
                 <div>
-                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Notas / Descripción (Opcional)</label>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Notas / DescripciÃ³n (Opcional)</label>
                   <input
                     type="text"
                     placeholder="Ej. Ahorro personal mensual..."
@@ -1985,7 +2034,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: CONFIGURACIÓN / ONBOARDING DE CUENTAS & CARTERA */}
+      {/* MODAL: CONFIGURACIÃ“N / ONBOARDING DE CUENTAS & CARTERA */}
       {/* ========================================================================= */}
       {showSetupModal && (
         <div 
@@ -2020,7 +2069,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 {/* Cuenta 1 Principal */}
                 <div className="p-3 rounded-xl bg-[#090C15] border border-white/5 space-y-2">
                   <div className="flex items-center gap-1.5 text-indigo-300 font-bold text-xs">
-                    <span>🏦 Cuenta Principal (Habitual / Nómina)</span>
+                    <span>ðŸ¦ Cuenta Principal (Habitual / NÃ³mina)</span>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre del Banco o Cuenta</label>
@@ -2034,7 +2083,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
+                    <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (â‚¬) (Opcional)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -2053,10 +2102,10 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold text-xs">
-                      🤝
+                      ðŸ¤
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">¿Segunda cuenta?</p>
+                      <p className="text-xs font-bold text-white">Â¿Segunda cuenta?</p>
                       <p className="text-[10px] text-slate-400">Ahorro, conjunta o secundaria</p>
                     </div>
                   </div>
@@ -2068,14 +2117,14 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                   />
                 </div>
 
-                {/* Campos Cuenta 2 (Sólo si el usuario la activa) */}
+                {/* Campos Cuenta 2 (SÃ³lo si el usuario la activa) */}
                 {setupHasAcc2 && (
                   <div className="p-3 rounded-xl bg-[#090C15] border border-orange-500/20 space-y-2 animate-fadeIn">
                     <div className="flex items-center gap-1.5 text-orange-300 font-bold text-xs">
-                      <span>🤝 Cuenta 2 (Ahorro / Secundaria)</span>
+                      <span>ðŸ¤ Cuenta 2 (Ahorro / Secundaria)</span>
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre de la 2ª Cuenta</label>
+                      <label className="text-[10px] text-slate-400 font-medium block mb-1">Nombre de la 2Âª Cuenta</label>
                       <input
                         type="text"
                         required={setupHasAcc2}
@@ -2086,7 +2135,7 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (€) (Opcional)</label>
+                      <label className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Inicial (â‚¬) (Opcional)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -2122,3 +2171,11 @@ export const GastosApp: React.FC<GastosAppProps> = ({ onBack }) => {
     </div>
   );
 };
+
+
+
+
+
+
+
+
