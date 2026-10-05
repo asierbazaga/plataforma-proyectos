@@ -293,21 +293,26 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('profiles').select('*');
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           const map = this.getPasswordMap();
-          const formatted = (data as UserProfile[]).map(p => ({
-            ...p,
-            password: p.password || map[p.email.toLowerCase()] || map[p.id] || (p.role === 'admin' ? 'admin123' : '123456')
-          }));
-
           const local = this.getLocal<UserProfile[]>('profiles', []);
+          
+          const formatted = (data as UserProfile[]).map(p => {
+            const localMatch = local.find(l => l.id === p.id || l.email.toLowerCase() === p.email.toLowerCase());
+            return {
+              ...p,
+              status: p.status || localMatch?.status || 'active',
+              last_login: p.last_login || localMatch?.last_login,
+              password: p.password || map[p.email.toLowerCase()] || map[p.id] || (p.role === 'admin' ? 'admin123' : '123456')
+            };
+          });
+
           const merged: UserProfile[] = [...formatted];
           for (const l of local) {
             if (!merged.find(m => m.id === l.id || m.email.toLowerCase() === l.email.toLowerCase())) {
               merged.push(l);
-              // SincronizaciÃ³n automÃ¡tica a Supabase (Upsert en background)
-              const { status, last_login, ...supabaseProfile } = l as any;
-              supabase.from('profiles').upsert(supabaseProfile).then(({ error }) => {
+              // Sincronización automática a Supabase (Upsert en background)
+              supabase.from('profiles').upsert(l).then(({ error }) => {
                 if (error) console.error('Error auto-syncing profile:', error);
               });
             }
@@ -420,8 +425,7 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { status, last_login, ...supabaseProfile } = newProfile as any;
-        const { error } = await supabase.from('profiles').upsert(supabaseProfile);
+        const { error } = await supabase.from('profiles').upsert(newProfile);
         if (error) console.error('Supabase createProfile error:', error);
       } catch (e) {
         console.error('Supabase createProfile exception:', e);
@@ -460,9 +464,8 @@ class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { status, last_login, ...supabaseUpdates } = updates as any;
-        if (Object.keys(supabaseUpdates).length > 0) {
-          const { error } = await supabase.from('profiles').update(supabaseUpdates).eq('id', id);
+        if (Object.keys(updates).length > 0) {
+          const { error } = await supabase.from('profiles').update(updates).eq('id', id);
           if (error) console.error('Supabase updateProfile error:', error);
         }
       } catch (e) {
