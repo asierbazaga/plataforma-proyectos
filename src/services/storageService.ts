@@ -307,14 +307,13 @@ class StorageService {
             };
           });
 
-          const merged: UserProfile[] = [...formatted];
-          for (const l of local) {
-            if (!merged.find(m => m.id === l.id || m.email.toLowerCase() === l.email.toLowerCase())) {
-              merged.push(l);
-              // Sincronización automática a Supabase (Upsert en background)
-              supabase.from('profiles').upsert(l).then(({ error }) => {
-                if (error) console.error('Error auto-syncing profile:', error);
-              });
+          let merged: UserProfile[] = [...formatted];
+          // Si la base de datos está completamente vacía, inicializar con los por defecto.
+          // Si no, confiamos ciegamente en Supabase (evitando resucitar usuarios borrados que quedaron en el localStorage de otros móviles).
+          if (merged.length === 0) {
+            merged = [...DEFAULT_PROFILES];
+            for (const p of merged) {
+              supabase.from('profiles').upsert(p).then();
             }
           }
 
