@@ -14,7 +14,11 @@ import {
   AlertTriangle,
   UserCheck,
   Bot,
-  Key
+  Key,
+  Pin,
+  PinOff,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { CandidateInterview, MecaluxCompetencySection, MecaluxEvaluationLevel, MecaluxCompetencyRubric } from '../../../types';
 import { EVALUATION_LEVELS } from '../services/mecaluxRubrics';
@@ -32,20 +36,27 @@ interface LiveInterviewViewProps {
   onSaveRubrics?: (rubrics: MecaluxCompetencyRubric[]) => void;
 }
 
-// Componente externo ultra-estable: guarda solo al perder el foco (onBlur)
-const LocalTextArea = ({ initialValue, onChange, placeholder, className }: any) => {
+// Componente externo ultra-estable: guarda automáticamente al escribir (debounce) y al desenfocar (onBlur)
+const LocalTextArea = ({ initialValue, onChange, placeholder, className, rows = 3 }: any) => {
   const [val, setVal] = useState(initialValue || '');
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sincronizamos cuando cambia el valor desde fuera, pero de forma sencilla
+  // Sincronizamos cuando cambia el valor desde fuera
   React.useEffect(() => {
     setVal(initialValue || '');
   }, [initialValue]);
 
   const handleChange = (e: any) => {
-    setVal(e.target.value);
+    const text = e.target.value;
+    setVal(text);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      onChange(text);
+    }, 600);
   };
 
   const handleBlur = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     if (val !== initialValue) {
       onChange(val);
     }
@@ -58,7 +69,7 @@ const LocalTextArea = ({ initialValue, onChange, placeholder, className }: any) 
       onBlur={handleBlur}
       placeholder={placeholder}
       className={className}
-      rows={3}
+      rows={rows}
     />
   );
 };
@@ -77,10 +88,32 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
   const [autoSaveToast, setAutoSaveToast] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
 
-  // AI Notes State
+  // AI Notes State & Pin Mode
   const [notes, setNotes] = useState<string>(candidate.interviewNotes || '');
+  const [pinMode, setPinMode] = useState<'sidebar' | 'floating' | 'top'>(() => {
+    try {
+      return (localStorage.getItem('mecalux_interview_pin_mode') as any) || 'sidebar';
+    } catch {
+      return 'sidebar';
+    }
+  });
+  const [isFloatingMinimized, setIsFloatingMinimized] = useState<boolean>(false);
   const [manualAiPromptOpen, setManualAiPromptOpen] = useState<boolean>(false);
   const [manualAiResponse, setManualAiResponse] = useState<string>('');
+
+  const handleSetPinMode = (mode: 'sidebar' | 'floating' | 'top') => {
+    setPinMode(mode);
+    try {
+      localStorage.setItem('mecalux_interview_pin_mode', mode);
+    } catch {}
+    if (mode === 'sidebar') {
+      toast.info('Bloc de notas fijado al lateral: se mantendrá visible mientras bajas por las preguntas 📌');
+    } else if (mode === 'floating') {
+      toast.info('Bloc de notas fijado en ventana flotante 🪟');
+    } else {
+      toast.info('Bloc de notas colocado arriba ⬆️');
+    }
+  };
 
   const [newDynamicQuestion, setNewDynamicQuestion] = useState('');
 
@@ -185,6 +218,146 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
     } catch (err: any) {
       toast.error("Error al procesar la respuesta. Asegúrate de pegar un JSON válido: " + err.message);
     }
+  };
+
+  const renderNotesBox = (mode: 'sidebar' | 'floating' | 'top') => {
+    const wordCount = notes.trim() ? notes.trim().split(/\s+/).length : 0;
+
+    if (mode === 'floating' && isFloatingMinimized) {
+      return (
+        <button
+          onClick={() => setIsFloatingMinimized(false)}
+          className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white font-bold text-xs shadow-2xl shadow-indigo-600/40 border border-indigo-400/40 hover:scale-105 transition-all"
+        >
+          <Bot className="w-4 h-4 text-indigo-200" />
+          <span>Bloc de Sensaciones ({wordCount} palabras)</span>
+          <Maximize2 className="w-3.5 h-3.5 ml-1 text-indigo-300" />
+        </button>
+      );
+    }
+
+    return (
+      <div className={`rounded-3xl border transition-all shadow-2xl flex flex-col ${
+        mode === 'floating'
+          ? 'bg-slate-900/95 border-indigo-500/40 backdrop-blur-2xl p-4 sm:p-5'
+          : mode === 'sidebar'
+            ? 'bg-slate-900/95 border-slate-800 backdrop-blur-xl p-5'
+            : 'bg-slate-800/40 border-slate-700/50 rounded-2xl p-4 sm:p-5 mb-4'
+      }`}>
+        {/* Cabecera del Bloc de Notas */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                <span>Bloc de Sensaciones & Notas</span>
+                {autoSaveToast && (
+                  <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Guardado
+                  </span>
+                )}
+              </h3>
+              <p className="text-[10px] text-slate-400">
+                {wordCount} palabras • Autoguardado en tiempo real
+              </p>
+            </div>
+          </div>
+
+          {/* Selector de Modos de Fijación */}
+          <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 self-start sm:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={() => handleSetPinMode('sidebar')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                mode === 'sidebar'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Fijar al lateral derecho para ver las preguntas y escribir a la vez"
+            >
+              <Pin className="w-3 h-3" />
+              <span>Fijar Lateral</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSetPinMode('floating')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                mode === 'floating'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Ventana flotante en la esquina inferior"
+            >
+              <Maximize2 className="w-3 h-3" />
+              <span>Flotante</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSetPinMode('top')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                mode === 'top'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Colocar arriba (desanclado)"
+            >
+              <PinOff className="w-3 h-3" />
+              <span>Arriba</span>
+            </button>
+
+            {mode === 'floating' && (
+              <button
+                type="button"
+                onClick={() => setIsFloatingMinimized(true)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors ml-1"
+                title="Minimizar bloc de notas"
+              >
+                <Minimize2 className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Textarea con Autoguardado en tiempo real */}
+        <LocalTextArea
+          key={`notes-${candidate.id}-${mode}`}
+          initialValue={notes}
+          onChange={(val: string) => handleNotesChange(val)}
+          placeholder="Toma tus apuntes y sensaciones en directo durante la entrevista... (ej. 'Tiene 3 años de exp en C#, conoce bien los JOINs, pero se ha puesto muy nervioso al explicar su mayor error y ha dudado...')"
+          className={`w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all font-sans leading-relaxed ${
+            mode === 'sidebar'
+              ? 'h-[360px] lg:h-[calc(100vh-340px)] min-h-[300px] resize-y'
+              : mode === 'floating'
+                ? 'h-52 resize-y'
+                : 'h-32 resize-y'
+          }`}
+        />
+
+        {/* Barra de Acciones Inferior del Bloc */}
+        <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/60">
+          <span className="text-[10px] text-slate-500 hidden sm:inline">
+            {mode === 'sidebar'
+              ? '📌 Fijado: baja por las preguntas mientras sigues escribiendo'
+              : mode === 'floating'
+                ? '🪟 Flotante: visible en pantalla completa'
+                : '⬆️ Modo estándar en cabecera'}
+          </span>
+          <button
+            onClick={handleGeneratePromptClick}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 hover:from-indigo-600/40 hover:to-purple-600/40 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition-all shadow-sm ml-auto"
+            title="Generar instrucciones completas con estas notas para evaluar con IA"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Generar Prompt IA</span>
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const handleRatingChange = (rubricId: string, section: MecaluxCompetencySection, name: string, level: MecaluxEvaluationLevel) => {
@@ -348,6 +521,20 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
               <span className="hidden sm:inline">Exportar Excel</span>
             </button>
 
+            {/* Fijar / Desanclar Bloc de Notas */}
+            <button
+              onClick={() => handleSetPinMode(pinMode === 'sidebar' ? 'top' : 'sidebar')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all shadow-sm ${
+                pinMode === 'sidebar'
+                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-indigo-600/30'
+                  : 'bg-slate-800/80 text-slate-300 hover:text-white border-slate-700/60'
+              }`}
+              title={pinMode === 'sidebar' ? 'Bloc de notas fijado al lateral (clic para desanclar)' : 'Fijar el bloc de notas al lateral para escribir mientras te desplazas por las preguntas'}
+            >
+              <Pin className="w-3.5 h-3.5" />
+              <span>{pinMode === 'sidebar' ? 'Notas Fijadas 📌' : 'Fijar Notas 📌'}</span>
+            </button>
+
             {/* Botón Ir a Resultado Final */}
             <button
               onClick={onGoToResultado}
@@ -369,29 +556,8 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
           )}
         </div>
 
-        {/* --- BLOC DE NOTAS CON IA --- */}
-        <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-              <Bot className="w-4 h-4 text-indigo-400" />
-              Bloc de Notas de la Entrevista (Evaluación IA)
-            </h3>
-            <button
-              onClick={handleGeneratePromptClick}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition-all"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Generar Instrucciones para IA
-            </button>
-          </div>
-          <LocalTextArea
-            key={`notes-${candidate.id}`}
-            initialValue={notes}
-            onChange={(val: string) => handleNotesChange(val)}
-            placeholder="Toma tus apuntes en sucio durante la entrevista... (ej. 'Tiene 3 años de exp en C#, conoce bien los JOINs, pero se ha puesto muy nervioso al explicar su mayor error y ha dudado...')"
-            className="w-full h-32 bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-y"
-          />
-        </div>
+        {/* --- BLOC DE NOTAS CON IA (Si está en modo 'top') --- */}
+        {pinMode === 'top' && renderNotesBox('top')}
 
         {/* API KEY MODAL */}
         {manualAiPromptOpen && (
@@ -469,8 +635,10 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       </div>
 
       {/* 3. Bloques de Competencias con el Diseño Oficial de la Plantilla Excel */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-1">
+      <div className={pinMode === 'sidebar' ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 items-start' : 'space-y-6'}>
+        {/* Columna de Rúbricas y Preguntas (scrolleable) */}
+        <div className={pinMode === 'sidebar' ? 'lg:col-span-7 xl:col-span-8 space-y-6' : 'space-y-6'}>
+          <div className="flex items-center justify-between px-1">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
             {activeSection === 'Preguntas Dinámicas' 
               ? `Explorando ${activeSection} (${rubricsInSection.length} disponibles)` 
@@ -686,7 +854,6 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
             </div>
           );
         })}
-      </div>
 
         {activeSection === 'Preguntas Dinámicas' && onSaveRubrics && (
           <div className="rounded-3xl bg-slate-900/80 border border-slate-800 border-dashed p-5 space-y-3">
@@ -714,6 +881,22 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Columna Lateral Fijada del Bloc de Notas (Sticky al desplazarse) */}
+      {pinMode === 'sidebar' && (
+        <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-4 z-20 space-y-4">
+          {renderNotesBox('sidebar')}
+        </div>
+      )}
+    </div>
+
+    {/* Bloc Flotante si el modo elegido es 'floating' */}
+    {pinMode === 'floating' && (
+      <div className="fixed bottom-24 right-4 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-auto sm:max-w-md md:max-w-lg shadow-2xl animate-fade-in">
+        {renderNotesBox('floating')}
+      </div>
+    )}
 
       {/* Barra Inferior Flotante de Navegación de Secciones */}
       <div className="sticky bottom-4 z-30 p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-800 flex items-center justify-between shadow-2xl">
