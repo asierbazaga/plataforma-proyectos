@@ -85,17 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = profiles.find(p => {
       const email = p.email.toLowerCase();
       const name = p.full_name.toLowerCase();
-      const firstName = name.split(' ')[0];
-
-      if (email === cleanId || name === cleanId || firstName === cleanId) return true;
-      if ((cleanId === 'asier' || cleanId === 'admin' || cleanId === 'asier.bazaga') &&
-          (email.includes('asier') || email.includes('admin') || name.includes('asier'))) {
-        return true;
-      }
-      if (cleanId === 'lore' && (email.includes('lore') || name.includes('lore'))) {
-        return true;
-      }
-      return false;
+      return (email === cleanId || name === cleanId);
     });
 
     if (!user) {
@@ -180,8 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = profiles.find(p => {
       const email = p.email.toLowerCase();
       const name = p.full_name.toLowerCase();
-      const firstName = name.split(' ')[0];
-      return (email === cleanId || name === cleanId || firstName === cleanId);
+      return (email === cleanId || name === cleanId);
     });
 
     if (!user) {
@@ -202,8 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = profiles.find(p => {
       const email = p.email.toLowerCase();
       const name = p.full_name.toLowerCase();
-      const firstName = name.split(' ')[0];
-      return (email === cleanId || name === cleanId || firstName === cleanId);
+      return (email === cleanId || name === cleanId);
     });
 
     if (!user) {

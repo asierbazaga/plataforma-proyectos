@@ -229,15 +229,22 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
           {filteredCandidates.map((candidate) => {
             const isApproved = candidate.status === 'approved' || candidate.resultadoFinal.decision === 'Aprobado / Contratar';
             const isRejected = candidate.status === 'rejected' || candidate.resultadoFinal.decision === 'Rechazado';
+            const isDuda = candidate.resultadoFinal.decision === 'Duda / 2ª Vuelta' || candidate.resultadoFinal.decision === 'Reserva para otro puesto';
             const score = candidate.resultadoFinal.puntuacionGlobal;
-            const isContratado = candidate.resultadoFinal.estadoReal === 'contratado';
-            const isNoEntra = candidate.resultadoFinal.estadoReal === 'rechazado';
             
-            const cardBg = isContratado 
+            const isContratadoReal = candidate.resultadoFinal.estadoReal === 'contratado';
+            const isNoEntraReal = candidate.resultadoFinal.estadoReal === 'rechazado';
+            
+            const isContratado = isContratadoReal || (isApproved && !isNoEntraReal);
+            const isNoEntra = isNoEntraReal || isRejected;
+            
+            const cardBg = isContratado
               ? 'bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400' 
-              : isNoEntra 
+              : isNoEntra
                 ? 'bg-rose-950/40 border-rose-500/50 hover:border-rose-400'
-                : 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40';
+                : isDuda
+                  ? 'bg-amber-950/40 border-amber-500/50 hover:border-amber-400'
+                  : 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40';
 
             return (
               <div
@@ -250,6 +257,7 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
                     <h3 className={`text-lg font-black transition-colors ${
                       isContratado ? 'text-emerald-50 group-hover:text-emerald-200' :
                       isNoEntra ? 'text-rose-50 group-hover:text-rose-200' :
+                      isDuda ? 'text-amber-50 group-hover:text-amber-200' :
                       'text-white group-hover:text-indigo-300'
                     }`}>
                       {candidate.fullName}
@@ -293,7 +301,6 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
                     </div>
                   )}
 
-                  {/* Datos Económicos y Disponibilidad */}
                   <div className="flex items-center gap-4 text-xs text-slate-400 pt-1 flex-wrap">
                     {candidate.expectedSalaryEur && (
                       <span>Pretensión: <strong className="text-slate-200">{candidate.expectedSalaryEur.toLocaleString()} €</strong></span>
@@ -301,7 +308,11 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
                     {candidate.englishLevel && (
                       <span>Inglés: <strong className="text-slate-200">{candidate.englishLevel}</strong></span>
                     )}
-                    <span>Fecha: <strong className="text-slate-200">{candidate.interviewDate}</strong></span>
+                    <span>Fecha: <strong className="text-slate-200">
+                      {candidate.interviewDate?.includes('T') 
+                        ? candidate.interviewDate.replace('T', ' a las ') 
+                        : candidate.interviewDate}
+                    </strong></span>
                   </div>
                 </div>
 

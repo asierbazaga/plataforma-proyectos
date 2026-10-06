@@ -56,7 +56,18 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   const [expectedSalaryEur, setExpectedSalaryEur] = useState<number | undefined>(candidateToEdit?.expectedSalaryEur);
   const [noticePeriodWeeks, setNoticePeriodWeeks] = useState<number>(candidateToEdit?.noticePeriodWeeks || 2);
   const [englishLevel, setEnglishLevel] = useState(candidateToEdit?.englishLevel || 'B2');
-  const [interviewDate, setInterviewDate] = useState(candidateToEdit?.interviewDate || new Date().toISOString().split('T')[0]);
+  
+  const getInitialDate = () => {
+    if (candidateToEdit?.interviewDate) {
+      if (candidateToEdit.interviewDate.includes('T')) {
+        return candidateToEdit.interviewDate.slice(0, 16);
+      }
+      return `${candidateToEdit.interviewDate}T10:00`;
+    }
+    const tzOffset = new Date().getTimezoneOffset() * 60000;
+    return new Date(Date.now() - tzOffset).toISOString().slice(0, 16);
+  };
+  const [interviewDate, setInterviewDate] = useState(getInitialDate());
   
   const [analysisResult, setAnalysisResult] = useState<ParsedCvResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -432,6 +443,17 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
                 <option value="C1">C1 - Avanzado</option>
                 <option value="C2 / Nativo">C2 / Nativo</option>
               </select>
+            </div>
+
+            {/* Fecha de Entrevista */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">Fecha y Hora de Entrevista</label>
+              <input
+                type="datetime-local"
+                value={interviewDate}
+                onChange={(e) => setInterviewDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
+              />
             </div>
           </div>
         </div>

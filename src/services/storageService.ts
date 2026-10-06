@@ -423,11 +423,13 @@ class StorageService {
     this.setLocal('profiles', [...current, newProfile]);
 
     if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase.from('profiles').upsert(newProfile);
-        if (error) console.error('Supabase createProfile error:', error);
-      } catch (e) {
-        console.error('Supabase createProfile exception:', e);
+      const { error } = await supabase.from('profiles').upsert(newProfile);
+      if (error) {
+        console.error('Supabase createProfile error:', error);
+        // Revert local optimistic update
+        const reverted = current.filter(p => p.id !== newProfile.id);
+        this.setLocal('profiles', reverted);
+        throw new Error(error.message);
       }
     }
 
@@ -486,8 +488,6 @@ class StorageService {
       
       const { error } = await supabase.from('profiles').delete().eq('id', id);
       if (error) {
-        // Revertir borrado local si falla
-        this.setLocal('profiles', localCurrent);
         console.error('Error al eliminar en Supabase:', error);
         throw new Error('No se puede eliminar el usuario. Puede que tenga otros registros asociados en la base de datos.');
       }
