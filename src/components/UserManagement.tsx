@@ -74,6 +74,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   // Form states para Editar Usuario
   const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editDepartment, setEditDepartment] = useState('');
   const [editRole, setEditRole] = useState<Role>('user');
 
@@ -194,6 +195,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const openEditModal = (user: UserProfile) => {
     setEditingUser(user);
     setEditName(user.full_name);
+    setEditEmail(user.email);
     setEditDepartment(user.department || '');
     setEditRole(user.role);
   };
@@ -205,6 +207,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     try {
       await updateUser(editingUser.id, {
         full_name: editName.trim(),
+        email: editEmail.trim().toLowerCase(),
         role: editRole
       });
 
