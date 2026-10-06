@@ -1733,6 +1733,7 @@ class StorageService {
             parsedSkills: c.parsed_skills || [],
             evaluations: c.evaluations || {},
             resultadoFinal: c.resultado_final || {},
+            excelEnviadoAJefe: Boolean(c.excel_enviado_a_jefe ?? c.resultado_final?.excelEnviadoAJefe ?? c.excelEnviadoAJefe),
             createdAt: c.created_at,
             updatedAt: c.updated_at
           }));
@@ -1785,7 +1786,10 @@ class StorageService {
           cv_file_name: candidateToSave.cvFileName,
           parsed_skills: candidateToSave.parsedSkills || [],
           evaluations: candidateToSave.evaluations || {},
-          resultado_final: candidateToSave.resultadoFinal || {},
+          resultado_final: {
+            ...(candidateToSave.resultadoFinal || {}),
+            excelEnviadoAJefe: Boolean(candidateToSave.excelEnviadoAJefe ?? candidateToSave.resultadoFinal?.excelEnviadoAJefe)
+          },
           created_at: candidateToSave.createdAt,
           updated_at: candidateToSave.updatedAt
         });

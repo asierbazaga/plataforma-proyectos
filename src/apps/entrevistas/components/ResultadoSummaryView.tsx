@@ -108,6 +108,20 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
     onUpdateCandidate(updated);
   };
 
+  const handleToggleExcelEnviado = (enviado: boolean) => {
+    const updated: CandidateInterview = {
+      ...candidate,
+      excelEnviadoAJefe: enviado,
+      resultadoFinal: {
+        ...candidate.resultadoFinal,
+        excelEnviadoAJefe: enviado
+      },
+      updatedAt: new Date().toISOString()
+    };
+    onUpdateCandidate(updated);
+    triggerSaveFeedback();
+  };
+
   const handleAddPro = () => {
     if (!newPro.trim()) return;
     const currentPros = candidate.resultadoFinal.puntosFuertes || [];
@@ -178,6 +192,9 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
     { id: 'Rechazado', label: '❌ Rechazado', color: 'text-rose-300', bg: 'bg-rose-600/30 border-rose-500' }
   ];
 
+  const isExcelEnviado = Boolean(candidate.excelEnviadoAJefe ?? candidate.resultadoFinal.excelEnviadoAJefe);
+  const isAptoParaContratar = candidate.resultadoFinal.decision === 'Aprobado / Contratar' || candidate.resultadoFinal.estadoReal === 'contratado';
+
   return (
     <div className="space-y-6 pb-12">
       {/* 1. Header Bar de Resultado */}
@@ -201,7 +218,40 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Estado de Envío de Excel a Jefe (solo requerido si es elegido para contratación) */}
+            {isAptoParaContratar ? (
+              <button
+                onClick={() => handleToggleExcelEnviado(!isExcelEnviado)}
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all shadow-md ${
+                  isExcelEnviado
+                    ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/60 shadow-emerald-500/10'
+                    : 'bg-amber-950/40 text-amber-300 border-amber-500/50 hover:bg-amber-900/50 shadow-amber-500/10'
+                }`}
+                title="Candidato elegido para contratación. Clic para cambiar estado de envío al jefe."
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>{isExcelEnviado ? 'Excel Jefe: Enviado ✅' : 'Excel Jefe: Pendiente ⏳'}</span>
+              </button>
+            ) : isExcelEnviado ? (
+              <button
+                onClick={() => handleToggleExcelEnviado(!isExcelEnviado)}
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all bg-emerald-950/60 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/60"
+                title="Excel enviado al jefe"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Excel Jefe: Enviado ✅</span>
+              </button>
+            ) : (
+              <div 
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-800 bg-slate-950/80 text-slate-400 text-xs font-medium"
+                title="Solo se manda el Excel oficial al jefe si el candidato es elegido para la contratación"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-slate-500" />
+                <span>Excel Jefe: No Aplica (No contratado)</span>
+              </div>
+            )}
+
             <button
               onClick={() => ExcelInterviewService.exportCandidateToExcel(candidate)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/25"
@@ -471,6 +521,51 @@ export const ResultadoSummaryView: React.FC<ResultadoSummaryViewProps> = ({
           placeholder="Comentarios adicionales (ej: Le pasamos oferta y la rechazó por contraoferta de su empresa)..."
           className="w-full rounded-2xl bg-slate-950 border border-slate-800 p-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-y"
         />
+
+        {/* Registro de Envío de Ficha Excel Oficial */}
+        <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white block">
+                📄 Registro de Envío de Excel Oficial al Jefe
+              </span>
+              {!isAptoParaContratar && !isExcelEnviado && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
+                  No requerido (Solo para contratar)
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-slate-400">
+              {isAptoParaContratar
+                ? 'Candidato apto para contratar: registra si ya has remitido la plantilla oficial cumplimentada al responsable.'
+                : 'Solo es necesario enviar el Excel al jefe si el candidato ha sido elegido para la contratación.'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleToggleExcelEnviado(false)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                !isExcelEnviado
+                  ? isAptoParaContratar
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md'
+                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+              }`}
+            >
+              {isAptoParaContratar ? '⏳ Pendiente de Enviar' : '⚪ No Requiere Envío'}
+            </button>
+            <button
+              onClick={() => handleToggleExcelEnviado(true)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                isExcelEnviado
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-md'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+              }`}
+            >
+              ✅ Enviado al Jefe
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 5. Tabla Resumen de Evaluaciones por Competencia */}

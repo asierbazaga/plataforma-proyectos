@@ -342,6 +342,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
           }}
           onDeleteCandidate={handleDeleteCandidate}
           onImportCandidates={handleImportCandidates}
+          onUpdateCandidate={handleUpdateCandidate}
         />
       )}
 

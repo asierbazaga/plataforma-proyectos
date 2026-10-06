@@ -32,6 +32,7 @@ interface CandidateListViewProps {
   onEditCandidate: (candidate: CandidateInterview) => void;
   onDeleteCandidate: (id: string) => void;
   onImportCandidates: (imported: Partial<CandidateInterview>[]) => void;
+  onUpdateCandidate?: (candidate: CandidateInterview) => void;
 }
 
 export const CandidateListView: React.FC<CandidateListViewProps> = ({
@@ -40,7 +41,8 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
   onNewCandidate,
   onEditCandidate,
   onDeleteCandidate,
-  onImportCandidates
+  onImportCandidates,
+  onUpdateCandidate
 }) => {
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,8 +52,20 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
 
   // Cálculos de métricas globales
   const totalCandidates = candidates.length;
-  const approvedCount = candidates.filter(c => c.status === 'approved' || c.resultadoFinal.decision === 'Aprobado / Contratar').length;
+  
+  // Regla de negocio: El Excel oficial solo se manda si el candidato ha sido elegido para contratación
+  const isCandidateHiredOrApproved = (c: CandidateInterview) => 
+    c.status === 'approved' || 
+    c.resultadoFinal.decision === 'Aprobado / Contratar' || 
+    c.resultadoFinal.estadoReal === 'contratado';
+
+  const approvedCandidates = candidates.filter(isCandidateHiredOrApproved);
+  const approvedCount = approvedCandidates.length;
   const inProgressCount = candidates.filter(c => c.status === 'in_progress' || c.status === 'scheduled').length;
+  
+  // Solo se contabilizan como pendientes o enviados los candidatos aprobados/contratados
+  const excelSentCount = approvedCandidates.filter(c => Boolean(c.excelEnviadoAJefe ?? c.resultadoFinal?.excelEnviadoAJefe)).length;
+  const excelPendingCount = approvedCount - excelSentCount;
   
   const evaluatedWithScores = candidates.filter(c => c.resultadoFinal.puntuacionGlobal > 0);
   const averageScore = evaluatedWithScores.length > 0
@@ -63,19 +77,44 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
     ? Math.round(candidatesWithSalary.reduce((acc, c) => acc + (c.expectedSalaryEur || 0), 0) / candidatesWithSalary.length)
     : 0;
 
+  const handleToggleExcelEnviado = (candidate: CandidateInterview) => {
+    if (!onUpdateCandidate) return;
+    const nuevoEstado = !Boolean(candidate.excelEnviadoAJefe ?? candidate.resultadoFinal?.excelEnviadoAJefe);
+    const updated: CandidateInterview = {
+      ...candidate,
+      excelEnviadoAJefe: nuevoEstado,
+      resultadoFinal: {
+        ...candidate.resultadoFinal,
+        excelEnviadoAJefe: nuevoEstado
+      },
+      updatedAt: new Date().toISOString()
+    };
+    onUpdateCandidate(updated);
+    if (nuevoEstado) {
+      toast.success(`Excel oficial de ${candidate.fullName} marcado como ENVIADO al jefe ✅`);
+    } else {
+      toast.info(`Excel oficial de ${candidate.fullName} marcado como PENDIENTE de enviar ⏳`);
+    }
+  };
+
   // Filtrado
   const filteredCandidates = candidates.filter(c => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
       (c.fullName || '').toLowerCase().includes(query) ||
-   (c.role || '').toLowerCase().includes(query) ||
-   (c.currentCompany && (c.currentCompany || '').toLowerCase().includes(query)) ||
-   (c.parsedSkills && c.parsedSkills.some(s => (s || '').toLowerCase().includes(query)));
+      (c.role || '').toLowerCase().includes(query) ||
+      (c.currentCompany && (c.currentCompany || '').toLowerCase().includes(query)) ||
+      (c.parsedSkills && c.parsedSkills.some(s => (s || '').toLowerCase().includes(query)));
+
+    const isHireCandidate = isCandidateHiredOrApproved(c);
+    const isEnviado = Boolean(c.excelEnviadoAJefe ?? c.resultadoFinal?.excelEnviadoAJefe);
 
     const matchesStatus = 
       statusFilter === 'all' ||
-      (statusFilter === 'approved' && (c.status === 'approved' || c.resultadoFinal.decision === 'Aprobado / Contratar')) ||
-      (statusFilter === 'rejected' && (c.status === 'rejected' || c.resultadoFinal.decision === 'Rechazado')) ||
+      (statusFilter === 'excel_pending' && isHireCandidate && !isEnviado) ||
+      (statusFilter === 'excel_sent' && isEnviado) ||
+      (statusFilter === 'approved' && isHireCandidate) ||
+      (statusFilter === 'rejected' && (c.status === 'rejected' || c.resultadoFinal.decision === 'Rechazado' || c.resultadoFinal.estadoReal === 'rechazado')) ||
       (statusFilter === 'in_progress' && (c.status === 'in_progress' || c.status === 'scheduled')) ||
       (statusFilter === 'evaluated' && c.status === 'evaluated');
 
@@ -98,14 +137,14 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
   return (
     <div className="space-y-6 pb-12">
       {/* 1. Métricas & KPIs de Selección Mecalux */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Candidatos</span>
             <Users className="w-4 h-4 text-indigo-400" />
           </div>
           <p className="text-2xl sm:text-3xl font-black text-white">{totalCandidates}</p>
-          <p className="text-[10px] text-slate-400 font-medium">Registrados en la plataforma</p>
+          <p className="text-[10px] text-slate-400 font-medium">Registrados en total</p>
         </div>
 
         <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-1">
@@ -119,10 +158,22 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
 
         <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-1">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">Nota Media</span>
-            <Award className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold uppercase tracking-wider">Excel Jefe (Contratación)</span>
+            <FileSpreadsheet className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-amber-300">{averageScore}%</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-2xl sm:text-3xl font-black text-amber-300">{excelPendingCount}</p>
+            <span className="text-xs font-semibold text-slate-400">pendientes</span>
+          </div>
+          <p className="text-[10px] text-emerald-400 font-medium">De {approvedCount} para contratar ({excelSentCount} enviados)</p>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Nota Media</span>
+            <Award className="w-4 h-4 text-blue-400" />
+          </div>
+          <p className="text-2xl sm:text-3xl font-black text-blue-300">{averageScore}%</p>
           <p className="text-[10px] text-slate-400 font-medium">Rúbrica de competencias</p>
         </div>
 
@@ -187,6 +238,8 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
         <div className="flex items-center gap-2 overflow-x-auto pt-1">
           {[
             { id: 'all', label: 'Todos los Candidatos' },
+            { id: 'excel_pending', label: `⏳ Excel Pendiente [Contratar] (${excelPendingCount})` },
+            { id: 'excel_sent', label: `📤 Excel Enviado (${excelSentCount})` },
             { id: 'approved', label: '✅ Aprobados / Oferta' },
             { id: 'in_progress', label: '⏳ En Curso / Programados' },
             { id: 'rejected', label: '❌ Descartados' }
@@ -231,6 +284,7 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
             const isRejected = candidate.status === 'rejected' || candidate.resultadoFinal.decision === 'Rechazado';
             const isDuda = candidate.resultadoFinal.decision === 'Duda / 2ª Vuelta' || candidate.resultadoFinal.decision === 'Reserva para otro puesto';
             const score = candidate.resultadoFinal.puntuacionGlobal;
+            const isExcelEnviado = Boolean(candidate.excelEnviadoAJefe ?? candidate.resultadoFinal?.excelEnviadoAJefe);
             
             const isContratadoReal = candidate.resultadoFinal.estadoReal === 'contratado';
             const isNoEntraReal = candidate.resultadoFinal.estadoReal === 'rechazado';
@@ -277,6 +331,30 @@ export const CandidateListView: React.FC<CandidateListViewProps> = ({
                         🎯 {candidate.resultadoFinal.resolucionReal}
                       </span>
                     )}
+                    {/* Botón interactivo de registro de Excel Oficial al Jefe (solo aplica cuando es elegido para contratación) */}
+                    {isContratado ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleExcelEnviado(candidate);
+                        }}
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-lg border transition-all flex items-center gap-1.5 shadow-sm ${
+                          isExcelEnviado
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                        }`}
+                        title={isExcelEnviado ? 'Excel oficial ya remitido al jefe (clic para marcar como pendiente)' : 'Candidato apto para contratar: Excel oficial pendiente de enviar al jefe (clic para marcar como enviado)'}
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>{isExcelEnviado ? 'Excel Jefe: Enviado ✅' : 'Excel Jefe: Pendiente ⏳'}</span>
+                      </button>
+                    ) : isExcelEnviado ? (
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5" title="Excel enviado previamente">
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>Excel Jefe: Enviado ✅</span>
+                      </span>
+                    ) : null}
                   </div>
 
                   <p className="text-xs font-medium text-slate-300">

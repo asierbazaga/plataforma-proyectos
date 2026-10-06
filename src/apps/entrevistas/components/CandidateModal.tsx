@@ -68,6 +68,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
     return new Date(Date.now() - tzOffset).toISOString().slice(0, 16);
   };
   const [interviewDate, setInterviewDate] = useState(getInitialDate());
+  const [excelEnviadoAJefe, setExcelEnviadoAJefe] = useState<boolean>(Boolean(candidateToEdit?.excelEnviadoAJefe ?? candidateToEdit?.resultadoFinal?.excelEnviadoAJefe));
   
   const [analysisResult, setAnalysisResult] = useState<ParsedCvResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -175,12 +176,17 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
       cvText,
       parsedSkills: analysisResult?.detectedSkills || candidateToEdit?.parsedSkills || [],
       evaluations: candidateToEdit?.evaluations || {},
-      resultadoFinal: candidateToEdit?.resultadoFinal || {
+      excelEnviadoAJefe,
+      resultadoFinal: candidateToEdit?.resultadoFinal ? {
+        ...candidateToEdit.resultadoFinal,
+        excelEnviadoAJefe
+      } : {
         decision: 'Pendiente',
         puntuacionGlobal: 0,
         puntosFuertes: [],
         puntosAMejorar: [],
-        conclusionesTeamLeader: ''
+        conclusionesTeamLeader: '',
+        excelEnviadoAJefe
       },
       createdAt: candidateToEdit?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -454,6 +460,44 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
                 onChange={(e) => setInterviewDate(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
               />
+            </div>
+
+            {/* Registro de Envío de Excel al Jefe */}
+            <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <label className="text-xs font-bold text-white block">
+                    📄 Ficha Excel Oficial Enviada al Jefe / Responsable
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    Solo es necesario remitir el Excel oficial al jefe cuando el candidato haya sido elegido para la contratación
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExcelEnviadoAJefe(false)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                      !excelEnviadoAJefe
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                    }`}
+                  >
+                    ⏳ Pendiente de Enviar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExcelEnviadoAJefe(true)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                      excelEnviadoAJefe
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-md'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                    }`}
+                  >
+                    ✅ Enviado al Jefe
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

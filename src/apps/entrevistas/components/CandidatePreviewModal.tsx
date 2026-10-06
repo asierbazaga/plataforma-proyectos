@@ -14,7 +14,8 @@ import {
   Check, 
   ExternalLink,
   Layers,
-  Search
+  Search,
+  FileSpreadsheet
 } from 'lucide-react';
 import { CandidateInterview } from '../../../types';
 
@@ -190,6 +191,22 @@ export const CandidatePreviewModal: React.FC<CandidatePreviewModalProps> = ({
                   </div>
                   <p className="font-bold text-white text-sm">
                     {candidate.noticePeriodWeeks === 0 ? 'Inmediata' : `${candidate.noticePeriodWeeks} semanas`}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Excel Oficial a Jefe</span>
+                  </div>
+                  <p className={`font-bold text-sm ${
+                    (candidate.excelEnviadoAJefe || candidate.resultadoFinal?.excelEnviadoAJefe)
+                      ? 'text-emerald-400'
+                      : 'text-amber-400'
+                  }`}>
+                    {(candidate.excelEnviadoAJefe || candidate.resultadoFinal?.excelEnviadoAJefe)
+                      ? 'Enviado al Jefe ✅'
+                      : 'Pendiente de enviar ⏳'}
                   </p>
                 </div>
               </div>

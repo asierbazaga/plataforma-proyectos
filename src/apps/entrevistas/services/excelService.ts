@@ -200,12 +200,14 @@ export class ExcelInterviewService {
       'Puntuación Global',
       'Decisión Final',
       'Resolución Real',
+      'Excel a Jefe',
       'Salario Pretendido',
       'Salario Recomendado',
       'Estado'
     ]);
 
     candidates.forEach(c => {
+      const isEnviado = Boolean(c.excelEnviadoAJefe ?? c.resultadoFinal.excelEnviadoAJefe);
       rows.push([
         c.fullName,
         c.role,
@@ -214,6 +216,7 @@ export class ExcelInterviewService {
         `${c.resultadoFinal.puntuacionGlobal}%`,
         c.resultadoFinal.decision,
         c.resultadoFinal.resolucionReal || 'N/A',
+        isEnviado ? 'Enviado ✅' : 'Pendiente ⏳',
         c.expectedSalaryEur ? `${c.expectedSalaryEur} €` : 'N/A',
         c.resultadoFinal.salarioRecomendadoEur ? `${c.resultadoFinal.salarioRecomendadoEur} €` : 'N/A',
         c.status
@@ -229,6 +232,7 @@ export class ExcelInterviewService {
       { wch: 18 },
       { wch: 24 },
       { wch: 24 },
+      { wch: 16 },
       { wch: 20 },
       { wch: 20 },
       { wch: 16 }

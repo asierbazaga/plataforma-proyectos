@@ -434,6 +434,7 @@ export interface CandidateInterview {
   cvFileName?: string;
   parsedSkills?: string[];
   evaluations: Record<string, CompetencyEvaluation>; // key: competencyId
+  excelEnviadoAJefe?: boolean;
   resultadoFinal: {
     decision: 'Aprobado / Contratar' | 'Duda / 2ª Vuelta' | 'Rechazado' | 'Reserva para otro puesto' | 'Pendiente';
     puntuacionGlobal: number; // 0 a 100%
@@ -443,6 +444,7 @@ export interface CandidateInterview {
     salarioRecomendadoEur?: number;
     resolucionReal?: string; // e.g. "Candidato rechaza oferta", "Contratado", etc.
     estadoReal?: 'contratado' | 'rechazado' | 'pendiente';
+    excelEnviadoAJefe?: boolean;
   };
   createdAt: string;
   updatedAt: string;
