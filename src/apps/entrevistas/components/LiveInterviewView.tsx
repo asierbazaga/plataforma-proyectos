@@ -98,6 +98,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
     }
   });
   const [isFloatingMinimized, setIsFloatingMinimized] = useState<boolean>(false);
+  const [isTopMinimized, setIsTopMinimized] = useState<boolean>(false);
   const [manualAiPromptOpen, setManualAiPromptOpen] = useState<boolean>(false);
   const [manualAiResponse, setManualAiResponse] = useState<string>('');
 
@@ -111,7 +112,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
     } else if (mode === 'floating') {
       toast.info('Bloc de notas fijado en ventana flotante 🪟');
     } else {
-      toast.info('Bloc de notas colocado arriba ⬆️');
+      toast.info('Bloc de notas fijado arriba: se mantendrá visible mientras bajas por las preguntas 📌');
     }
   };
 
@@ -236,13 +237,55 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       );
     }
 
+    if (mode === 'top' && isTopMinimized) {
+      return (
+        <div className="rounded-2xl border border-indigo-500/40 bg-slate-900/95 backdrop-blur-2xl p-3 shadow-2xl flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
+              <Bot className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-white flex items-center gap-2">
+                Bloc de Notas Fijado Arriba
+                <span className="text-[10px] text-slate-400 font-normal">({wordCount} palabras)</span>
+                {autoSaveToast && (
+                  <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Guardado
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsTopMinimized(false)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-bold transition-all"
+              title="Expandir bloc de notas superior"
+            >
+              <Maximize2 className="w-3 h-3" />
+              <span>Expandir Bloc</span>
+            </button>
+            <button
+              onClick={handleGeneratePromptClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 hover:from-indigo-600/40 hover:to-purple-600/40 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition-all shadow-sm"
+              title="Generar instrucciones para evaluar con IA"
+            >
+              <Sparkles className="w-3 h-3 text-indigo-400" />
+              <span>Prompt IA</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className={`rounded-3xl border transition-all shadow-2xl flex flex-col ${
         mode === 'floating'
           ? 'bg-slate-900/95 border-indigo-500/40 backdrop-blur-2xl p-4 sm:p-5'
           : mode === 'sidebar'
-            ? 'bg-slate-900/95 border-slate-800 backdrop-blur-xl p-5'
-            : 'bg-slate-800/40 border-slate-700/50 rounded-2xl p-4 sm:p-5 mb-4'
+            ? 'bg-slate-900/95 border-slate-800 backdrop-blur-xl p-5 lg:max-h-[calc(100vh-6rem)] overflow-y-auto'
+            : 'bg-slate-900/95 border-indigo-500/40 backdrop-blur-xl p-4 sm:p-5'
       }`}>
         {/* Cabecera del Bloc de Notas */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
@@ -276,10 +319,24 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Fijar al lateral derecho para ver las preguntas y escribir a la vez"
+              title="Fijar lateral: Notas a la derecha fijas mientras te desplazas por las preguntas"
             >
               <Pin className="w-3 h-3" />
               <span>Fijar Lateral</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSetPinMode('top')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                mode === 'top'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Fijar arriba: Notas arriba fijas mientras te desplazas por las preguntas"
+            >
+              <Pin className="w-3 h-3" />
+              <span>Fijar Arriba</span>
             </button>
 
             <button
@@ -296,26 +353,23 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
               <span>Flotante</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => handleSetPinMode('top')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                mode === 'top'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Colocar arriba (desanclado)"
-            >
-              <PinOff className="w-3 h-3" />
-              <span>Arriba</span>
-            </button>
-
             {mode === 'floating' && (
               <button
                 type="button"
                 onClick={() => setIsFloatingMinimized(true)}
                 className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors ml-1"
-                title="Minimizar bloc de notas"
+                title="Minimizar bloc de notas flotante"
+              >
+                <Minimize2 className="w-3 h-3" />
+              </button>
+            )}
+
+            {mode === 'top' && (
+              <button
+                type="button"
+                onClick={() => setIsTopMinimized(true)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors ml-1"
+                title="Plegar bloc de notas superior"
               >
                 <Minimize2 className="w-3 h-3" />
               </button>
@@ -331,10 +385,10 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
           placeholder="Toma tus apuntes y sensaciones en directo durante la entrevista... (ej. 'Tiene 3 años de exp en C#, conoce bien los JOINs, pero se ha puesto muy nervioso al explicar su mayor error y ha dudado...')"
           className={`w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all font-sans leading-relaxed ${
             mode === 'sidebar'
-              ? 'h-[360px] lg:h-[calc(100vh-340px)] min-h-[300px] resize-y'
+              ? 'h-[280px] lg:h-[calc(100vh-320px)] min-h-[200px] resize-y'
               : mode === 'floating'
                 ? 'h-52 resize-y'
-                : 'h-32 resize-y'
+                : 'h-28 sm:h-32 resize-y'
           }`}
         />
 
@@ -342,10 +396,10 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
         <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/60">
           <span className="text-[10px] text-slate-500 hidden sm:inline">
             {mode === 'sidebar'
-              ? '📌 Fijado: baja por las preguntas mientras sigues escribiendo'
+              ? '📌 Fijado al lateral: baja por las preguntas mientras sigues escribiendo'
               : mode === 'floating'
                 ? '🪟 Flotante: visible en pantalla completa'
-                : '⬆️ Modo estándar en cabecera'}
+                : '📌 Fijado arriba: baja por las preguntas mientras sigues escribiendo'}
           </span>
           <button
             onClick={handleGeneratePromptClick}
@@ -521,19 +575,48 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
               <span className="hidden sm:inline">Exportar Excel</span>
             </button>
 
-            {/* Fijar / Desanclar Bloc de Notas */}
-            <button
-              onClick={() => handleSetPinMode(pinMode === 'sidebar' ? 'top' : 'sidebar')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all shadow-sm ${
-                pinMode === 'sidebar'
-                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-indigo-600/30'
-                  : 'bg-slate-800/80 text-slate-300 hover:text-white border-slate-700/60'
-              }`}
-              title={pinMode === 'sidebar' ? 'Bloc de notas fijado al lateral (clic para desanclar)' : 'Fijar el bloc de notas al lateral para escribir mientras te desplazas por las preguntas'}
-            >
-              <Pin className="w-3.5 h-3.5" />
-              <span>{pinMode === 'sidebar' ? 'Notas Fijadas 📌' : 'Fijar Notas 📌'}</span>
-            </button>
+            {/* Selector de Modo de Fijación del Bloc de Notas */}
+            <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/80">
+              <button
+                type="button"
+                onClick={() => handleSetPinMode('sidebar')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  pinMode === 'sidebar'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Fijar lateral: Notas a la derecha fijas mientras te desplazas por las preguntas"
+              >
+                <Pin className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Lateral 📌</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetPinMode('top')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  pinMode === 'top'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Fijar arriba: Barra superior fija mientras te desplazas por las preguntas"
+              >
+                <Pin className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Arriba 📌</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetPinMode('floating')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  pinMode === 'floating'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Flotante: Ventana flotante en la esquina inferior"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Flotante 🪟</span>
+              </button>
+            </div>
 
             {/* Botón Ir a Resultado Final */}
             <button
@@ -555,9 +638,6 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
             </span>
           )}
         </div>
-
-        {/* --- BLOC DE NOTAS CON IA (Si está en modo 'top') --- */}
-        {pinMode === 'top' && renderNotesBox('top')}
 
         {/* API KEY MODAL */}
         {manualAiPromptOpen && (
@@ -634,10 +714,17 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
         </div>
       </div>
 
+      {/* Bloc de Notas Fijado Arriba (Sticky Top justo bajo la Navbar) */}
+      {pinMode === 'top' && (
+        <div className="sticky top-16 z-30 pt-1 pb-2">
+          {renderNotesBox('top')}
+        </div>
+      )}
+
       {/* 3. Bloques de Competencias con el Diseño Oficial de la Plantilla Excel */}
       <div className={pinMode === 'sidebar' ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 items-start' : 'space-y-6'}>
         {/* Columna de Rúbricas y Preguntas (scrolleable) */}
-        <div className={pinMode === 'sidebar' ? 'lg:col-span-7 xl:col-span-8 space-y-6' : 'space-y-6'}>
+        <div className={pinMode === 'sidebar' ? 'order-2 lg:order-1 lg:col-span-7 xl:col-span-8 space-y-6' : 'space-y-6'}>
           <div className="flex items-center justify-between px-1">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
             {activeSection === 'Preguntas Dinámicas' 
@@ -885,7 +972,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
       {/* Columna Lateral Fijada del Bloc de Notas (Sticky al desplazarse) */}
       {pinMode === 'sidebar' && (
-        <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-4 z-20 space-y-4">
+        <div className="order-1 lg:order-2 lg:col-span-5 xl:col-span-4 sticky top-16 lg:top-20 z-20 self-start space-y-4">
           {renderNotesBox('sidebar')}
         </div>
       )}
