@@ -458,6 +458,7 @@ class StorageService {
       this.savePassword(updatedProfile.email, updates.password);
     }
 
+    const originalProfiles = [...current];
     const updated = [...current];
     updated[existingIndex] = updatedProfile;
     this.setLocal('profiles', updated);
@@ -467,10 +468,18 @@ class StorageService {
       try {
         if (Object.keys(updates).length > 0) {
           const { error } = await supabase.from('profiles').update(updates).eq('id', id);
-          if (error) console.error('Supabase updateProfile error:', error);
+          if (error) {
+            console.error('Supabase updateProfile error:', error);
+            this.setLocal('profiles', originalProfiles);
+            this.broadcastChange();
+            throw new Error(error.message);
+          }
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Supabase updateProfile exception:', e);
+        this.setLocal('profiles', originalProfiles);
+        this.broadcastChange();
+        throw e;
       }
     }
     return updatedProfile;
