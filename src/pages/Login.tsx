@@ -43,8 +43,8 @@ export const Login: React.FC = () => {
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Register Form
   const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [regDepartment, setRegDepartment] = useState('General');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
@@ -148,8 +148,8 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!regName.trim()) {
-      setError('Por favor, introduce tu nombre o usuario.');
+    if (!regName.trim() || !regEmail.trim()) {
+      setError('Por favor, introduce tu nombre y un identificador/email válido.');
       return;
     }
 
@@ -170,11 +170,9 @@ export const Login: React.FC = () => {
 
     setLoading(true);
     try {
-      // Auto-generar un ID único en lugar de un correo
-      const uniqueId = `id_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
       const result = await register(
         regName, 
-        uniqueId, 
+        regEmail.trim(), 
         regPassword, 
         'General', 
         regSecurityQuestion.trim(), 
