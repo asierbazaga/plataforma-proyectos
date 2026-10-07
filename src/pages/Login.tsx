@@ -429,7 +429,7 @@ export const Login: React.FC = () => {
         {authMode === 'register' && (
           <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
             <div>
-              <label className="text-slate-400 font-medium block mb-1">Nombre Completo o Usuario</label>
+              <label className="text-slate-400 font-medium block mb-1">Tu Nombre</label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -438,9 +438,25 @@ export const Login: React.FC = () => {
                   placeholder="Ej. Carlos Mendoza"
                   value={regName}
                   onChange={e => setRegName(e.target.value)}
-                  className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00]"
+                  className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00] transition-colors"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-slate-400 font-medium block mb-1">Email o Identificador de Acceso</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. carlos@empresa.com"
+                  value={regEmail}
+                  onChange={e => setRegEmail(e.target.value)}
+                  className="w-full bg-[#070A11] border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#FF6B00] transition-colors"
+                />
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1 ml-1">Este será tu usuario para iniciar sesión.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
