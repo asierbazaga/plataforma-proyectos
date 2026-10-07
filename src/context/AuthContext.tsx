@@ -314,14 +314,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = async (id: string, updates: Partial<UserProfile>): Promise<void> => {
+    const profiles = await storageService.getProfiles();
+    
     if (updates.full_name) {
       const cleanName = updates.full_name.trim().toLowerCase();
-      const profiles = await storageService.getProfiles();
-      const existing = profiles.find(p => p.full_name.toLowerCase() === cleanName && p.id !== id);
-      if (existing) {
+      const existingName = profiles.find(p => p.full_name.toLowerCase() === cleanName && p.id !== id);
+      if (existingName) {
         throw new Error('Ya existe otro usuario con ese nombre.');
       }
     }
+
+    if (updates.email) {
+      const cleanEmail = updates.email.trim().toLowerCase();
+      const existingEmail = profiles.find(p => p.email.toLowerCase() === cleanEmail && p.id !== id);
+      if (existingEmail) {
+        throw new Error('Ya existe otro usuario con ese identificador o correo.');
+      }
+    }
+
     await storageService.updateProfile(id, updates);
     await refreshData();
     if (currentUser && currentUser.id === id) {
