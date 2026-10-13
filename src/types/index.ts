@@ -433,6 +433,7 @@ export interface CandidateInterview {
   cvText?: string;
   cvFileName?: string;
   parsedSkills?: string[];
+  dynamicQuestions?: MecaluxCompetencyRubric[];
   evaluations: Record<string, CompetencyEvaluation>; // key: competencyId
   excelEnviadoAJefe?: boolean;
   resultadoFinal: {
@@ -445,6 +446,7 @@ export interface CandidateInterview {
     resolucionReal?: string; // e.g. "Candidato rechaza oferta", "Contratado", etc.
     estadoReal?: 'contratado' | 'rechazado' | 'pendiente';
     excelEnviadoAJefe?: boolean;
+    dynamicQuestions?: MecaluxCompetencyRubric[];
   };
   createdAt: string;
   updatedAt: string;

@@ -1,5 +1,5 @@
 import { CandidateInterview, MecaluxCompetencyRubric, MecaluxCompetencySection } from '../../../types';
-import { getRubrics } from './mecaluxRubrics';
+import { getRubrics, getDefaultDynamicQuestions } from './mecaluxRubrics';
 
 export class ExcelInterviewService {
   /**
@@ -40,7 +40,11 @@ export class ExcelInterviewService {
    * replicando exactamente la estructura de filas y columnas del Excel de Mecalux.
    */
   private static createSectionSheet(XLSX: any, section: MecaluxCompetencySection, candidate: CandidateInterview): any {
-    const rubrics = getRubrics().filter(r => r.section === section);
+    const rubrics = section === 'Preguntas Dinámicas'
+      ? (candidate.dynamicQuestions && candidate.dynamicQuestions.length > 0
+          ? candidate.dynamicQuestions
+          : getDefaultDynamicQuestions())
+      : getRubrics().filter(r => r.section === section);
     const rows: any[][] = [];
 
     // Cabecera superior con datos del candidato

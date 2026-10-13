@@ -233,6 +233,26 @@ export const CandidatePreviewModal: React.FC<CandidatePreviewModalProps> = ({
                 </div>
               )}
 
+              {/* Preguntas Dinámicas Personalizadas del Candidato */}
+              {candidate.dynamicQuestions && candidate.dynamicQuestions.length > 0 && (
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-cyan-400" />
+                    <span className="font-bold text-white uppercase tracking-wider text-xs">
+                      Preguntas Dinámicas Personalizadas ({candidate.dynamicQuestions.length})
+                    </span>
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-slate-300">
+                    {candidate.dynamicQuestions.map((q, i) => (
+                      <li key={q.id || i} className="flex items-start gap-2">
+                        <span className="text-cyan-400 font-bold">•</span>
+                        <span>{q.nombre}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Resumen de Evaluación si ya ha sido evaluado */}
               {candidate.resultadoFinal.puntuacionGlobal > 0 && (
                 <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">

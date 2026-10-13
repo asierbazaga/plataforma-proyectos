@@ -27,7 +27,7 @@ import { CandidateListView } from './components/CandidateListView';
 import { LiveInterviewView } from './components/LiveInterviewView';
 import { ResultadoSummaryView } from './components/ResultadoSummaryView';
 import { CandidateModal } from './components/CandidateModal';
-import { getRubrics, saveRubrics, DEFAULT_MECALUX_RUBRICS } from './services/mecaluxRubrics';
+import { getRubrics, saveRubrics, DEFAULT_MECALUX_RUBRICS, getDefaultDynamicQuestions } from './services/mecaluxRubrics';
 import { ExcelInterviewService } from './services/excelService';
 import { MecaluxCompetencyRubric } from '../../types';
 
@@ -363,7 +363,10 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
           onUpdateCandidate={handleUpdateCandidate}
           onBackToInterview={() => setActiveTab('interview')}
           onBackToList={() => setActiveTab('candidates')}
-          rubrics={rubrics}
+          rubrics={[
+            ...rubrics.filter(r => r.section !== 'Preguntas Dinámicas'),
+            ...(selectedCandidate.dynamicQuestions || getDefaultDynamicQuestions())
+          ]}
         />
       )}
 

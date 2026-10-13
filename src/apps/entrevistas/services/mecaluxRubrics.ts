@@ -418,10 +418,53 @@ export const INITIAL_CANDIDATE_SAMPLE: import('../../../types').CandidateIntervi
   updatedAt: new Date().toISOString()
 };
 
+export const getDefaultDynamicQuestions = (): import('../../../types').MecaluxCompetencyRubric[] => {
+  return [
+    {
+      id: 'pd_inteligencia_artificial',
+      section: 'Preguntas Dinámicas',
+      nombre: 'Uso y conocimiento de Inteligencia Artificial (IA)',
+      criterios: {
+        inexistente: 'No conoce ni usa herramientas de IA en su día a día. Desconoce su funcionamiento o potencial real más allá de lo básico.',
+        pobre: 'Conoce herramientas como ChatGPT, pero no las utiliza productivamente o no sabe cómo integrarlas en su flujo de trabajo de forma eficiente.',
+        bueno: 'Usa herramientas de IA de manera habitual (ej. Copilot, ChatGPT) como apoyo. Entiende cómo formular prompts básicos y cuándo usarlas para acelerar su trabajo.',
+        fuerte: 'Es un "power user" de IA. Conoce las limitaciones (alucinaciones, privacidad) y diseña flujos de trabajo optimizados usándola. Está al tanto de las últimas tendencias tecnológicas en IA.'
+      },
+      disparadores: [
+        '¿Qué opinas sobre el uso de la Inteligencia Artificial (como ChatGPT o GitHub Copilot) en el entorno laboral?',
+        '¿Utilizas actualmente alguna herramienta de IA en tu día a día? ¿Para qué la utilizas exactamente?',
+        '¿Crees que la IA puede reemplazar ciertos roles o cómo ves su impacto en tu trabajo a medio plazo?',
+        'Cuéntanos sobre alguna vez en la que la IA te haya ayudado a resolver un problema técnico complejo o a aprender algo nuevo.'
+      ]
+    },
+    {
+      id: 'pd_casos_situacionales',
+      section: 'Preguntas Dinámicas',
+      nombre: 'Pool de Preguntas Dinámicas (Casos Situacionales)',
+      criterios: {
+        inexistente: 'Respuestas cortas, carentes de lógica o de contexto. No sabe cómo enfocar una situación fuera de su zona de confort.',
+        pobre: 'Plantea soluciones muy básicas o genéricas, sin considerar las consecuencias a largo plazo o el impacto en otras áreas.',
+        bueno: 'Enfoca los problemas con lógica, plantea alternativas y considera el impacto de sus decisiones. Demuestra madurez profesional.',
+        fuerte: 'Excelente capacidad de análisis. Responde estructuradamente (ej. método STAR) e identifica el problema raíz, proponiendo soluciones innovadoras y realistas.'
+      },
+      disparadores: [
+        'Imagina que un despliegue crítico falla en producción un viernes por la tarde y tu superior no está disponible. ¿Qué pasos seguirías?',
+        'Si entras a un proyecto donde la documentación es nula y el código es muy complejo, ¿cuál sería tu estrategia para ponerte al día y ser productivo?',
+        'Cuéntame sobre una ocasión en la que tuviste que aprender una tecnología completamente nueva en muy poco tiempo para un proyecto.',
+        'Si dos miembros de tu equipo tienen ideas radicalmente opuestas sobre cómo implementar una funcionalidad técnica, ¿cómo mediarías para llegar a un acuerdo?'
+      ]
+    }
+  ];
+};
+
 export const getRubrics = (): import('../../../types').MecaluxCompetencyRubric[] => {
   try {
     const saved = localStorage.getItem('entrevistas_custom_rubrics');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed: import('../../../types').MecaluxCompetencyRubric[] = JSON.parse(saved);
+      // Filtrar preguntas dinámicas personalizadas que se guardaron erróneamente en el pool global
+      return parsed.filter(r => !r.id.startsWith('custom_dyn_') && !r.id.startsWith('cand_dyn_') && !r.id.startsWith('cv_dyn_'));
+    }
   } catch (e) {
     console.error(e);
   }
@@ -431,3 +474,4 @@ export const getRubrics = (): import('../../../types').MecaluxCompetencyRubric[]
 export const saveRubrics = (rubrics: import('../../../types').MecaluxCompetencyRubric[]) => {
   localStorage.setItem('entrevistas_custom_rubrics', JSON.stringify(rubrics));
 };
+

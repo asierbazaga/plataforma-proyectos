@@ -18,13 +18,17 @@ import {
   Pin,
   PinOff,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Trash2,
+  Plus,
+  RotateCcw
 } from 'lucide-react';
 import { CandidateInterview, MecaluxCompetencySection, MecaluxEvaluationLevel, MecaluxCompetencyRubric } from '../../../types';
-import { EVALUATION_LEVELS } from '../services/mecaluxRubrics';
+import { EVALUATION_LEVELS, getDefaultDynamicQuestions } from '../services/mecaluxRubrics';
 import { ExcelInterviewService } from '../services/excelService';
 import { CandidatePreviewModal } from './CandidatePreviewModal';
 import { aiEvaluatorService } from '../services/aiEvaluatorService';
+import { analyzeCvText } from '../services/cvAnalysisEngine';
 import { useToast } from '../../../context/ToastContext';
 
 interface LiveInterviewViewProps {
@@ -118,24 +122,104 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
 
   const [newDynamicQuestion, setNewDynamicQuestion] = useState('');
 
+  // Preguntas dinámicas personalizadas exclusivas de este candidato
+  const candidateDynamicQuestions: MecaluxCompetencyRubric[] = React.useMemo(() => {
+    if (candidate.dynamicQuestions) {
+      return candidate.dynamicQuestions;
+    }
+    return getDefaultDynamicQuestions();
+  }, [candidate.dynamicQuestions]);
+
+  // Rúbricas efectivas para la entrevista en directo (Competencias globales + dinámicas de este candidato)
+  const effectiveRubrics: MecaluxCompetencyRubric[] = React.useMemo(() => {
+    const globalBase = rubrics.filter(r => r.section !== 'Preguntas Dinámicas');
+    return [...globalBase, ...candidateDynamicQuestions];
+  }, [rubrics, candidateDynamicQuestions]);
+
   const handleAddDynamicQuestion = () => {
-    if (!newDynamicQuestion.trim() || !onSaveRubrics) return;
+    if (!newDynamicQuestion.trim()) return;
     const newRubric: MecaluxCompetencyRubric = {
-      id: `custom_dyn_${Date.now()}`,
+      id: `cand_dyn_${candidate.id}_${Date.now()}`,
       section: 'Preguntas Dinámicas',
       nombre: newDynamicQuestion.trim(),
       criterios: {
-        inexistente: '',
-        pobre: '',
-        bueno: '',
-        fuerte: ''
+        inexistente: 'No responde o no tiene conocimientos sobre el tema planteado.',
+        pobre: 'Respuesta muy básica o superficial; demuestra dudas en la resolución.',
+        bueno: 'Responde con solvencia, lógica y criterio profesional adecuado.',
+        fuerte: 'Dominio total, aporta ejemplos reales y mejores prácticas.'
       },
       disparadores: []
     };
-    onSaveRubrics([...rubrics, newRubric]);
+    const updatedQuestions = [...candidateDynamicQuestions, newRubric];
+    onUpdateCandidate({
+      ...candidate,
+      dynamicQuestions: updatedQuestions
+    });
     setNewDynamicQuestion('');
     setExpandedRubrics(prev => ({ ...prev, [newRubric.id]: true }));
-    toast.success('Pregunta añadida');
+    toast.success('Pregunta añadida para este candidato');
+  };
+
+  const handleDeleteDynamicQuestion = (rubricId: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar esta pregunta dinámica para este candidato?')) return;
+    const updatedQuestions = candidateDynamicQuestions.filter(q => q.id !== rubricId);
+    const updatedEvaluations = { ...candidate.evaluations };
+    delete updatedEvaluations[rubricId];
+    onUpdateCandidate({
+      ...candidate,
+      dynamicQuestions: updatedQuestions,
+      evaluations: updatedEvaluations
+    });
+    toast.success('Pregunta dinámica eliminada');
+  };
+
+  const handleResetDefaultDynamicQuestions = () => {
+    if (!window.confirm('¿Restaurar las preguntas dinámicas iniciales para este candidato?')) return;
+    const defaults = getDefaultDynamicQuestions();
+    onUpdateCandidate({
+      ...candidate,
+      dynamicQuestions: defaults
+    });
+    toast.success('Preguntas dinámicas restablecidas');
+  };
+
+  const handleSuggestQuestionsFromCv = () => {
+    if (!candidate.cvText) {
+      toast.info('No hay texto de currículum disponible para analizar.');
+      return;
+    }
+    const result = analyzeCvText(candidate.cvText, candidate.cvFileName);
+    if (!result.customSuggestedQuestions || result.customSuggestedQuestions.length === 0) {
+      toast.info('No se detectaron preguntas sugeridas adicionales en el CV.');
+      return;
+    }
+    const existingNames = new Set(candidateDynamicQuestions.map(q => q.nombre.toLowerCase()));
+    const newQuestions: MecaluxCompetencyRubric[] = result.customSuggestedQuestions
+      .filter(q => !existingNames.has(`${q.category}: ${q.question}`.toLowerCase()))
+      .map((q, idx) => ({
+        id: `cv_dyn_${candidate.id}_${idx}_${Date.now()}`,
+        section: 'Preguntas Dinámicas',
+        nombre: `${q.category}: ${q.question}`,
+        criterios: {
+          inexistente: 'No responde o no tiene conocimientos sobre el tema planteado.',
+          pobre: 'Respuesta muy básica o superficial; demuestra dudas en la resolución.',
+          bueno: 'Responde con solvencia, lógica y criterio profesional adecuado.',
+          fuerte: 'Dominio total, aporta ejemplos reales y mejores prácticas.'
+        },
+        disparadores: [q.reason]
+      }));
+
+    if (newQuestions.length === 0) {
+      toast.info('Todas las preguntas sugeridas del CV ya están en la lista.');
+      return;
+    }
+
+    const updated = [...candidateDynamicQuestions, ...newQuestions];
+    onUpdateCandidate({
+      ...candidate,
+      dynamicQuestions: updated
+    });
+    toast.success(`${newQuestions.length} preguntas añadidas según el CV`);
   };
 
   const handleNotesChange = (val: string) => {
@@ -150,7 +234,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       toast.error("Por favor, escribe algunas notas primero.");
       return;
     }
-    const promptText = aiEvaluatorService.generatePrompt(notes, rubrics);
+    const promptText = aiEvaluatorService.generatePrompt(notes, effectiveRubrics);
     navigator.clipboard.writeText(promptText).then(() => {
       setManualAiResponse('');
       setManualAiPromptOpen(true);
@@ -172,7 +256,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       
       const newEvals = { ...candidate.evaluations };
       Object.entries(result.evaluations).forEach(([rubricId, evalData]) => {
-         const rubric = rubrics.find(r => r.id === rubricId);
+         const rubric = effectiveRubrics.find(r => r.id === rubricId);
          if (rubric) {
            newEvals[rubricId] = {
              competencyId: rubricId,
@@ -185,7 +269,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
       });
       
       // Recalcular puntuación global excluyendo preguntas dinámicas
-      const evaluableRubrics = rubrics.filter(r => r.section !== 'Preguntas Dinámicas');
+      const evaluableRubrics = effectiveRubrics.filter(r => r.section !== 'Preguntas Dinámicas');
       let totalScore = 0;
       let evaluatedCount = 0;
       evaluableRubrics.forEach(r => {
@@ -432,7 +516,7 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
     };
 
     // Recalcular puntuación global automáticamente (excluyendo Preguntas Dinámicas)
-    const evaluableRubrics = rubrics.filter(r => r.section !== 'Preguntas Dinámicas');
+    const evaluableRubrics = effectiveRubrics.filter(r => r.section !== 'Preguntas Dinámicas');
     let totalScore = 0;
     let evaluatedCount = 0;
 
@@ -498,12 +582,12 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
     setExpandedRubrics(prev => ({ ...prev, [rubricId]: !prev[rubricId] }));
   };
 
-  const rubricsInSection = rubrics.filter(r => r.section === activeSection);
+  const rubricsInSection = effectiveRubrics.filter(r => r.section === activeSection);
 
   const sections: { id: MecaluxCompetencySection; label: string; count: number }[] = [
-    { id: 'Competencias Profesionales', label: 'Competencias Profesionales', count: rubrics.filter(r => r.section === 'Competencias Profesionales').length },
-    { id: 'Softskills', label: 'Softskills & Liderazgo', count: rubrics.filter(r => r.section === 'Softskills').length },
-    { id: 'Preguntas Dinámicas', label: 'Preguntas Dinámicas', count: rubrics.filter(r => r.section === 'Preguntas Dinámicas').length }
+    { id: 'Competencias Profesionales', label: 'Competencias Profesionales', count: effectiveRubrics.filter(r => r.section === 'Competencias Profesionales').length },
+    { id: 'Softskills', label: 'Softskills & Liderazgo', count: effectiveRubrics.filter(r => r.section === 'Softskills').length },
+    { id: 'Preguntas Dinámicas', label: 'Preguntas Dinámicas', count: candidateDynamicQuestions.length }
   ];
 
   // Conteo de evaluados en la sección actual
@@ -757,15 +841,35 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
                 className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 sm:p-5 flex items-center justify-between cursor-pointer border-b border-indigo-500/20 select-none"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-xl border border-indigo-500/30">
-                    Competencia
+                  <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-xl border ${
+                    rubric.section === 'Preguntas Dinámicas'
+                      ? 'text-cyan-300 bg-cyan-950/80 border-cyan-500/30'
+                      : 'text-indigo-300 bg-indigo-950/80 border-indigo-500/30'
+                  }`}>
+                    {rubric.section === 'Preguntas Dinámicas' ? 'Pregunta Dinámica' : 'Competencia'}
                   </span>
                   <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
                     {rubric.nombre}
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {/* Botón Eliminar Pregunta Dinámica para este candidato */}
+                  {rubric.section === 'Preguntas Dinámicas' && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteDynamicQuestion(rubric.id);
+                      }}
+                      className="px-2.5 py-1 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm"
+                      title="Eliminar esta pregunta dinámica para este candidato"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Eliminar</span>
+                    </button>
+                  )}
+
                   {/* Badge de Nivel Actual */}
                   {rubric.section !== 'Preguntas Dinámicas' && (
                     currentLevel ? (
@@ -942,11 +1046,70 @@ export const LiveInterviewView: React.FC<LiveInterviewViewProps> = ({
           );
         })}
 
-        {activeSection === 'Preguntas Dinámicas' && onSaveRubrics && (
-          <div className="rounded-3xl bg-slate-900/80 border border-slate-800 border-dashed p-5 space-y-3">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Añadir pregunta dinámica personalizada
+        {rubricsInSection.length === 0 && activeSection === 'Preguntas Dinámicas' && (
+          <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 text-center space-y-3">
+            <HelpCircle className="w-8 h-8 text-slate-500 mx-auto" />
+            <h4 className="text-sm font-bold text-white">No hay preguntas dinámicas activas para {candidate.fullName}</h4>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Las preguntas dinámicas son exclusivas de cada candidato. Puedes añadir una nueva abajo o restaurar las preguntas por defecto.
             </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleResetDefaultDynamicQuestions}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all"
+              >
+                Restaurar preguntas por defecto
+              </button>
+              {candidate.cvText && (
+                <button
+                  type="button"
+                  onClick={handleSuggestQuestionsFromCv}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all"
+                >
+                  Sugerir preguntas desde el CV
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'Preguntas Dinámicas' && (
+          <div className="rounded-3xl bg-slate-900/80 border border-slate-800 border-dashed p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Añadir pregunta dinámica para {candidate.fullName}</span>
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Esta pregunta es exclusiva para este candidato y no se compartirá con otros.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {candidate.cvText && (
+                  <button
+                    type="button"
+                    onClick={handleSuggestQuestionsFromCv}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all"
+                    title="Analizar CV y generar preguntas específicas"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Sugerir del CV</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleResetDefaultDynamicQuestions}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 text-xs font-medium transition-all"
+                  title="Restablecer pool predeterminado"
+                >
+                  Restaurar base
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <input
                 type="text"

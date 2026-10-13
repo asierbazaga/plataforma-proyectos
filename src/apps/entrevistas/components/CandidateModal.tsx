@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Sparkles, 
   Upload, 
   Download,
   CheckCircle2, 
-  Briefcase 
+  Briefcase,
+  Trash2,
+  Plus,
+  HelpCircle,
+  RotateCcw
 } from 'lucide-react';
-import { CandidateInterview } from '../../../types';
+import { CandidateInterview, MecaluxCompetencyRubric } from '../../../types';
+import { getDefaultDynamicQuestions } from '../services/mecaluxRubrics';
 import { analyzeCvText, ParsedCvResult } from '../services/cvAnalysisEngine';
 import { extractTextFromPdfFile } from '../services/pdfExtractor';
 import { useToast } from '../../../context/ToastContext';
@@ -74,6 +79,39 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
 
+  const [dynamicQuestions, setDynamicQuestions] = useState<MecaluxCompetencyRubric[]>(() => {
+    if (candidateToEdit?.dynamicQuestions && candidateToEdit.dynamicQuestions.length > 0) {
+      return candidateToEdit.dynamicQuestions;
+    }
+    return getDefaultDynamicQuestions();
+  });
+  const [newCustomQuestionText, setNewCustomQuestionText] = useState('');
+
+  useEffect(() => {
+    if (candidateToEdit) {
+      setCvText(candidateToEdit.cvText || '');
+      setCvFileName(candidateToEdit.cvFileName || '');
+      setFullName(candidateToEdit.fullName || '');
+      setEmail(candidateToEdit.email || '');
+      setPhone(candidateToEdit.phone || '');
+      setLocation(candidateToEdit.location || '');
+      setRole(candidateToEdit.role || PREDEFINED_ROLES[0]);
+      setSeniority(candidateToEdit.seniority || 'Junior');
+      setCurrentCompany(candidateToEdit.currentCompany || '');
+      setCurrentSalaryEur(candidateToEdit.currentSalaryEur);
+      setExpectedSalaryEur(candidateToEdit.expectedSalaryEur);
+      setNoticePeriodWeeks(candidateToEdit.noticePeriodWeeks || 2);
+      setEnglishLevel(candidateToEdit.englishLevel || 'B2');
+      setDynamicQuestions(
+        candidateToEdit.dynamicQuestions && candidateToEdit.dynamicQuestions.length > 0
+          ? candidateToEdit.dynamicQuestions
+          : getDefaultDynamicQuestions()
+      );
+    } else {
+      setDynamicQuestions(getDefaultDynamicQuestions());
+    }
+  }, [candidateToEdit, isOpen]);
+
   const applyAnalysis = (text: string, fileName?: string) => {
     const result = analyzeCvText(text, fileName || cvFileName);
     setAnalysisResult(result);
@@ -105,7 +143,48 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
     if (result.expectedSalaryEur) setExpectedSalaryEur(result.expectedSalaryEur);
     if (result.currentSalaryEur) setCurrentSalaryEur(result.currentSalaryEur);
 
+    // Incorporar preguntas dinámicas personalizadas sugeridas según el CV
+    if (result.customSuggestedQuestions && result.customSuggestedQuestions.length > 0) {
+      const generatedRubrics: MecaluxCompetencyRubric[] = result.customSuggestedQuestions.map((q, idx) => ({
+        id: `cv_dyn_${candidateToEdit?.id || 'new'}_${idx}_${Date.now()}`,
+        section: 'Preguntas Dinámicas',
+        nombre: `${q.category}: ${q.question}`,
+        criterios: {
+          inexistente: 'No responde o no tiene conocimientos sobre el tema planteado.',
+          pobre: 'Respuesta muy básica o superficial; demuestra dudas en la resolución.',
+          bueno: 'Responde con solvencia, lógica y criterio profesional adecuado.',
+          fuerte: 'Dominio total, aporta ejemplos reales y mejores prácticas.'
+        },
+        disparadores: [q.reason]
+      }));
+
+      setDynamicQuestions(prev => {
+        const existingNames = new Set(prev.map(p => p.nombre.toLowerCase()));
+        const unique = generatedRubrics.filter(g => !existingNames.has(g.nombre.toLowerCase()));
+        return [...prev, ...unique];
+      });
+    }
+
     return result;
+  };
+
+  const handleAddCustomQuestionInModal = () => {
+    if (!newCustomQuestionText.trim()) return;
+    const newRubric: MecaluxCompetencyRubric = {
+      id: `cand_dyn_${candidateToEdit?.id || 'new'}_${Date.now()}`,
+      section: 'Preguntas Dinámicas',
+      nombre: newCustomQuestionText.trim(),
+      criterios: {
+        inexistente: 'No responde o no tiene conocimientos sobre el tema planteado.',
+        pobre: 'Respuesta muy básica o superficial; demuestra dudas en la resolución.',
+        bueno: 'Responde con solvencia, lógica y criterio profesional adecuado.',
+        fuerte: 'Dominio total, aporta ejemplos reales y mejores prácticas.'
+      },
+      disparadores: []
+    };
+    setDynamicQuestions(prev => [...prev, newRubric]);
+    setNewCustomQuestionText('');
+    toast.success('Pregunta añadida para este candidato');
   };
 
   const handleAnalyzeCv = () => {
@@ -175,10 +254,12 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
       durationMinutes: candidateToEdit?.durationMinutes || 0,
       cvText,
       parsedSkills: analysisResult?.detectedSkills || candidateToEdit?.parsedSkills || [],
+      dynamicQuestions,
       evaluations: candidateToEdit?.evaluations || {},
       excelEnviadoAJefe,
       resultadoFinal: candidateToEdit?.resultadoFinal ? {
         ...candidateToEdit.resultadoFinal,
+        dynamicQuestions,
         excelEnviadoAJefe
       } : {
         decision: 'Pendiente',
@@ -186,6 +267,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
         puntosFuertes: [],
         puntosAMejorar: [],
         conclusionesTeamLeader: '',
+        dynamicQuestions,
         excelEnviadoAJefe
       },
       createdAt: candidateToEdit?.createdAt || new Date().toISOString(),
@@ -498,6 +580,102 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Sección de Preguntas Dinámicas Personalizadas del Candidato */}
+          <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
+                  <HelpCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Preguntas Dinámicas Personalizadas ({dynamicQuestions.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Preguntas exclusivas para este candidato. No se comparten con otros perfiles.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('¿Restablecer las preguntas dinámicas por defecto para este candidato?')) {
+                    setDynamicQuestions(getDefaultDynamicQuestions());
+                  }
+                }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 text-[11px] font-semibold transition-all self-start sm:self-auto"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Restaurar base</span>
+              </button>
+            </div>
+
+            {/* Listado de preguntas con botón de eliminar */}
+            <div className="space-y-2 pt-1 max-h-56 overflow-y-auto pr-1">
+              {dynamicQuestions.length === 0 ? (
+                <p className="text-xs text-slate-500 italic py-2 text-center">
+                  Sin preguntas dinámicas asignadas. Puedes escribir una personalizada o restaurar la base.
+                </p>
+              ) : (
+                dynamicQuestions.map((q) => (
+                  <div
+                    key={q.id}
+                    className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-slate-700 transition-all text-xs"
+                  >
+                    <div className="space-y-0.5 flex-1">
+                      <span className="font-semibold text-slate-200 leading-relaxed block">
+                        {q.nombre}
+                      </span>
+                      {q.disparadores && q.disparadores.length > 0 && (
+                        <span className="text-[10px] text-cyan-400/80 block italic">
+                          Pista / Disparador: {q.disparadores[0]}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDynamicQuestions(prev => prev.filter(item => item.id !== q.id));
+                        toast.info('Pregunta eliminada para este candidato');
+                      }}
+                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-all flex-shrink-0"
+                      title="Eliminar esta pregunta para este candidato"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Añadir pregunta personalizada rápida */}
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                value={newCustomQuestionText}
+                onChange={(e) => setNewCustomQuestionText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomQuestionInModal();
+                  }
+                }}
+                placeholder="Escribe una pregunta personalizada (ej. ¿Qué experiencia tienes con Oracle PL/SQL?)..."
+                className="flex-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomQuestionInModal}
+                disabled={!newCustomQuestionText.trim()}
+                className="flex items-center gap-1 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-xs font-bold transition-all whitespace-nowrap shadow-md shadow-cyan-600/20"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Añadir</span>
+              </button>
             </div>
           </div>
         </div>

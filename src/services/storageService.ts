@@ -1740,6 +1740,7 @@ class StorageService {
             cvText: c.cv_text,
             cvFileName: c.cv_file_name,
             parsedSkills: c.parsed_skills || [],
+            dynamicQuestions: c.dynamic_questions || c.resultado_final?.dynamicQuestions || undefined,
             evaluations: c.evaluations || {},
             resultadoFinal: c.resultado_final || {},
             excelEnviadoAJefe: Boolean(c.excel_enviado_a_jefe ?? c.resultado_final?.excelEnviadoAJefe ?? c.excelEnviadoAJefe),
@@ -1797,6 +1798,7 @@ class StorageService {
           evaluations: candidateToSave.evaluations || {},
           resultado_final: {
             ...(candidateToSave.resultadoFinal || {}),
+            dynamicQuestions: candidateToSave.dynamicQuestions,
             excelEnviadoAJefe: Boolean(candidateToSave.excelEnviadoAJefe ?? candidateToSave.resultadoFinal?.excelEnviadoAJefe)
           },
           created_at: candidateToSave.createdAt,
