@@ -345,100 +345,95 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
     return (
       <div
         key={item.id}
-        className="group glass-panel rounded-3xl border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 flex flex-col justify-between overflow-hidden bg-slate-900/80"
+        className="group relative flex flex-col justify-between rounded-3xl bg-gradient-to-b from-[#131b2e]/85 via-[#0d1322]/90 to-[#080d1a]/95 backdrop-blur-2xl border border-white/10 hover:border-purple-500/50 shadow-[0_10px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_45px_rgba(168,85,247,0.2)] hover:-translate-y-2 transition-all duration-300 overflow-hidden"
       >
-        {/* Top Cover / Header */}
-        <div className="relative h-44 w-full bg-slate-800 overflow-hidden">
+        {/* Top Cover (Portrait Height for Real Books/Media) */}
+        <div className="relative h-64 sm:h-72 w-full bg-slate-800 overflow-hidden">
           {item.cover_url ? (
             <img
               src={item.cover_url}
               alt={item.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
               onError={e => {
                 (e.target as HTMLElement).style.display = 'none';
               }}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center">
-              <Icon className="w-16 h-16 text-slate-700 group-hover:text-purple-500/40 transition-colors" />
+            <div className="w-full h-full bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 flex flex-col items-center justify-center p-4 text-center">
+              <Icon className="w-16 h-16 text-purple-400/40 mb-2 group-hover:text-purple-400/70 transition-colors" />
+              <span className="text-white font-bold text-sm line-clamp-2">{item.title}</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
-          {/* Badges on top of cover */}
-          <div className="absolute top-3 left-3 flex items-center gap-2">
-            <span
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border backdrop-blur-md ${badge.bg}`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {badge.label}
-            </span>
-            {item.year && (
-              <span className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-black/60 text-slate-300 border border-white/10 backdrop-blur-md">
-                {item.year}
-              </span>
-            )}
+          {/* Smooth overlay shading */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d1322] via-[#0d1322]/20 to-black/30 pointer-events-none" />
+
+          {/* Top Left Glass Badge */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-black/65 backdrop-blur-md border border-white/15 text-white shadow-md z-10">
+            <Icon className="w-3.5 h-3.5 text-purple-300" />
+            <span>{badge.label}</span>
+            {item.year && <span className="text-slate-400 font-semibold">• {item.year}</span>}
           </div>
 
-          {/* Actions */}
+          {/* Top Right Actions (Revealed on Hover) */}
           {canEdit && (
-            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
               <button
-                onClick={() => openEditModal(item)}
+                onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
                 title="Editar"
-                className="p-1.5 rounded-xl bg-black/60 hover:bg-purple-600 text-slate-300 hover:text-white transition-all backdrop-blur-md"
+                className="p-2 rounded-xl bg-black/75 hover:bg-purple-600 text-slate-200 hover:text-white backdrop-blur-md border border-white/20 transition-all shadow-lg active:scale-95"
               >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => handleDelete(item.id)}
+                onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                 title="Eliminar"
-                className="p-1.5 rounded-xl bg-black/60 hover:bg-rose-600 text-slate-300 hover:text-white transition-all backdrop-blur-md"
+                className="p-2 rounded-xl bg-black/75 hover:bg-rose-600 text-slate-200 hover:text-white backdrop-blur-md border border-white/20 transition-all shadow-lg active:scale-95"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          {/* Rating Banner over cover */}
-          <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-xl border border-amber-400/30">
-            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-            <span className="text-sm font-extrabold text-amber-300">{item.rating}/10</span>
+          {/* Golden Rating Badge */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-xl border border-amber-400/35 text-amber-300 font-extrabold text-xs shadow-lg z-10">
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <span>{item.rating}/10</span>
           </div>
         </div>
 
         {/* Content Section */}
-        <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-          <div className="space-y-1">
+        <div className="p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
+          <div className="space-y-1.5">
             <h3
               onClick={() => openEditModal(item)}
-              className="font-bold text-white text-base leading-snug line-clamp-2 hover:text-purple-300 cursor-pointer transition-colors"
+              className="font-extrabold text-white text-base leading-snug line-clamp-2 hover:text-purple-300 cursor-pointer transition-colors"
               title={item.title}
             >
               {item.title}
             </h3>
             {item.author_creator && (
-              <p className="text-xs font-medium text-purple-300 line-clamp-1">
+              <p className="text-xs font-semibold text-purple-300 line-clamp-1">
                 {item.author_creator}
               </p>
             )}
-            <p className="text-xs text-slate-400 line-clamp-1">{item.genre}</p>
+            <p className="text-xs text-slate-400 line-clamp-1 font-medium">{item.genre}</p>
           </div>
 
           {/* Review / Note snippet */}
           {item.user_review && (
-            <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50 text-xs text-slate-300 italic line-clamp-2">
+            <div className="bg-slate-800/50 p-2.5 rounded-xl border border-white/5 text-xs text-slate-300 italic line-clamp-2">
               "{item.user_review}"
             </div>
           )}
 
           {/* Tags */}
           {item.tags && item.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {item.tags.slice(0, 3).map((tag, idx) => (
                 <span
                   key={idx}
-                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700"
+                  className="text-[10px] px-2.5 py-0.5 rounded-lg bg-white/5 text-slate-400 border border-white/10 font-medium"
                 >
                   #{tag}
                 </span>
@@ -453,7 +448,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                 <span>Progreso</span>
                 <span className="text-indigo-300 font-bold">{item.progress_percentage}%</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-800/80 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
                   style={{ width: `${item.progress_percentage}%` }}
@@ -462,56 +457,29 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             </div>
           )}
 
-          {/* Status Bottom Bar with Quick Toggles */}
-          <div className="pt-2 flex justify-between items-center text-xs border-t border-slate-800/80">
-            {canEdit ? (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleQuickStatusChange(item.id, 'completed')}
-                  title="Marcar como Completado"
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
-                    item.status === 'completed'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Hecho
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickStatusChange(item.id, 'in_progress')}
-                  title="Marcar como En Progreso"
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
-                    item.status === 'in_progress'
-                      ? 'bg-indigo-500 text-white shadow-sm'
-                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  En Curso
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickStatusChange(item.id, 'wishlist')}
-                  title="Marcar como Pendiente"
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
-                    item.status === 'wishlist'
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Pendiente
-                </button>
-              </div>
-            ) : (
-              <span className={`px-2.5 py-0.5 rounded-lg font-medium border text-[11px] ${statusBadge.color}`}>
-                {statusBadge.label}
-              </span>
-            )}
+          {/* Status Bottom Bar: Clean single interactive status pill and date */}
+          <div className="pt-3 flex justify-between items-center border-t border-white/10">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canEdit) return;
+                const nextStatus: MediaStatus =
+                  item.status === 'completed' ? 'in_progress' : item.status === 'in_progress' ? 'wishlist' : 'completed';
+                handleQuickStatusChange(item.id, nextStatus);
+              }}
+              title={canEdit ? 'Haz clic para alternar estado (Leído → En Curso → Pendiente)' : undefined}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border transition-all ${statusBadge.color} ${
+                canEdit ? 'hover:scale-105 active:scale-95 cursor-pointer shadow-sm' : ''
+              }`}
+            >
+              <span>{statusBadge.label}</span>
+              {canEdit && <span className="text-[10px] opacity-60 ml-0.5">↻</span>}
+            </button>
 
             {item.completed_date && (
-              <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
+              <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
                 {item.completed_date}
               </span>
             )}
@@ -627,7 +595,10 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
         {/* Media Type Quick Filter */}
         <div className="flex items-center gap-1.5 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto w-full xl:w-auto scrollbar-hide">
           <button
-            onClick={() => setMediaFilter('all')}
+            onClick={() => {
+              setMediaFilter('all');
+              setViewMode('grid');
+            }}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 ${
               mediaFilter === 'all' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
@@ -638,7 +609,10 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             </span>
           </button>
           <button
-            onClick={() => setMediaFilter('book')}
+            onClick={() => {
+              setMediaFilter('book');
+              setViewMode('shelf');
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'book' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
@@ -650,7 +624,10 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             </span>
           </button>
           <button
-            onClick={() => setMediaFilter('game')}
+            onClick={() => {
+              setMediaFilter('game');
+              setViewMode('shelf');
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'game' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
@@ -662,7 +639,10 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             </span>
           </button>
           <button
-            onClick={() => setMediaFilter('movie')}
+            onClick={() => {
+              setMediaFilter('movie');
+              setViewMode('grid');
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'movie' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
@@ -674,7 +654,10 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             </span>
           </button>
           <button
-            onClick={() => setMediaFilter('series')}
+            onClick={() => {
+              setMediaFilter('series');
+              setViewMode('grid');
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               mediaFilter === 'series' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
@@ -694,29 +677,89 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       {activeTab === 'history' && (
         <div className="space-y-6">
           {/* Sub-filters & Search Bar */}
-          <div className="flex flex-col xl:flex-row gap-4 items-stretch xl:items-center justify-between bg-slate-900/70 p-4 rounded-2xl border border-slate-800">
-            {/* Search in History */}
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Buscar por título, autor, género o etiqueta..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+          <div className="bg-slate-900/60 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-white/10 space-y-3.5 shadow-xl">
+            {/* Top Row: Search Input + Sort Dropdown + View Switcher */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar por título, autor, género o etiqueta..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-800/80 border border-white/10 rounded-2xl pl-10 pr-9 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500 transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Right Controls: Sort Dropdown + View Mode Switcher */}
+              <div className="flex items-center justify-end gap-3 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-medium whitespace-nowrap hidden sm:inline">Ordenar:</span>
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as any)}
+                    className="bg-slate-800/90 border border-white/10 text-white text-xs font-semibold rounded-2xl px-3.5 py-2.5 focus:outline-none focus:border-purple-500 cursor-pointer shadow-sm"
+                  >
+                    <option value="recent">Recientes</option>
+                    <option value="rating_desc">Mayor Nota (10 ⭐)</option>
+                    <option value="title">Título (A-Z)</option>
+                  </select>
+                </div>
+
+                {/* View Switcher 3-in-1 */}
+                <div className="flex items-center bg-slate-800/80 p-1 rounded-2xl border border-white/10 shadow-inner">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    title="Vista Cuadrícula de Tarjetas"
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      viewMode === 'grid'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Tarjetas</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    title="Vista Lista Compacta"
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      viewMode === 'list'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <ListIcon className="w-3.5 h-3.5" />
+                    <span>Lista</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('shelf')}
+                    title="Vista Estantería de Cristal"
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      viewMode === 'shelf'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Library className="w-3.5 h-3.5" />
+                    <span>Estantería</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Status Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 xl:pb-0 w-full xl:w-auto scrollbar-hide">
+            {/* Bottom Row: Status Filter Pills with Live Count */}
+            <div className="flex items-center gap-2 pt-2 border-t border-white/5 overflow-x-auto scrollbar-hide">
+              <span className="text-xs text-slate-500 font-semibold mr-1 whitespace-nowrap">Estado:</span>
               <button
                 onClick={() => setStatusFilter('all')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
@@ -761,63 +804,6 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                 <span>Pendientes</span>
                 <span className="text-[10px] opacity-70">({statusCounts.wishlist})</span>
               </button>
-            </div>
-
-            {/* Right Group: Sort & View Mode Switcher */}
-            <div className="flex items-center justify-between xl:justify-end gap-3 flex-wrap">
-              {/* Sort Dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 whitespace-nowrap hidden sm:inline">Ordenar:</span>
-                <select
-                  value={sortBy}
-                  onChange={e => setSortBy(e.target.value as any)}
-                  className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 cursor-pointer"
-                >
-                  <option value="recent">Recientes</option>
-                  <option value="rating_desc">Mayor Nota (10 ⭐)</option>
-                  <option value="title">Título (A-Z)</option>
-                </select>
-              </div>
-
-              {/* View Switcher */}
-              <div className="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  title="Vista Cuadrícula de Tarjetas"
-                  className={`p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                    viewMode === 'grid'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  <span className="hidden md:inline text-[11px]">Tarjetas</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  title="Vista Lista Compacta"
-                  className={`p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                    viewMode === 'list'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <ListIcon className="w-4 h-4" />
-                  <span className="hidden md:inline text-[11px]">Lista</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('shelf')}
-                  title="Vista Estantería Flotante"
-                  className={`p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                    viewMode === 'shelf'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Library className="w-4 h-4" />
-                  <span className="hidden md:inline text-[11px]">Estantería</span>
-                </button>
-              </div>
             </div>
           </div>
 
