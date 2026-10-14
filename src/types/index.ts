@@ -610,6 +610,14 @@ export interface AgendaCompensatoryDay {
 }
 
 
+export interface AgendaLoanPayment {
+  id: string;
+  date: string;
+  amount: number;
+  notes?: string;
+  created_at?: string;
+}
+
 export interface AgendaLoan {
   id: string;
   user_id: string;
@@ -619,7 +627,9 @@ export interface AgendaLoan {
   installment_amount: number;
   start_date: string;
   notes?: string;
+  payments?: AgendaLoanPayment[];
   created_at: string;
   updated_at: string;
 }
+
 

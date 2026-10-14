@@ -2174,6 +2174,7 @@ class StorageService {
             installment_amount: Number(row.installment_amount),
             start_date: row.start_date,
             notes: row.notes,
+            payments: Array.isArray(row.payments) ? row.payments : [],
             created_at: row.created_at,
             updated_at: row.updated_at
           }));
@@ -2182,7 +2183,11 @@ class StorageService {
         }
       } catch (e) {}
     }
-    return this.getLocal<import('../types').AgendaLoan[]>(`agenda_loans_${userId}`, []);
+    const local = this.getLocal<import('../types').AgendaLoan[]>(`agenda_loans_${userId}`, []);
+    return local.map(item => ({
+      ...item,
+      payments: Array.isArray(item.payments) ? item.payments : []
+    }));
   }
 
   async addAgendaLoan(loan: Omit<import('../types').AgendaLoan, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<import('../types').AgendaLoan> {
@@ -2191,6 +2196,7 @@ class StorageService {
       total_amount: Number(loan.total_amount),
       paid_amount: Number(loan.paid_amount),
       installment_amount: Number(loan.installment_amount),
+      payments: Array.isArray(loan.payments) ? loan.payments : [],
       id: generateId('loan'),
       user_id: userId,
       created_at: new Date().toISOString(),
