@@ -13,9 +13,9 @@ import {
   Edit2,
   Calculator,
   ArrowRight,
-  Sparkles,
   CheckCircle2,
   Circle,
+  Sparkles,
 } from "lucide-react";
 import { FitnessRecipe } from "../../types";
 import { FITNESS_RECIPES } from "../fitness/data/fitnessRecipes";
@@ -32,6 +32,53 @@ interface RecetasAppProps {
   onBack?: () => void;
 }
 
+// Resolver inteligente de categoría para asignar un toque visual distintivo pero sutil
+const getRecipeCategoryInfo = (recipe: FitnessRecipe) => {
+  const cat = recipe.category;
+  const text = `${recipe.title} ${recipe.tags?.join(" ") || ""}`.toLowerCase();
+
+  if (text.includes("freidora") || text.includes("airfryer")) {
+    return {
+      label: "Airfryer",
+      icon: "💨",
+      color: "text-amber-400 bg-amber-500/10 border-amber-500/25",
+      accentColor: "from-amber-500 via-orange-500 to-amber-600",
+    };
+  }
+  if (cat === "breakfast" || text.includes("desayuno") || text.includes("avena") || text.includes("tortita") || text.includes("tostada")) {
+    return {
+      label: "Desayuno",
+      icon: "🥣",
+      color: "text-amber-300 bg-amber-500/10 border-amber-500/25",
+      accentColor: "from-amber-400 via-orange-400 to-rose-400",
+    };
+  }
+  if (cat === "dinner" || text.includes("cena") || text.includes("ensalada") || text.includes("salmón") || text.includes("sepia")) {
+    return {
+      label: "Cena",
+      icon: "🥗",
+      color: "text-teal-400 bg-teal-500/10 border-teal-500/25",
+      accentColor: "from-teal-400 via-cyan-500 to-blue-500",
+    };
+  }
+  if (cat === "snack" || text.includes("postre") || text.includes("flan") || text.includes("cheesecake") || text.includes("dulce")) {
+    return {
+      label: "Postre / Snack",
+      icon: "🍰",
+      color: "text-rose-400 bg-rose-500/10 border-rose-500/25",
+      accentColor: "from-rose-500 via-pink-500 to-orange-400",
+    };
+  }
+
+  // Comida / Almuerzo por defecto
+  return {
+    label: "Comida",
+    icon: "🍲",
+    color: "text-orange-400 bg-orange-500/10 border-orange-500/25",
+    accentColor: "from-orange-500 via-rose-500 to-amber-500",
+  };
+};
+
 export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<Tab>("my_recipes");
   const [recipes, setRecipes] = useState<FitnessRecipe[]>(() => {
@@ -45,7 +92,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
   const [showAddManualModal, setShowAddManualModal] = useState(false);
   const [recipeToEdit, setRecipeToEdit] = useState<FitnessRecipe | null>(null);
 
-  // Búsqueda y Filtros limpios
+  // Búsqueda y Filtros
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
@@ -167,10 +214,10 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
 
   return (
     <div className="h-full flex flex-col space-y-5">
-      {/* Header Limpio y Elegante */}
+      {/* Cabecera Limpia */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
             Recetas & Nutrición
           </h1>
           <p className="text-gray-400 text-sm mt-0.5">
@@ -195,13 +242,13 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Barra de Controles: Tabs + Buscador Integrado */}
+      {/* Barra de Controles: Tabs + Buscador */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Selector de Pestañas */}
-        <div className="flex space-x-1.5 bg-slate-800/60 p-1 rounded-xl border border-slate-700/60 w-fit">
+        <div className="flex space-x-1.5 bg-slate-800/70 p-1 rounded-xl border border-slate-700/60 w-fit">
           <button
             onClick={() => setActiveTab("my_recipes")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center space-x-2 ${
               activeTab === "my_recipes"
                 ? "bg-slate-700 text-white shadow-sm"
                 : "text-gray-400 hover:text-white hover:bg-slate-700/40"
@@ -209,13 +256,13 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
           >
             <Search className="w-4 h-4 text-orange-400" />
             <span>Mi Recetario</span>
-            <span className="text-xs px-1.5 py-0.2 bg-slate-900/60 text-gray-300 rounded-md font-semibold ml-1">
+            <span className="text-xs px-1.5 py-0.5 bg-slate-900/70 text-gray-300 rounded-md font-bold ml-1">
               {recipes.length}
             </span>
           </button>
           <button
             onClick={() => setActiveTab("ai_chef")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center space-x-2 ${
               activeTab === "ai_chef"
                 ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-sm"
                 : "text-gray-400 hover:text-white hover:bg-slate-700/40"
@@ -226,7 +273,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
           </button>
         </div>
 
-        {/* Buscador Compacto en Mi Recetario */}
+        {/* Buscador Compacto */}
         {activeTab === "my_recipes" && (
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -235,7 +282,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por receta o ingrediente..."
-              className="w-full bg-slate-800/70 border border-slate-700/70 rounded-xl pl-9 pr-8 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl pl-9 pr-8 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 transition-all"
             />
             {searchQuery && (
               <button
@@ -249,7 +296,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
         )}
       </div>
 
-      {/* Píldoras de Categoría Sutiles y Limpias */}
+      {/* Píldoras de Categoría con estilo moderno */}
       {activeTab === "my_recipes" && (
         <div className="flex items-center space-x-2 overflow-x-auto pb-1 text-xs custom-scrollbar">
           {[
@@ -265,10 +312,10 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
               <button
                 key={cat.id}
                 onClick={() => setCategoryFilter(cat.id as CategoryFilter)}
-                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
+                className={`px-3.5 py-1.5 rounded-xl font-semibold whitespace-nowrap transition-all duration-200 border ${
                   active
-                    ? "bg-slate-700 text-white font-semibold border border-slate-600 shadow-sm"
-                    : "text-gray-400 hover:text-white hover:bg-slate-800/60 border border-transparent"
+                    ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20 border-transparent"
+                    : "bg-slate-800/70 text-gray-400 hover:text-white hover:bg-slate-700/60 border-slate-700/60"
                 }`}
               >
                 {cat.label}
@@ -278,7 +325,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* Grid de Recetas */}
+      {/* Grid de Recetas con Toque Visual Refinado */}
       <div className="flex-1 overflow-y-auto min-h-0 pb-10 pr-1 custom-scrollbar">
         {activeTab === "my_recipes" ? (
           <>
@@ -303,117 +350,174 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredRecipes.map((recipe) => (
-                  <div
-                    key={recipe.id}
-                    className="group bg-slate-800/90 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-2xl p-5 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden"
-                  >
-                    {/* Si tiene foto real subida por el usuario */}
-                    {recipe.image_url && (
-                      <div className="-mx-5 -mt-5 mb-4 h-36 overflow-hidden relative bg-slate-900 border-b border-slate-700/60">
-                        <img
-                          src={recipe.image_url}
-                          alt={recipe.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
-                      </div>
-                    )}
+                {filteredRecipes.map((recipe) => {
+                  const catInfo = getRecipeCategoryInfo(recipe);
 
-                    <div>
-                      {/* Fila Superior: Título + Badge Calorías */}
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <h3 className="font-bold text-base md:text-lg text-white leading-snug line-clamp-2">
-                          {recipe.title}
-                        </h3>
-                        <div className="flex-shrink-0 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full text-xs font-semibold text-orange-400 flex items-center space-x-1">
-                          <Flame className="w-3.5 h-3.5 text-orange-400" />
-                          <span>{recipe.calories} kcal</span>
-                        </div>
-                      </div>
+                  // Cálculo proporcional de la mini-barra de macros (P / C / G)
+                  const pG = Number(recipe.protein) || 0;
+                  const cG = Number(recipe.carbs) || 0;
+                  const fG = Number(recipe.fat) || 0;
+                  const totalG = pG + cG + fG;
+                  const pPct = totalG > 0 ? Math.round((pG / totalG) * 100) : 33;
+                  const cPct = totalG > 0 ? Math.round((cG / totalG) * 100) : 33;
+                  const fPct = totalG > 0 ? Math.max(0, 100 - pPct - cPct) : 34;
 
-                      {/* Metadatos: Tiempo y Dificultad */}
-                      <div className="flex items-center space-x-3 text-xs text-gray-400 mb-3.5">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          <span>{recipe.prep_time_minutes} min</span>
+                  return (
+                    <div
+                      key={recipe.id}
+                      className="group bg-gradient-to-b from-slate-800/95 to-slate-900/95 hover:from-slate-800 hover:to-slate-850 border border-slate-700/70 hover:border-orange-500/40 rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 flex flex-col justify-between relative overflow-hidden"
+                    >
+                      {/* Línea sutil de acento temático superior */}
+                      <div className={`h-1 w-full bg-gradient-to-r ${catInfo.accentColor}`} />
+
+                      {/* Imagen si está disponible */}
+                      {recipe.image_url && (
+                        <div className="h-36 overflow-hidden relative bg-slate-900 border-b border-slate-700/60">
+                          <img
+                            src={recipe.image_url}
+                            alt={recipe.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent" />
                         </div>
-                        {recipe.difficulty && (
-                          <div className="flex items-center space-x-1">
-                            <Info className="w-3.5 h-3.5 text-gray-400" />
-                            <span>{recipe.difficulty}</span>
+                      )}
+
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          {/* Fila Superior: Badge Categoría + Badge Calorías */}
+                          <div className="flex items-center justify-between gap-2 mb-2.5">
+                            <span
+                              className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${catInfo.color}`}
+                            >
+                              <span>{catInfo.icon}</span>
+                              <span>{catInfo.label}</span>
+                            </span>
+
+                            <div className="flex-shrink-0 bg-orange-500/10 border border-orange-500/25 px-2.5 py-0.5 rounded-full text-xs font-bold text-orange-400 flex items-center space-x-1 shadow-sm">
+                              <Flame className="w-3.5 h-3.5 text-orange-400" />
+                              <span>{recipe.calories} kcal</span>
+                            </div>
                           </div>
-                        )}
-                      </div>
 
-                      {/* Tira Unificada de Macronutrientes (P / C / G) */}
-                      <div className="bg-slate-900/60 rounded-xl border border-slate-700/50 p-2.5 my-3 grid grid-cols-3 divide-x divide-slate-800 text-center">
-                        <div className="px-1">
-                          <span className="text-[11px] font-bold text-indigo-400 block tracking-wide">
-                            P
-                          </span>
-                          <span className="text-sm font-bold text-white block mt-0.5">
-                            {recipe.protein}g
-                          </span>
-                        </div>
-                        <div className="px-1">
-                          <span className="text-[11px] font-bold text-emerald-400 block tracking-wide">
-                            C
-                          </span>
-                          <span className="text-sm font-bold text-white block mt-0.5">
-                            {recipe.carbs}g
-                          </span>
-                        </div>
-                        <div className="px-1">
-                          <span className="text-[11px] font-bold text-amber-400 block tracking-wide">
-                            G
-                          </span>
-                          <span className="text-sm font-bold text-white block mt-0.5">
-                            {recipe.fat}g
-                          </span>
-                        </div>
-                      </div>
+                          {/* Título de la Receta */}
+                          <h3 className="font-bold text-base md:text-lg text-white leading-snug line-clamp-2 mb-2 group-hover:text-orange-300 transition-colors">
+                            {recipe.title}
+                          </h3>
 
-                      {/* Etiquetas / Tags de la receta */}
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {recipe.tags?.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 bg-slate-700/60 border border-slate-700 rounded-md text-[11px] text-gray-300 font-medium"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                          {/* Metadatos: Tiempo y Dificultad */}
+                          <div className="flex items-center space-x-3 text-xs text-gray-400 mb-3.5">
+                            <div className="flex items-center space-x-1">
+                              <Clock className="w-3.5 h-3.5 text-orange-400/80" />
+                              <span className="text-gray-300">{recipe.prep_time_minutes} min</span>
+                            </div>
+                            {recipe.difficulty && (
+                              <div className="flex items-center space-x-1.5">
+                                <span
+                                  className={`w-2 h-2 rounded-full ${
+                                    recipe.difficulty === "Fácil"
+                                      ? "bg-emerald-400"
+                                      : recipe.difficulty === "Media"
+                                      ? "bg-amber-400"
+                                      : "bg-rose-400"
+                                  }`}
+                                />
+                                <span className="text-gray-300">{recipe.difficulty}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Tira Nutricional Refinada con Mini Barra Proporcional */}
+                          <div className="my-3 p-2.5 rounded-xl bg-slate-900/70 border border-slate-700/60 shadow-inner">
+                            {/* 3 Columnas de Macros */}
+                            <div className="grid grid-cols-3 gap-1 text-center">
+                              <div>
+                                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
+                                  Prot
+                                </span>
+                                <span className="text-sm font-extrabold text-white mt-0.5 block">
+                                  {recipe.protein}g
+                                </span>
+                              </div>
+                              <div className="border-x border-slate-800">
+                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                                  Carbs
+                                </span>
+                                <span className="text-sm font-extrabold text-white mt-0.5 block">
+                                  {recipe.carbs}g
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
+                                  Grasas
+                                </span>
+                                <span className="text-sm font-extrabold text-white mt-0.5 block">
+                                  {recipe.fat}g
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Mini Barra Visual de Distribución de Macros */}
+                            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden flex mt-2.5">
+                              <div
+                                className="bg-indigo-500 h-full transition-all"
+                                style={{ width: `${pPct}%` }}
+                                title={`Proteína: ${pPct}%`}
+                              />
+                              <div
+                                className="bg-emerald-500 h-full transition-all"
+                                style={{ width: `${cPct}%` }}
+                                title={`Carbohidratos: ${cPct}%`}
+                              />
+                              <div
+                                className="bg-amber-500 h-full transition-all"
+                                style={{ width: `${fPct}%` }}
+                                title={`Grasas: ${fPct}%`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Etiquetas de la Receta */}
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {recipe.tags?.map((tag, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 bg-slate-800/80 border border-slate-700/60 rounded-md text-[11px] text-gray-300 font-medium"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Botón Acción Ver Receta con Transición Glow */}
+                        <button
+                          onClick={() => setSelectedRecipe(recipe)}
+                          className="w-full mt-4 py-2.5 bg-slate-800/90 hover:bg-gradient-to-r hover:from-orange-500 hover:to-rose-500 text-gray-200 hover:text-white rounded-xl transition-all duration-300 text-xs font-bold flex items-center justify-center space-x-2 border border-slate-700 hover:border-transparent hover:shadow-lg hover:shadow-orange-500/20"
+                        >
+                          <span>Ver Receta Completa</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        </button>
                       </div>
                     </div>
+                  );
+                })}
 
-                    {/* Botón Acción Ver Receta */}
-                    <button
-                      onClick={() => setSelectedRecipe(recipe)}
-                      className="w-full mt-4 py-2.5 bg-slate-700/80 hover:bg-slate-700 text-white rounded-xl transition-all duration-200 text-xs font-semibold flex items-center justify-center space-x-2 border border-slate-600/50 hover:border-slate-500 shadow-sm"
-                    >
-                      <span>Ver Receta Completa</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                  </div>
-                ))}
-
-                {/* Tarjeta Añadir Receta Manual */}
+                {/* Tarjeta Añadir Receta Manual Armónica */}
                 <div
                   onClick={() => {
                     setRecipeToEdit(null);
                     setShowAddManualModal(true);
                   }}
-                  className="bg-slate-800/30 border-2 border-dashed border-slate-700 hover:border-orange-500/60 rounded-2xl flex flex-col items-center justify-center p-8 hover:bg-slate-800/50 transition-all cursor-pointer group min-h-[260px]"
+                  className="bg-slate-800/30 border-2 border-dashed border-slate-700/80 hover:border-orange-500/60 rounded-2xl flex flex-col items-center justify-center p-8 hover:bg-slate-800/50 transition-all duration-300 cursor-pointer group min-h-[280px]"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-slate-800 group-hover:bg-orange-500/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-all border border-slate-700 group-hover:border-orange-500/30">
-                    <Plus className="w-6 h-6 text-orange-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-rose-500/20 border border-orange-500/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-orange-500/10">
+                    <Plus className="w-7 h-7 text-orange-400 group-hover:text-orange-300" />
                   </div>
                   <h3 className="text-base font-bold text-white mb-1 group-hover:text-orange-300 transition-colors">
                     Añadir Receta Manual
                   </h3>
-                  <p className="text-xs text-gray-400 text-center max-w-xs">
-                    Introduce tus propios platos y auto-calcula sus macronutrientes.
+                  <p className="text-xs text-gray-400 text-center max-w-xs leading-relaxed">
+                    Introduce tus propios platos y calcula automáticamente sus macronutrientes.
                   </p>
                 </div>
               </div>
@@ -432,7 +536,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
                     Chef IA: Dime qué tienes en la nevera
                   </h2>
                   <p className="text-xs md:text-sm text-gray-400">
-                    Escribe los ingredientes separados por comas y la IA creará una receta fitness para ti.
+                    Escribe los ingredientes separados por comas y la IA creará una receta equilibrada para ti.
                   </p>
                 </div>
               </div>
@@ -621,7 +725,7 @@ export const RecetasApp: React.FC<RecetasAppProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Macros Row en el Modal */}
+              {/* Macros Row en el Modal con auto-recalcular */}
               <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-bold text-white text-xs uppercase tracking-wider">
