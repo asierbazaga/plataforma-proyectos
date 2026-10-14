@@ -87,7 +87,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const appsList: { id: AppId; name: string; icon: React.FC<{ className?: string }>; color: string }[] = [
     { id: 'fitness', name: 'Fitness & Polar', icon: Dumbbell, color: 'text-[#FF6B00]' },
     { id: 'gastos', name: 'Gastos & Finanzas', icon: DollarSign, color: 'text-emerald-400' },
-    { id: 'libros-juegos', name: 'Libros & Juegos', icon: BookOpen, color: 'text-purple-400' },
+    { id: 'libros-juegos', name: 'Libros, Cine & Juegos', icon: BookOpen, color: 'text-purple-400' },
     { id: 'lore', name: 'Lore CRM & Rutas', icon: BookMarked, color: 'text-sky-400' },
     { id: 'entrevistas', name: 'Entrevistas Mecalux', icon: Building, color: 'text-cyan-400' },
     { id: 'inversiones', name: 'Inversiones', icon: Package, color: 'text-yellow-400' },

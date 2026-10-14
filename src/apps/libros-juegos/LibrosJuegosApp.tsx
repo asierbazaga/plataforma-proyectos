@@ -26,7 +26,12 @@ import {
   Award,
   Filter,
   Eye,
-  ThumbsUp
+  ThumbsUp,
+  LayoutGrid,
+  List as ListIcon,
+  Library,
+  CheckCircle2,
+  ChevronDown
 } from 'lucide-react';
 import { LibraryItem, MediaType, MediaStatus } from '../../types';
 import { storageService } from '../../services/storageService';
@@ -56,6 +61,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
   const [statusFilter, setStatusFilter] = useState<MediaStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'rating_desc' | 'recent' | 'title'>('recent');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'shelf'>('grid');
 
   // Explore & Live Search State
   const [exploreQuery, setExploreQuery] = useState('');
@@ -211,6 +217,19 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
     }
   };
 
+  const handleQuickStatusChange = async (id: string, newStatus: MediaStatus) => {
+    if (!canEdit) return;
+    const updates: Partial<LibraryItem> = {
+      status: newStatus,
+      progress_percentage: newStatus === 'completed' ? 100 : newStatus === 'wishlist' ? 0 : 50,
+      completed_date: newStatus === 'completed' ? new Date().toISOString().substring(0, 10) : undefined
+    };
+    await storageService.updateLibraryItem(id, updates);
+    const label = newStatus === 'completed' ? 'Completado' : newStatus === 'in_progress' ? 'En Curso' : 'Pendiente';
+    toast.success(`Estado actualizado a ${label}`);
+    await loadData();
+  };
+
   const handleQuickAddFromCatalog = async (item: SearchResultItem | CatalogItem, status: MediaStatus = 'completed') => {
     const existing = items.find(i => i.title.toLowerCase() === item.title.toLowerCase());
     if (existing) {
@@ -262,6 +281,26 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
     });
   }, [items, mediaFilter, statusFilter, searchQuery, sortBy]);
 
+  const counts = useMemo(() => {
+    return {
+      all: items.length,
+      book: items.filter(i => i.media_type === 'book').length,
+      game: items.filter(i => i.media_type === 'game').length,
+      movie: items.filter(i => i.media_type === 'movie').length,
+      series: items.filter(i => i.media_type === 'series').length,
+    };
+  }, [items]);
+
+  const statusCounts = useMemo(() => {
+    const currentItems = mediaFilter === 'all' ? items : items.filter(i => i.media_type === mediaFilter);
+    return {
+      all: currentItems.length,
+      completed: currentItems.filter(i => i.status === 'completed').length,
+      in_progress: currentItems.filter(i => i.status === 'in_progress').length,
+      wishlist: currentItems.filter(i => i.status === 'wishlist').length,
+    };
+  }, [items, mediaFilter]);
+
   // Recommendations Data
   const recommendationsData = useMemo(() => {
     return recommendationEngine.getPersonalizedRecommendations(items, mediaFilter);
@@ -298,6 +337,190 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
     }
   };
 
+  const renderItemCard = (item: LibraryItem) => {
+    const badge = getMediaBadge(item.media_type);
+    const statusBadge = getStatusBadge(item.status);
+    const Icon = badge.icon;
+
+    return (
+      <div
+        key={item.id}
+        className="group glass-panel rounded-3xl border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 flex flex-col justify-between overflow-hidden bg-slate-900/80"
+      >
+        {/* Top Cover / Header */}
+        <div className="relative h-44 w-full bg-slate-800 overflow-hidden">
+          {item.cover_url ? (
+            <img
+              src={item.cover_url}
+              alt={item.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              onError={e => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center">
+              <Icon className="w-16 h-16 text-slate-700 group-hover:text-purple-500/40 transition-colors" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+
+          {/* Badges on top of cover */}
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            <span
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border backdrop-blur-md ${badge.bg}`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {badge.label}
+            </span>
+            {item.year && (
+              <span className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-black/60 text-slate-300 border border-white/10 backdrop-blur-md">
+                {item.year}
+              </span>
+            )}
+          </div>
+
+          {/* Actions */}
+          {canEdit && (
+            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => openEditModal(item)}
+                title="Editar"
+                className="p-1.5 rounded-xl bg-black/60 hover:bg-purple-600 text-slate-300 hover:text-white transition-all backdrop-blur-md"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleDelete(item.id)}
+                title="Eliminar"
+                className="p-1.5 rounded-xl bg-black/60 hover:bg-rose-600 text-slate-300 hover:text-white transition-all backdrop-blur-md"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Rating Banner over cover */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-xl border border-amber-400/30">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span className="text-sm font-extrabold text-amber-300">{item.rating}/10</span>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+          <div className="space-y-1">
+            <h3
+              onClick={() => openEditModal(item)}
+              className="font-bold text-white text-base leading-snug line-clamp-2 hover:text-purple-300 cursor-pointer transition-colors"
+              title={item.title}
+            >
+              {item.title}
+            </h3>
+            {item.author_creator && (
+              <p className="text-xs font-medium text-purple-300 line-clamp-1">
+                {item.author_creator}
+              </p>
+            )}
+            <p className="text-xs text-slate-400 line-clamp-1">{item.genre}</p>
+          </div>
+
+          {/* Review / Note snippet */}
+          {item.user_review && (
+            <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50 text-xs text-slate-300 italic line-clamp-2">
+              "{item.user_review}"
+            </div>
+          )}
+
+          {/* Tags */}
+          {item.tags && item.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {item.tags.slice(0, 3).map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Progress Bar (if in progress) */}
+          {item.status === 'in_progress' && (
+            <div className="space-y-1 pt-1">
+              <div className="flex justify-between text-[11px] text-slate-400 font-medium">
+                <span>Progreso</span>
+                <span className="text-indigo-300 font-bold">{item.progress_percentage}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                  style={{ width: `${item.progress_percentage}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Status Bottom Bar with Quick Toggles */}
+          <div className="pt-2 flex justify-between items-center text-xs border-t border-slate-800/80">
+            {canEdit ? (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleQuickStatusChange(item.id, 'completed')}
+                  title="Marcar como Completado"
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                    item.status === 'completed'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Hecho
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickStatusChange(item.id, 'in_progress')}
+                  title="Marcar como En Progreso"
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                    item.status === 'in_progress'
+                      ? 'bg-indigo-500 text-white shadow-sm'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  En Curso
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickStatusChange(item.id, 'wishlist')}
+                  title="Marcar como Pendiente"
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                    item.status === 'wishlist'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Pendiente
+                </button>
+              </div>
+            ) : (
+              <span className={`px-2.5 py-0.5 rounded-lg font-medium border text-[11px] ${statusBadge.color}`}>
+                {statusBadge.label}
+              </span>
+            )}
+
+            {item.completed_date && (
+              <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {item.completed_date}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
@@ -317,13 +540,13 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
           </div>
           <div className="flex-1 min-w-0 flex flex-col items-start gap-1.5">
             <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight break-words w-full">
-              CENTRO MULTIMEDIA & RECOMENDACIONES
+              LIBROS, CINE & JUEGOS
             </h1>
             <span className="text-[10px] sm:text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30 font-medium inline-block">
-              Libros • Juegos • Cine • Series
+              Catálogo Personal • Lectura • Gaming • Cine • Series
             </span>
             <p className="text-slate-400 text-xs sm:text-sm mt-1 line-clamp-2">
-              Tu diario personal de entretenimiento, puntuaciones y motor inteligente de recomendaciones.
+              Tu colección personal de ocio, lecturas, valoraciones y motor inteligente de recomendaciones.
             </p>
           </div>
         </div>
@@ -342,7 +565,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-purple-500/30 transition-all hover:scale-105 active:scale-95 text-sm w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
-              Registrar Obra
+              Añadir a mi lista
             </button>
           ) : (
             <div className="flex items-center justify-center gap-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-2 rounded-xl border border-amber-400/20 w-full sm:w-auto">
@@ -364,7 +587,7 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             }`}
           >
             <Bookmark className="w-4 h-4" />
-            Mi Historial ({items.length})
+            Mi Colección ({items.length})
           </button>
           <button
             onClick={() => setActiveTab('explore')}
@@ -405,43 +628,62 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
         <div className="flex items-center gap-1.5 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto w-full xl:w-auto scrollbar-hide">
           <button
             onClick={() => setMediaFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-              mediaFilter === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 ${
+              mediaFilter === 'all' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Todos
+            <span>Todos</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${mediaFilter === 'all' ? 'bg-white/20' : 'bg-slate-800 text-slate-400'}`}>
+              {counts.all}
+            </span>
           </button>
           <button
             onClick={() => setMediaFilter('book')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-              mediaFilter === 'book' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              mediaFilter === 'book' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5" /> Libros
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Libros</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${mediaFilter === 'book' ? 'bg-white/20' : 'bg-slate-800 text-slate-400'}`}>
+              {counts.book}
+            </span>
           </button>
           <button
             onClick={() => setMediaFilter('game')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-              mediaFilter === 'game' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              mediaFilter === 'game' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Gamepad2 className="w-3.5 h-3.5" /> Juegos
+            <Gamepad2 className="w-3.5 h-3.5" />
+            <span>Juegos</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${mediaFilter === 'game' ? 'bg-white/20' : 'bg-slate-800 text-slate-400'}`}>
+              {counts.game}
+            </span>
           </button>
           <button
             onClick={() => setMediaFilter('movie')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-              mediaFilter === 'movie' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              mediaFilter === 'movie' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Film className="w-3.5 h-3.5" /> Películas
+            <Film className="w-3.5 h-3.5" />
+            <span>Películas</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${mediaFilter === 'movie' ? 'bg-white/20' : 'bg-slate-800 text-slate-400'}`}>
+              {counts.movie}
+            </span>
           </button>
           <button
             onClick={() => setMediaFilter('series')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-              mediaFilter === 'series' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              mediaFilter === 'series' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Tv className="w-3.5 h-3.5" /> Series
+            <Tv className="w-3.5 h-3.5" />
+            <span>Series</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${mediaFilter === 'series' ? 'bg-white/20' : 'bg-slate-800 text-slate-400'}`}>
+              {counts.series}
+            </span>
           </button>
         </div>
       </div>
@@ -452,9 +694,9 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
       {activeTab === 'history' && (
         <div className="space-y-6">
           {/* Sub-filters & Search Bar */}
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-slate-900/70 p-4 rounded-2xl border border-slate-800">
+          <div className="flex flex-col xl:flex-row gap-4 items-stretch xl:items-center justify-between bg-slate-900/70 p-4 rounded-2xl border border-slate-800">
             {/* Search in History */}
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-[240px]">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -474,65 +716,112 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
             </div>
 
             {/* Status Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 w-full md:w-auto scrollbar-hide">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 xl:pb-0 w-full xl:w-auto scrollbar-hide">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   statusFilter === 'all'
-                    ? 'bg-slate-700 text-white'
+                    ? 'bg-slate-700 text-white shadow-sm'
                     : 'bg-slate-800/60 text-slate-400 hover:text-white'
                 }`}
               >
-                Cualquier Estado
+                <span>Cualquier Estado</span>
+                <span className="text-[10px] opacity-70">({statusCounts.all})</span>
               </button>
               <button
                 onClick={() => setStatusFilter('completed')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   statusFilter === 'completed'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
                     : 'bg-slate-800/60 text-slate-400 hover:text-white'
                 }`}
               >
-                Completados
+                <span>Completados</span>
+                <span className="text-[10px] opacity-70">({statusCounts.completed})</span>
               </button>
               <button
                 onClick={() => setStatusFilter('in_progress')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   statusFilter === 'in_progress'
-                    ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40'
+                    ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 shadow-sm'
                     : 'bg-slate-800/60 text-slate-400 hover:text-white'
                 }`}
               >
-                En Progreso
+                <span>En Progreso</span>
+                <span className="text-[10px] opacity-70">({statusCounts.in_progress})</span>
               </button>
               <button
                 onClick={() => setStatusFilter('wishlist')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   statusFilter === 'wishlist'
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm'
                     : 'bg-slate-800/60 text-slate-400 hover:text-white'
                 }`}
               >
-                Pendientes
+                <span>Pendientes</span>
+                <span className="text-[10px] opacity-70">({statusCounts.wishlist})</span>
               </button>
             </div>
 
-            {/* Sort Dropdown */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 whitespace-nowrap">Ordenar por:</span>
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
-                className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 cursor-pointer"
-              >
-                <option value="recent">Añadidos recientemente</option>
-                <option value="rating_desc">Mayor Puntuación (10 ⭐)</option>
-                <option value="title">Título (A-Z)</option>
-              </select>
+            {/* Right Group: Sort & View Mode Switcher */}
+            <div className="flex items-center justify-between xl:justify-end gap-3 flex-wrap">
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 whitespace-nowrap hidden sm:inline">Ordenar:</span>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as any)}
+                  className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 cursor-pointer"
+                >
+                  <option value="recent">Recientes</option>
+                  <option value="rating_desc">Mayor Nota (10 ⭐)</option>
+                  <option value="title">Título (A-Z)</option>
+                </select>
+              </div>
+
+              {/* View Switcher */}
+              <div className="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  title="Vista Cuadrícula de Tarjetas"
+                  className={`p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    viewMode === 'grid'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden md:inline text-[11px]">Tarjetas</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  title="Vista Lista Compacta"
+                  className={`p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    viewMode === 'list'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ListIcon className="w-4 h-4" />
+                  <span className="hidden md:inline text-[11px]">Lista</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('shelf')}
+                  title="Vista Estantería Flotante"
+                  className={`p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    viewMode === 'shelf'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Library className="w-4 h-4" />
+                  <span className="hidden md:inline text-[11px]">Estantería</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Grid of Items */}
+          {/* Items Display */}
           {filteredItems.length === 0 ? (
             <div className="p-12 text-center bg-slate-900/40 rounded-3xl border border-slate-800 space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center mx-auto">
@@ -561,12 +850,74 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                 </div>
               )}
             </div>
-          ) : mediaFilter === 'book' ? (
-            <Bookshelf items={filteredItems} canEdit={canEdit} onEdit={openEditModal} onDelete={handleDelete} />
-          ) : mediaFilter === 'game' ? (
-            <GameShelf items={filteredItems} canEdit={canEdit} onEdit={openEditModal} onDelete={handleDelete} />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          ) : viewMode === 'shelf' ? (
+            /* ========================================================================= */
+            /* VIEW 1: SHELF / ESTANTERÍA FLOTANTE */
+            /* ========================================================================= */
+            mediaFilter === 'book' ? (
+              <Bookshelf
+                items={filteredItems}
+                canEdit={canEdit}
+                onEdit={openEditModal}
+                onDelete={handleDelete}
+                onStatusChange={handleQuickStatusChange}
+                onAdd={() => openAddModal({ media_type: 'book' })}
+              />
+            ) : mediaFilter === 'game' ? (
+              <GameShelf
+                items={filteredItems}
+                canEdit={canEdit}
+                onEdit={openEditModal}
+                onDelete={handleDelete}
+                onStatusChange={handleQuickStatusChange}
+                onAdd={() => openAddModal({ media_type: 'game' })}
+              />
+            ) : (
+              /* Composite Shelf for All media */
+              <div className="space-y-8">
+                {filteredItems.filter(i => i.media_type === 'book').length > 0 && (
+                  <Bookshelf
+                    items={filteredItems.filter(i => i.media_type === 'book')}
+                    canEdit={canEdit}
+                    onEdit={openEditModal}
+                    onDelete={handleDelete}
+                    onStatusChange={handleQuickStatusChange}
+                    onAdd={() => openAddModal({ media_type: 'book' })}
+                  />
+                )}
+                {filteredItems.filter(i => i.media_type === 'game').length > 0 && (
+                  <GameShelf
+                    items={filteredItems.filter(i => i.media_type === 'game')}
+                    canEdit={canEdit}
+                    onEdit={openEditModal}
+                    onDelete={handleDelete}
+                    onStatusChange={handleQuickStatusChange}
+                    onAdd={() => openAddModal({ media_type: 'game' })}
+                  />
+                )}
+                {filteredItems.filter(i => i.media_type === 'movie' || i.media_type === 'series').length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                      <Film className="w-4 h-4 text-amber-400" />
+                      <h4 className="text-sm font-bold text-white">Cine & Series en Cuadrícula</h4>
+                      <span className="text-xs text-slate-500">
+                        (La estantería 3D se aplica a Libros y Juegos físicos)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                      {filteredItems
+                        .filter(i => i.media_type === 'movie' || i.media_type === 'series')
+                        .map(item => renderItemCard(item))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          ) : viewMode === 'list' ? (
+            /* ========================================================================= */
+            /* VIEW 2: LIST VIEW (COMPACT & HIGH DENSITY) */
+            /* ========================================================================= */
+            <div className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden divide-y divide-slate-800/80">
               {filteredItems.map(item => {
                 const badge = getMediaBadge(item.media_type);
                 const statusBadge = getStatusBadge(item.status);
@@ -575,135 +926,150 @@ export const LibrosJuegosApp: React.FC<LibrosJuegosAppProps> = ({ onBack }) => {
                 return (
                   <div
                     key={item.id}
-                    className="group glass-panel rounded-3xl border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 flex flex-col justify-between overflow-hidden bg-slate-900/80"
+                    className="p-3 sm:p-4 hover:bg-slate-800/40 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                   >
-                    {/* Top Cover / Header */}
-                    <div className="relative h-44 w-full bg-slate-800 overflow-hidden">
-                      {item.cover_url ? (
-                        <img
-                          src={item.cover_url}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={e => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center">
-                          <Icon className="w-16 h-16 text-slate-700 group-hover:text-purple-500/40 transition-colors" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-
-                      {/* Badges on top of cover */}
-                      <div className="absolute top-3 left-3 flex items-center gap-2">
-                        <span
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border backdrop-blur-md ${badge.bg}`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          {badge.label}
-                        </span>
-                        {item.year && (
-                          <span className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-black/60 text-slate-300 border border-white/10 backdrop-blur-md">
-                            {item.year}
-                          </span>
+                    {/* Left: Thumbnail & Main Info */}
+                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                      <div className="w-12 h-16 sm:w-14 sm:h-20 rounded-xl bg-slate-800 overflow-hidden flex-shrink-0 shadow-md border border-white/10 relative">
+                        {item.cover_url ? (
+                          <img
+                            src={item.cover_url}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                            onError={e => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600">
+                            <Icon className="w-6 h-6" />
+                          </div>
                         )}
                       </div>
 
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4
+                            onClick={() => openEditModal(item)}
+                            className="text-sm sm:text-base font-bold text-white hover:text-purple-300 transition-colors cursor-pointer truncate"
+                            title={item.title}
+                          >
+                            {item.title}
+                          </h4>
+                          {item.year && (
+                            <span className="text-[11px] text-slate-400 font-semibold px-2 py-0.5 rounded-md bg-slate-800/90 border border-slate-700">
+                              {item.year}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
+                          {item.author_creator && (
+                            <span className="text-purple-300 font-medium truncate max-w-[200px]">
+                              {item.author_creator}
+                            </span>
+                          )}
+                          <span className="text-slate-500">•</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.bg} flex items-center gap-1`}>
+                            <Icon className="w-3 h-3" />
+                            {badge.label}
+                          </span>
+                          <span className="text-slate-500">•</span>
+                          <span className="text-slate-400 text-[11px]">{item.genre}</span>
+                        </div>
+
+                        {item.user_review && (
+                          <p className="text-xs text-slate-400 italic line-clamp-1 mt-0.5">
+                            "{item.user_review}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Status, Rating & Actions */}
+                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                      {/* Rating */}
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/50 border border-amber-400/30">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span className="text-xs font-extrabold text-amber-300">{item.rating}/10</span>
+                      </div>
+
+                      {/* Interactive Status Badge */}
+                      {canEdit ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusChange(item.id, 'completed')}
+                            title="Marcar como Completado"
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                              item.status === 'completed'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm'
+                                : 'bg-slate-800/60 text-slate-500 hover:text-slate-300'
+                            }`}
+                          >
+                            Hecho
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusChange(item.id, 'in_progress')}
+                            title="Marcar como En Progreso"
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                              item.status === 'in_progress'
+                                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/50 shadow-sm'
+                                : 'bg-slate-800/60 text-slate-500 hover:text-slate-300'
+                            }`}
+                          >
+                            En Curso
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusChange(item.id, 'wishlist')}
+                            title="Marcar como Pendiente"
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                              item.status === 'wishlist'
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm'
+                                : 'bg-slate-800/60 text-slate-500 hover:text-slate-300'
+                            }`}
+                          >
+                            Pendiente
+                          </button>
+                        </div>
+                      ) : (
+                        <span className={`px-2.5 py-1 rounded-lg font-medium border text-xs ${statusBadge.color}`}>
+                          {statusBadge.label}
+                        </span>
+                      )}
+
                       {/* Actions */}
                       {canEdit && (
-                        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={() => openEditModal(item)}
                             title="Editar"
-                            className="p-1.5 rounded-xl bg-black/60 hover:bg-purple-600 text-slate-300 hover:text-white transition-all backdrop-blur-md"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-purple-600 text-slate-400 hover:text-white transition-colors"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDelete(item.id)}
                             title="Eliminar"
-                            className="p-1.5 rounded-xl bg-black/60 hover:bg-rose-600 text-slate-300 hover:text-white transition-all backdrop-blur-md"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       )}
-
-                      {/* Rating Banner over cover */}
-                      <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-xl border border-amber-400/30">
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <span className="text-sm font-extrabold text-amber-300">{item.rating}/10</span>
-                      </div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                      <div className="space-y-1">
-                        <h3 className="font-bold text-white text-base leading-snug line-clamp-2" title={item.title}>
-                          {item.title}
-                        </h3>
-                        {item.author_creator && (
-                          <p className="text-xs font-medium text-purple-300 line-clamp-1">
-                            {item.author_creator}
-                          </p>
-                        )}
-                        <p className="text-xs text-slate-400 line-clamp-1">{item.genre}</p>
-                      </div>
-
-                      {/* Review / Note snippet */}
-                      {item.user_review && (
-                        <div className="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50 text-xs text-slate-300 italic line-clamp-2">
-                          "{item.user_review}"
-                        </div>
-                      )}
-
-                      {/* Tags */}
-                      {item.tags && item.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {item.tags.slice(0, 3).map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700"
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Progress Bar (if in progress) */}
-                      {item.status === 'in_progress' && (
-                        <div className="space-y-1 pt-1">
-                          <div className="flex justify-between text-[11px] text-slate-400 font-medium">
-                            <span>Progreso</span>
-                            <span className="text-indigo-300 font-bold">{item.progress_percentage}%</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                              style={{ width: `${item.progress_percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Status Bottom Bar */}
-                      <div className="pt-2 flex justify-between items-center text-xs border-t border-slate-800/80">
-                        <span className={`px-2.5 py-0.5 rounded-lg font-medium border text-[11px] ${statusBadge.color}`}>
-                          {statusBadge.label}
-                        </span>
-                        {item.completed_date && (
-                          <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {item.completed_date}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 );
               })}
+            </div>
+          ) : (
+            /* ========================================================================= */
+            /* VIEW 3: GRID VIEW (CARD GRID - DEFAULT) */
+            /* ========================================================================= */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {filteredItems.map(item => renderItemCard(item))}
             </div>
           )}
         </div>

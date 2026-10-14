@@ -34,8 +34,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
         };
       case 'libros-juegos':
         return {
-          title: 'APP LIBROS & JUEGOS',
-          subtitle: 'Biblioteca Digital & Gaming',
+          title: 'LIBROS, CINE & JUEGOS',
+          subtitle: 'Catálogo Multimedia & Ocio',
           icon: <BookOpen className="w-5 h-5 text-white" />,
           gradient: 'from-purple-600 to-pink-500 shadow-purple-500/25',
           accent: 'hover:text-purple-300'

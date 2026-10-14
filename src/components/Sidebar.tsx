@@ -16,7 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
   const appsList: { id: AppId; name: string; icon: React.FC<{ className?: string }>; color: string }[] = [
     { id: 'fitness', name: 'APP FITNESS', icon: Dumbbell, color: 'text-orange-400' },
     { id: 'gastos', name: 'APP GASTOS', icon: DollarSign, color: 'text-emerald-400' },
-    { id: 'libros-juegos', name: 'MULTIMEDIA & CULTURA', icon: BookOpen, color: 'text-purple-400' },
+    { id: 'libros-juegos', name: 'LIBROS, CINE & JUEGOS', icon: BookOpen, color: 'text-purple-400' },
     { id: 'lore', name: 'APP LORE', icon: BookMarked, color: 'text-blue-400' },
     { id: 'entrevistas', name: 'ENTREVISTAS MECALUX', icon: Building, color: 'text-cyan-400' },
     { id: 'agenda', name: 'AGENDA PERSONAL', icon: CalendarDays, color: 'text-blue-400' },
