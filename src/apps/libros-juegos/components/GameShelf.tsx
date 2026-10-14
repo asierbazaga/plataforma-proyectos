@@ -261,94 +261,116 @@ export const GameShelf: React.FC<GameShelfProps> = ({
                           <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                           <span>{item.rating}</span>
                         </div>
+
+                        {/* Direct Action Buttons on Game Cover */}
+                        {canEdit && (
+                          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-30 pointer-events-none group-hover:pointer-events-auto">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                              title="Editar juego"
+                              className="p-2.5 rounded-full bg-slate-900/90 hover:bg-cyan-600 text-white border border-white/25 shadow-xl transition-all hover:scale-110 active:scale-95"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+                              title="Eliminar de la colección"
+                              className="p-2.5 rounded-full bg-slate-900/90 hover:bg-rose-600 text-white border border-white/25 shadow-xl transition-all hover:scale-110 active:scale-95"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Popover Hover Card */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/30 p-3.5 shadow-2xl shadow-cyan-500/20 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 transform group-hover:translate-y-0 translate-y-1">
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-xs font-bold text-white leading-tight line-clamp-2">
-                              {item.title}
-                            </h4>
-                            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 flex-shrink-0">
-                              <Star className="w-2.5 h-2.5 fill-amber-400" />
-                              {item.rating}/10
-                            </span>
-                          </div>
+                      {/* Popover Hover Card with continuous hover bridge */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 pb-3 w-68 sm:w-72 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50">
+                        <div className="relative bg-[#0b101e]/95 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 p-3.5 shadow-2xl shadow-cyan-500/20 before:absolute before:-bottom-4 before:inset-x-0 before:h-6 before:content-['']">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-xs font-bold text-white leading-tight line-clamp-2">
+                                {item.title}
+                              </h4>
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 flex-shrink-0">
+                                <Star className="w-2.5 h-2.5 fill-amber-400" />
+                                {item.rating}/10
+                              </span>
+                            </div>
 
-                          {item.author_creator && (
-                            <p className="text-[11px] text-cyan-300 font-medium line-clamp-1">
-                              {item.author_creator} {item.year ? `(${item.year})` : ''}
-                            </p>
-                          )}
+                            {item.author_creator && (
+                              <p className="text-[11px] text-cyan-300 font-medium line-clamp-1">
+                                {item.author_creator} {item.year ? `(${item.year})` : ''}
+                              </p>
+                            )}
 
-                          {/* Quick Status Selection */}
-                          <div className="pt-1 flex items-center justify-between border-t border-slate-800 text-[10px]">
-                            <span className="text-slate-400">Estado:</span>
-                            {canEdit && onStatusChange ? (
-                              <div className="flex items-center gap-1">
+                            {/* Quick Status Selection */}
+                            <div className="pt-1 flex items-center justify-between border-t border-slate-800 text-[10px]">
+                              <span className="text-slate-400">Estado:</span>
+                              {canEdit && onStatusChange ? (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, 'completed'); }}
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all ${
+                                      item.status === 'completed'
+                                        ? 'bg-emerald-500 text-white'
+                                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                                    }`}
+                                    title="Marcar como Completado"
+                                  >
+                                    Hecho
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, 'in_progress'); }}
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all ${
+                                      item.status === 'in_progress'
+                                        ? 'bg-cyan-500 text-white'
+                                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                                    }`}
+                                    title="Marcar como Jugando"
+                                  >
+                                    Jugando
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, 'wishlist'); }}
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all ${
+                                      item.status === 'wishlist'
+                                        ? 'bg-amber-500 text-white'
+                                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                                    }`}
+                                    title="Marcar como Pendiente"
+                                  >
+                                    Pendiente
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className={`px-2 py-0.5 rounded font-bold ${statusInfo.ribbonColor}`}>
+                                  {statusInfo.label}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Quick Actions */}
+                            {canEdit && (
+                              <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-800/80">
                                 <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, 'completed'); }}
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all ${
-                                    item.status === 'completed'
-                                      ? 'bg-emerald-500 text-white'
-                                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                                  }`}
-                                  title="Marcar como Completado"
+                                  onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-200 hover:text-white text-[10px] font-semibold transition-colors"
                                 >
-                                  Hecho
+                                  <Edit3 className="w-3 h-3" /> Editar
                                 </button>
                                 <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, 'in_progress'); }}
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all ${
-                                    item.status === 'in_progress'
-                                      ? 'bg-cyan-500 text-white'
-                                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                                  }`}
-                                  title="Marcar como Jugando"
+                                  onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-rose-300 hover:text-white text-[10px] font-semibold transition-colors"
+                                  title="Eliminar de la colección"
                                 >
-                                  Jugando
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, 'wishlist'); }}
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all ${
-                                    item.status === 'wishlist'
-                                      ? 'bg-amber-500 text-white'
-                                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                                  }`}
-                                  title="Marcar como Pendiente"
-                                >
-                                  Pendiente
+                                  <Trash2 className="w-3 h-3" /> Borrar
                                 </button>
                               </div>
-                            ) : (
-                              <span className={`px-2 py-0.5 rounded font-bold ${statusInfo.ribbonColor}`}>
-                                {statusInfo.label}
-                              </span>
                             )}
                           </div>
-
-                          {/* Quick Actions */}
-                          {canEdit && (
-                            <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-800/80">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white text-[10px] font-semibold transition-colors"
-                              >
-                                <Edit3 className="w-3 h-3" /> Editar
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-                                className="p-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white transition-colors"
-                                title="Eliminar de la colección"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
