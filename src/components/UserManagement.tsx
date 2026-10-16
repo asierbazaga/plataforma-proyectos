@@ -755,6 +755,34 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
             <form onSubmit={handleCreateUser} className="space-y-3.5 text-xs">
               <div>
+                <label className="text-slate-400 font-medium block mb-1">Preseleccionar Técnico Mecalux (Opcional)</label>
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      setAddName(val);
+                      // Generar email amigable automático
+                      const clean = val.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(' ');
+                      const generatedEmail = `${clean[0]}.${clean[1] || 'tecnico'}@mecalux.com`;
+                      setAddEmail(generatedEmail);
+                      setAddDepartment('Mecalux SGA');
+                    }
+                  }}
+                  className="w-full bg-[#090C15] border border-cyan-500/30 rounded-xl px-3.5 py-2 text-cyan-400 font-bold focus:outline-none mb-2"
+                >
+                  <option value="">-- Elegir de la lista de Técnicos Oficiales --</option>
+                  <option value="Asier Beamonte Urretxo">Asier Beamonte Urretxo</option>
+                  <option value="Hugo Uría Miguelez">Hugo Uría Miguelez</option>
+                  <option value="Javier Masero Delgado">Javier Masero Delgado</option>
+                  <option value="Jose Maria Abad Fernández">Jose Maria Abad Fernández</option>
+                  <option value="Pablo Navareño Bernardo de la Rua">Pablo Navareño Bernardo de la Rua</option>
+                  <option value="Pablo Plaza Perez">Pablo Plaza Perez</option>
+                  <option value="Roberto Gomez Fernandez">Roberto Gomez Fernandez</option>
+                  <option value="Yoel Rozada Penil">Yoel Rozada Penil</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="text-slate-400 font-medium block mb-1">Nombre Completo</label>
                 <input
                   type="text"

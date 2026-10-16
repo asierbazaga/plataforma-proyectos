@@ -242,14 +242,24 @@ export const agendaService = {
   },
 
   // --- COMPENSATORY DAYS ---
-  async getCompensatoryDays(userId: string): Promise<AgendaCompensatoryDay[]> {
-    const { data, error } = await supabase
+  async getCompensatoryDays(userId?: string): Promise<AgendaCompensatoryDay[]> {
+    let query = supabase
       .from('agenda_compensatory_days')
       .select('*')
-      .eq('user_id', userId)
       .order('date', { ascending: false });
 
-    if (error) throw error;
+    // Si se especifica userId y no es un usuario global, podemos filtrar, o si es técnico obtener los de su equipo/empresa
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn('Fallback al consultar agenda_compensatory_days:', error.message);
+      // Intentar filtrar por user_id si hay RLS estricto
+      if (userId) {
+        const res = await supabase.from('agenda_compensatory_days').select('*').eq('user_id', userId).order('date', { ascending: false });
+        if (!res.error && res.data) return res.data;
+      }
+      return [];
+    }
     return data || [];
   },
 

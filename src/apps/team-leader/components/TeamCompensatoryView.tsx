@@ -10,16 +10,18 @@ import {
   Calendar, 
   X, 
   Calculator, 
-  Clock,
-  User,
-  ShieldCheck,
-  Search,
-  Award,
-  Sparkles,
-  ChevronRight,
-  UserPlus,
-  Layers,
-  ArrowRight
+  Clock, 
+  User, 
+  ShieldCheck, 
+  Search, 
+  Award, 
+  Sparkles, 
+  ChevronRight, 
+  UserPlus, 
+  Layers, 
+  ArrowRight,
+  Lock,
+  CalendarCheck2
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -42,17 +44,53 @@ export const TeamCompensatoryView: React.FC = () => {
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
   
+  // Asier es Team Leader / Admin
+  const isTeamLeader = currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga');
+
   const [days, setDays] = useState<AgendaCompensatoryDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+
+  // Normalizar nombre de técnico en registros
+  const normalizeTechName = (rawName?: string) => {
+    if (!rawName) return 'Asier Bazaga';
+    if (rawName.includes('Bazaga')) return 'Asier Bazaga';
+    return rawName.trim();
+  };
+
+  // Buscar coincidencia de técnico con el usuario logueado si no es Team Leader
+  const currentTechnicianMatch = useMemo(() => {
+    if (isTeamLeader) return null;
+    if (!currentUser) return null;
+
+    const userFullName = (currentUser.full_name || '').toLowerCase().trim();
+    const userEmail = (currentUser.email || '').toLowerCase().trim();
+
+    // Intentar buscar por nombre oficial
+    const found = OFFICIAL_TEAM_MEMBERS.find(m => {
+      const mName = m.name.toLowerCase();
+      // Comparar nombre exacto o inclusión de nombre de pila + primer apellido
+      if (userFullName && (mName.includes(userFullName) || userFullName.includes(mName))) return true;
+      const parts = mName.split(' ');
+      if (parts.length >= 2 && userFullName.includes(parts[0]) && userFullName.includes(parts[1])) return true;
+      if (userEmail && userEmail.includes(parts[0])) return true;
+      return false;
+    });
+
+    return found ? found.name : currentUser.full_name;
+  }, [currentUser, isTeamLeader]);
   
   // Filtro de miembro del equipo ('all', o nombre completo)
-  const [selectedMember, setSelectedMember] = useState<string>('all');
-  const [searchMember, setSearchMember] = useState<string>('');
+  // Si es un técnico, forzamos su propio nombre por defecto
+  const [selectedMember, setSelectedMember] = useState<string>(
+    isTeamLeader ? 'all' : (currentTechnicianMatch || 'all')
+  );
 
   // Form states para asignación
-  const [newTechnician, setNewTechnician] = useState<string>('Asier Bazaga');
+  const [newTechnician, setNewTechnician] = useState<string>(
+    isTeamLeader ? 'Asier Bazaga' : (currentTechnicianMatch || 'Asier Bazaga')
+  );
   const [customTechnicianName, setCustomTechnicianName] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newTotal, setNewTotal] = useState<number | string>(1);
@@ -73,6 +111,7 @@ export const TeamCompensatoryView: React.FC = () => {
   const loadDays = async () => {
     try {
       setLoading(true);
+      // Cargar todas las bolsas compensables del equipo
       const data = await agendaService.getCompensatoryDays(currentUser!.id);
       setDays(data);
     } catch (error) {
@@ -80,13 +119,6 @@ export const TeamCompensatoryView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Normalizar nombre de técnico en registros antiguos
-  const normalizeTechName = (rawName?: string) => {
-    if (!rawName) return 'Asier Bazaga';
-    if (rawName.includes('Bazaga')) return 'Asier Bazaga';
-    return rawName.trim();
   };
 
   // Lista dinámica de miembros (los 9 oficiales + cualquier extra añadido)
@@ -198,6 +230,7 @@ export const TeamCompensatoryView: React.FC = () => {
   };
 
   const deleteDay = async (id: string) => {
+    if (!isTeamLeader) return; // Solo el Team Leader puede eliminar bolsas
     setDays(days.filter(d => d.id !== id));
     try {
       await agendaService.deleteCompensatoryDay(id);
@@ -207,9 +240,13 @@ export const TeamCompensatoryView: React.FC = () => {
     }
   };
 
-  // Filtrado por miembro del equipo
+  // Filtrado de días:
+  // Si es técnico y no es TL, solo ve SUS PROPIOS DÍAS COMPENSABLES
   const filteredDays = days.filter(d => {
     const norm = normalizeTechName(d.technician_name);
+    if (!isTeamLeader && currentTechnicianMatch) {
+      return norm === currentTechnicianMatch;
+    }
     if (selectedMember === 'all') return true;
     return norm === selectedMember;
   });
@@ -277,133 +314,162 @@ export const TeamCompensatoryView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 1. Tarjetas del Equipo de Técnicos (Overview Visual Rápido) */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
-          <div>
-            <h2 className="text-sm font-black text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-cyan-400" />
-              Equipo Mecalux ({allMembersList.length} Miembros)
-            </h2>
-            <p className="text-xs text-slate-400">
-              Selecciona un técnico para filtrar sus bolsas de compensables o ver su saldo disponible
-            </p>
+      {/* 1. Tarjetas del Equipo de Técnicos (Solo visible si eres Team Leader Asier) */}
+      {isTeamLeader ? (
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+            <div>
+              <h2 className="text-sm font-black text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-cyan-400" />
+                Equipo Mecalux ({allMembersList.length} Miembros)
+              </h2>
+              <p className="text-xs text-slate-400">
+                Selecciona un técnico para filtrar sus bolsas o asignar nuevos días compensables
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCalculator(!showCalculator)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  showCalculator 
+                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
+                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Calculator className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Calc. Horas Agosto</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (selectedMember !== 'all') {
+                    setNewTechnician(selectedMember);
+                  } else {
+                    setNewTechnician('Asier Bazaga');
+                  }
+                  setIsAdding(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Asignar Compensable</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Grid de Miembros del Equipo */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+            {/* Botón Ver Todos */}
+            <button
+              onClick={() => setSelectedMember('all')}
+              className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                selectedMember === 'all'
+                  ? 'bg-gradient-to-b from-indigo-900/60 to-slate-900 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
+                  : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
+                  <Users className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                  {days.length} bolsas
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-black text-white">Todo el Equipo</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Vista global</p>
+              </div>
+            </button>
+
+            {/* Tarjetas individuales de los 8 técnicos + Asier */}
+            {allMembersList.map((m) => {
+              const isSelected = selectedMember === m.name;
+              const stats = memberStats[m.name] || { earned: 0, spent: 0, remaining: 0, totalBags: 0 };
+              const initials = m.name
+                .split(' ')
+                .filter(p => p.length > 2)
+                .slice(0, 2)
+                .map(p => p[0])
+                .join('');
+
+              return (
+                <button
+                  key={m.name}
+                  onClick={() => setSelectedMember(m.name)}
+                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group ${
+                    isSelected
+                      ? m.isLead
+                        ? 'bg-gradient-to-b from-blue-900/60 to-slate-900 border-blue-500/50 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/30'
+                        : 'bg-gradient-to-b from-cyan-900/60 to-slate-900 border-cyan-500/50 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30'
+                      : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm ${
+                      m.isLead 
+                        ? 'bg-blue-600/25 text-blue-300 border border-blue-500/30' 
+                        : 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/30'
+                    }`}>
+                      {initials || m.name.slice(0, 2).toUpperCase()}
+                    </div>
+
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                      stats.remaining > 0 
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' 
+                        : 'bg-slate-800 text-slate-500'
+                    }`}>
+                      {stats.remaining} d.
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-white truncate max-w-[130px]" title={m.name}>
+                        {m.name}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
+                      <span className={m.isLead ? 'text-blue-400 font-semibold' : 'text-slate-500'}>
+                        {m.isLead ? 'Team Leader' : 'Técnico'}
+                      </span>
+                      <span>{stats.totalBags} reg.</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Vista de Cabecera para el Técnico individual */
+        <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
+              <UserCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">
+                Tus Días Compensables ({currentTechnicianMatch || currentUser?.full_name})
+              </h2>
+              <p className="text-xs text-slate-400">
+                Consulta tu saldo disponible, días asignados por tu Team Leader y días ya disfrutados
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCalculator(!showCalculator)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                showCalculator 
-                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
-                  : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
             >
               <Calculator className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Calc. Horas Agosto</span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (selectedMember !== 'all') {
-                  setNewTechnician(selectedMember);
-                } else {
-                  setNewTechnician('Asier Bazaga');
-                }
-                setIsAdding(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Asignar Compensable</span>
+              <span>Calc. Agosto</span>
             </button>
           </div>
         </div>
-
-        {/* Grid de Miembros del Equipo */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-          {/* Botón Ver Todos */}
-          <button
-            onClick={() => setSelectedMember('all')}
-            className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-              selectedMember === 'all'
-                ? 'bg-gradient-to-b from-indigo-900/60 to-slate-900 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
-                : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
-                <Users className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                {days.length} bolsas
-              </span>
-            </div>
-            <div>
-              <p className="text-xs font-black text-white">Todo el Equipo</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Vista global</p>
-            </div>
-          </button>
-
-          {/* Tarjetas individuales de los 8 técnicos + Asier */}
-          {allMembersList.map((m) => {
-            const isSelected = selectedMember === m.name;
-            const stats = memberStats[m.name] || { earned: 0, spent: 0, remaining: 0, totalBags: 0 };
-            const initials = m.name
-              .split(' ')
-              .filter(p => p.length > 2)
-              .slice(0, 2)
-              .map(p => p[0])
-              .join('');
-
-            return (
-              <button
-                key={m.name}
-                onClick={() => setSelectedMember(m.name)}
-                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group ${
-                  isSelected
-                    ? m.isLead
-                      ? 'bg-gradient-to-b from-blue-900/60 to-slate-900 border-blue-500/50 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/30'
-                      : 'bg-gradient-to-b from-cyan-900/60 to-slate-900 border-cyan-500/50 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30'
-                    : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm ${
-                    m.isLead 
-                      ? 'bg-blue-600/25 text-blue-300 border border-blue-500/30' 
-                      : 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/30'
-                  }`}>
-                    {initials || m.name.slice(0, 2).toUpperCase()}
-                  </div>
-
-                  <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
-                    stats.remaining > 0 
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' 
-                      : 'bg-slate-800 text-slate-500'
-                  }`}>
-                    {stats.remaining} d.
-                  </span>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-white truncate max-w-[130px]" title={m.name}>
-                      {m.name}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
-                    <span className={m.isLead ? 'text-blue-400 font-semibold' : 'text-slate-500'}>
-                      {m.isLead ? 'Team Leader' : 'Técnico'}
-                    </span>
-                    <span>{stats.totalBags} reg.</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      )}
 
       {/* 2. Calculadora de Horas de Agosto (Desplegable) */}
       {showCalculator && (
@@ -473,7 +539,9 @@ export const TeamCompensatoryView: React.FC = () => {
           </div>
           <div className="text-2xl font-black text-white">{totalEarned} días</div>
           <p className="text-[11px] text-slate-500">
-            {selectedMember === 'all' ? 'Total sumando todo el equipo' : `Asignados a ${selectedMember}`}
+            {isTeamLeader && selectedMember === 'all' 
+              ? 'Total sumando todo el equipo' 
+              : `Asignados en total`}
           </p>
         </div>
 
@@ -485,7 +553,7 @@ export const TeamCompensatoryView: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-black text-white">{totalSpent} días</div>
-          <p className="text-[11px] text-slate-500">Consumidos o librados en calendario</p>
+          <p className="text-[11px] text-slate-500">Consumidos o librados</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-gradient-to-tr from-cyan-950/40 via-slate-900/80 to-blue-950/40 border border-cyan-500/30 space-y-1">
@@ -496,12 +564,12 @@ export const TeamCompensatoryView: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-black text-cyan-400">{totalRemaining} días</div>
-          <p className="text-[11px] text-slate-400">Disponibles por disfrutar</p>
+          <p className="text-[11px] text-slate-400">Disponibles por librar</p>
         </div>
       </div>
 
-      {/* 4. Formulario de Alta de Bolsa Compensable */}
-      {isAdding && (
+      {/* 4. Formulario de Alta de Bolsa Compensable (Solo Team Leader) */}
+      {isTeamLeader && isAdding && (
         <form onSubmit={handleAddDay} className="p-6 rounded-3xl bg-slate-900 border border-cyan-500/30 space-y-4 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -616,10 +684,14 @@ export const TeamCompensatoryView: React.FC = () => {
       <div className="space-y-3.5">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Registros Detallados ({filteredDays.length})
+            {isTeamLeader ? 'Registros Detallados' : 'Tus Bolsas Asignadas'} ({filteredDays.length})
           </h3>
           <span className="text-[11px] text-slate-400">
-            Filtrando por: <strong className="text-white">{selectedMember === 'all' ? 'Todo el equipo' : selectedMember}</strong>
+            {isTeamLeader ? (
+              <>Filtrando por: <strong className="text-white">{selectedMember === 'all' ? 'Todo el equipo' : selectedMember}</strong></>
+            ) : (
+              <span className="text-emerald-400 font-bold">Vista Personal Autorizada</span>
+            )}
           </span>
         </div>
 
@@ -627,10 +699,12 @@ export const TeamCompensatoryView: React.FC = () => {
           <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
             <Clock className="w-8 h-8 text-slate-600 mx-auto" />
             <h4 className="text-sm font-bold text-slate-300">
-              No hay días registrados para {selectedMember === 'all' ? 'el equipo' : selectedMember}
+              No hay días registrados {isTeamLeader ? `para ${selectedMember === 'all' ? 'el equipo' : selectedMember}` : 'en tu cuenta aún'}
             </h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Pulsa en "+ Asignar Compensable" para registrar nuevos días ganados por guardias, viajes o exceso de horas.
+              {isTeamLeader 
+                ? 'Pulsa en "+ Asignar Compensable" para registrar nuevos días ganados por guardias o exceso de horas.' 
+                : 'Tu Team Leader (Asier Bazaga) asignará tus días compensables cuando realices guardias o exceso de jornada.'}
             </p>
           </div>
         ) : (
@@ -679,13 +753,15 @@ export const TeamCompensatoryView: React.FC = () => {
                       {isCompleted ? 'Completado' : `Saldo: ${day.total_days - day.spent_days} d.`}
                     </span>
 
-                    <button
-                      onClick={() => deleteDay(day.id)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Eliminar registro"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isTeamLeader && (
+                      <button
+                        onClick={() => deleteDay(day.id)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Eliminar registro"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -713,13 +789,15 @@ export const TeamCompensatoryView: React.FC = () => {
                       >
                         <Calendar className="w-3 h-3 text-cyan-400" />
                         <span>{new Date(log.date).toLocaleDateString()}</span>
-                        <button 
-                          onClick={() => removeSpentLog(day, log.id)}
-                          className="hover:text-rose-400 ml-1 text-slate-500"
-                          title="Deshacer este día librado"
-                        >
-                          ✕
-                        </button>
+                        {isTeamLeader && (
+                          <button 
+                            onClick={() => removeSpentLog(day, log.id)}
+                            className="hover:text-rose-400 ml-1 text-slate-500"
+                            title="Deshacer este día librado"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     ))}
                     {(!day.spent_logs || day.spent_logs.length === 0) && (
