@@ -50,8 +50,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
         };
       case 'entrevistas':
         return {
-          title: 'MECALUX TALENT & ENTREVISTAS',
-          subtitle: 'Evaluación Team Leader & Excel',
+          title: 'TEAM LEADER',
+          subtitle: 'Plugin Entrevistas & Trabajo',
           icon: <Building className="w-5 h-5 text-white" />,
           gradient: 'from-cyan-600 via-blue-600 to-indigo-600 shadow-blue-500/25',
           accent: 'hover:text-cyan-300'

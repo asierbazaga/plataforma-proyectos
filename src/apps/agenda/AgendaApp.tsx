@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckSquare, Briefcase, Home, TrendingDown } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Home, TrendingDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 import { TasksView } from './components/TasksView';
 import { RentView } from './components/RentView';
-import { WorkView } from './components/WorkView';
 import { LoansView } from './components/LoansView';
 
 interface AgendaAppProps {
   onBack: () => void;
 }
 
-type TabId = 'tasks' | 'rent' | 'loans' | 'work';
+type TabId = 'tasks' | 'rent' | 'loans';
 
 export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
   const { isDark } = useTheme();
@@ -22,7 +21,6 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
     { id: 'tasks', label: 'Tareas', icon: CheckSquare },
     { id: 'loans', label: 'Préstamos', icon: TrendingDown },
     { id: 'rent', label: 'Alquiler', icon: Home },
-    { id: 'work', label: 'Trabajo', icon: Briefcase },
   ] as const;
 
   return (
@@ -74,7 +72,6 @@ export const AgendaApp: React.FC<AgendaAppProps> = ({ onBack }) => {
         {activeTab === 'tasks' && <TasksView />}
         {activeTab === 'loans' && <LoansView />}
         {activeTab === 'rent' && <RentView />}
-        {activeTab === 'work' && <WorkView />}
       </div>
     </div>
   );

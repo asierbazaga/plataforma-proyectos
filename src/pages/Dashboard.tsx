@@ -148,19 +148,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
     {
       id: 'entrevistas' as AppId,
       number: '05',
-      category: 'Selección & Team Leader',
-      title: 'Mecalux Talent & Entrevistas',
-      subtitle: 'Evaluación por competencias, disparadores y Excel',
-      description: 'Módulo de entrevistas técnicas y de liderazgo para Mecalux. Guía con disparadores dinámicos según CV, cálculo ponderado y generación automática de la plantilla Excel oficial (.xlsx).',
+      category: 'Gestión & Liderazgo',
+      title: 'Team Leader',
+      subtitle: 'Entrevistas Mecalux y Gestión de Trabajo',
+      description: 'Hub de gestión para el Team Leader. Integra el plugin de entrevistas técnicas y de liderazgo para Mecalux (rúbricas, análisis de CV y Excel) junto con el plugin de Trabajo y días compensables.',
       icon: Building,
       glowColor: 'group-hover:shadow-cyan-500/20 group-hover:border-cyan-500/50',
       iconGradient: 'from-cyan-500 via-blue-600 to-indigo-600 shadow-cyan-500/30',
       tagColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
       btnGradient: 'from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 shadow-cyan-500/25',
       highlights: [
-        { text: 'Rúbricas Mecalux', label: 'Rúbricas Mecalux', icon: Award },
-        { text: 'Plantilla Excel (.xlsx)', label: 'Plantilla Excel (.xlsx)', icon: FileSpreadsheet },
-        { text: 'Análisis de CV', label: 'Análisis de CV', icon: Sparkles }
+        { text: 'Plugin Entrevistas', label: 'Plugin Entrevistas', icon: Award },
+        { text: 'Plugin Trabajo', label: 'Plugin Trabajo', icon: Calendar },
+        { text: 'Plantilla Excel (.xlsx)', label: 'Plantilla Excel (.xlsx)', icon: FileSpreadsheet }
       ]
     },
     {

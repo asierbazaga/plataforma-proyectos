@@ -13,7 +13,7 @@ const FitnessApp = lazy(() => import('./apps/fitness/FitnessApp').then(m => ({ d
 const GastosApp = lazy(() => import('./apps/gastos/GastosApp').then(m => ({ default: m.GastosApp })));
 const LibrosJuegosApp = lazy(() => import('./apps/libros-juegos/LibrosJuegosApp').then(m => ({ default: m.LibrosJuegosApp })));
 const LoreApp = lazy(() => import('./apps/lore/LoreApp').then(m => ({ default: m.LoreApp })));
-const EntrevistasApp = lazy(() => import('./apps/entrevistas/EntrevistasApp').then(m => ({ default: m.EntrevistasApp })));
+const TeamLeaderApp = lazy(() => import('./apps/team-leader/TeamLeaderApp').then(m => ({ default: m.TeamLeaderApp })));
 const InversionesApp = lazy(() => import('./apps/inversiones/InversionesApp').then(m => ({ default: m.InversionesApp })));
 const AgendaApp = lazy(() => import('./apps/agenda/AgendaApp').then(m => ({ default: m.AgendaApp })));
 const RecetasApp = lazy(() => import('./apps/recetas/RecetasApp').then(m => ({ default: m.RecetasApp })));
@@ -66,7 +66,7 @@ const MainLayout: React.FC = () => {
       case 'gastos': return 'App Gastos & Finanzas';
       case 'libros-juegos': return 'App Libros & Juegos';
       case 'lore': return 'App Lore & Rutas';
-      case 'entrevistas': return 'Mecalux Talent & Entrevistas';
+      case 'entrevistas': return 'Team Leader';
       case 'inversiones': return 'Inversiones & Coleccionismo';
       case 'agenda': return 'Agenda Personal';
       case 'recetas': return 'Recetas & Nutrición';
@@ -98,8 +98,8 @@ const MainLayout: React.FC = () => {
         return <LoreApp onBack={handleBackToDashboard} />;
 
       case 'entrevistas':
-        if (!hasAccessToApp('entrevistas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="ENTREVISTAS MECALUX" />;
-        return <EntrevistasApp onBack={handleBackToDashboard} />;
+        if (!hasAccessToApp('entrevistas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="TEAM LEADER" />;
+        return <TeamLeaderApp onBack={handleBackToDashboard} />;
         
       case 'inversiones':
         if (!hasAccessToApp('inversiones')) return <AccessDeniedView onBack={handleBackToDashboard} appName="INVERSIONES" />;
@@ -218,7 +218,7 @@ const MainLayout: React.FC = () => {
             }`}
           >
             <Building className="w-4 h-4" />
-            <span className="text-[10px]">Entrevistas</span>
+            <span className="text-[10px]">Team Leader</span>
           </button>
         )}
 
