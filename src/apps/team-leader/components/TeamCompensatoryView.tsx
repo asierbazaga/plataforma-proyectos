@@ -55,7 +55,16 @@ export const TeamCompensatoryView: React.FC = () => {
   // Normalizar nombre de técnico en registros
   const normalizeTechName = (rawName?: string) => {
     if (!rawName) return 'Asier Bazaga';
-    if (rawName.includes('Bazaga')) return 'Asier Bazaga';
+    const s = rawName.toLowerCase();
+    if (s.includes('bazaga')) return 'Asier Bazaga';
+    if (s.includes('beamonte')) return 'Asier Beamonte Urretxo';
+    if (s.includes('uría') || s.includes('uria')) return 'Hugo Uría Miguelez';
+    if (s.includes('masero')) return 'Javier Masero Delgado';
+    if (s.includes('abad')) return 'Jose Maria Abad Fernández';
+    if (s.includes('navareño') || s.includes('navareno')) return 'Pablo Navareño Bernardo de la Rua';
+    if (s.includes('plaza')) return 'Pablo Plaza Perez';
+    if (s.includes('gomez') || s.includes('gómez')) return 'Roberto Gomez Fernandez';
+    if (s.includes('rozada')) return 'Yoel Rozada Penil';
     return rawName.trim();
   };
 
@@ -67,18 +76,31 @@ export const TeamCompensatoryView: React.FC = () => {
     const userFullName = (currentUser.full_name || '').toLowerCase().trim();
     const userEmail = (currentUser.email || '').toLowerCase().trim();
 
-    // Intentar buscar por nombre oficial
-    const found = OFFICIAL_TEAM_MEMBERS.find(m => {
+    // Intentar buscar coincidencia inteligente por apellidos o emails corporativos
+    for (const m of OFFICIAL_TEAM_MEMBERS) {
       const mName = m.name.toLowerCase();
-      // Comparar nombre exacto o inclusión de nombre de pila + primer apellido
-      if (userFullName && (mName.includes(userFullName) || userFullName.includes(mName))) return true;
-      const parts = mName.split(' ');
-      if (parts.length >= 2 && userFullName.includes(parts[0]) && userFullName.includes(parts[1])) return true;
-      if (userEmail && userEmail.includes(parts[0])) return true;
-      return false;
-    });
+      // Si el email contiene palabras clave (ej: jmaria.abad -> abad)
+      if (userEmail) {
+        const emailLocal = userEmail.split('@')[0];
+        if (mName.includes('abad') && (emailLocal.includes('abad') || userFullName.includes('abad'))) return m.name;
+        if (mName.includes('beamonte') && (emailLocal.includes('beamonte') || userFullName.includes('beamonte'))) return m.name;
+        if ((mName.includes('uría') || mName.includes('uria')) && (emailLocal.includes('uria') || userFullName.includes('uria') || userFullName.includes('uría'))) return m.name;
+        if (mName.includes('masero') && (emailLocal.includes('masero') || userFullName.includes('masero'))) return m.name;
+        if ((mName.includes('navareño') || mName.includes('navareno')) && (emailLocal.includes('navareno') || userFullName.includes('navareno') || userFullName.includes('navareño'))) return m.name;
+        if (mName.includes('plaza') && (emailLocal.includes('plaza') || userFullName.includes('plaza'))) return m.name;
+        if ((mName.includes('gomez') || mName.includes('gómez')) && (emailLocal.includes('gomez') || userFullName.includes('gomez') || userFullName.includes('gómez'))) return m.name;
+        if (mName.includes('rozada') && (emailLocal.includes('rozada') || userFullName.includes('rozada'))) return m.name;
+      }
+      
+      // Si el nombre contiene palabras coincidentes
+      if (userFullName) {
+        const parts = userFullName.split(' ').filter(p => p.length >= 3);
+        const matchAnyPart = parts.some(p => mName.includes(p));
+        if (matchAnyPart) return m.name;
+      }
+    }
 
-    return found ? found.name : currentUser.full_name;
+    return currentUser.full_name;
   }, [currentUser, isTeamLeader]);
   
   // Filtro de miembro del equipo ('all', o nombre completo)

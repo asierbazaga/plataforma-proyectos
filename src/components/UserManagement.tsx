@@ -479,11 +479,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                 onClick={() => handleToggleAccess(user.id, app.id, canAccess, canEdit)}
                                 className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all ${
                                   canAccess
-                                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                    ? app.id === 'entrevistas'
+                                      ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                                      : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                                     : 'bg-white/5 border-white/5 text-slate-500'
                                 }`}
                               >
-                                {canAccess ? 'Acceso SI' : 'Bloqueado'}
+                                {canAccess ? (app.id === 'entrevistas' ? 'Compensables SI' : 'Acceso SI') : 'Bloqueado'}
                               </button>
 
                               {/* Toggle Edición */}
@@ -497,7 +499,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                       : 'bg-white/5 text-slate-400 border-white/5'
                                   }`}
                                 >
-                                  {canEdit ? 'Edición' : 'Lectura'}
+                                  {canEdit ? (app.id === 'entrevistas' ? 'Librar Días' : 'Edición') : 'Solo Lectura'}
                                 </button>
                               )}
                             </div>
@@ -660,6 +662,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       const userPerm = permissions.find(p => p.user_id === user.id && p.app_id === app.id);
                       const canAccess = userPerm ? userPerm.can_access : false;
                       const canEdit = userPerm ? userPerm.can_edit : false;
+                      const isTeamLeaderApp = app.id === 'entrevistas';
 
                       return (
                         <td key={app.id} className="py-4 px-3 text-center">
@@ -670,12 +673,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                               onClick={() => handleToggleAccess(user.id, app.id, canAccess, canEdit)}
                               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1 transition-all ${
                                 canAccess
-                                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                  ? isTeamLeaderApp 
+                                    ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400' 
+                                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                                   : 'bg-[#090C15] border-white/5 text-slate-500 hover:text-white'
                               }`}
+                              title={isTeamLeaderApp ? (canAccess ? 'Acceso concedido a Días Compensables' : 'Acceso denegado') : undefined}
                             >
                               {canAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                              {canAccess ? 'Acceso' : 'Bloqueado'}
+                              {canAccess ? (isTeamLeaderApp ? 'Compensables' : 'Acceso') : 'Bloqueado'}
                             </button>
 
                             {/* Toggle Edición */}
@@ -688,9 +694,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                     ? 'bg-[#FF6B00]/10 text-[#FF6B00] border-[#FF6B00]/25'
                                     : 'bg-white/5 text-slate-400 border-white/5'
                                 }`}
+                                title={isTeamLeaderApp ? (canEdit ? 'Puede registrar sus días librados' : 'Solo lectura de saldo') : undefined}
                               >
                                 {canEdit ? <Edit3 className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
-                                {canEdit ? 'Edición' : 'Lectura'}
+                                {canEdit ? 'Librar Días' : 'Solo Lectura'}
                               </button>
                             )}
                           </div>
