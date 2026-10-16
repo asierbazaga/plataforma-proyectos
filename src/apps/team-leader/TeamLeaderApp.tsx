@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Building, Briefcase, Users } from 'lucide-react';
+import { ArrowLeft, Users, CalendarCheck2, ShieldCheck, Briefcase } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { EntrevistasApp } from '../entrevistas/EntrevistasApp';
-import { WorkView } from '../agenda/components/WorkView';
+import { TeamCompensatoryView } from './components/TeamCompensatoryView';
 
 interface TeamLeaderAppProps {
   onBack: () => void;
@@ -10,18 +10,18 @@ interface TeamLeaderAppProps {
 
 export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
   const { isDark } = useTheme();
-  const [activePlugin, setActivePlugin] = useState<'entrevistas' | 'trabajo'>('entrevistas');
+  const [activeTab, setActiveTab] = useState<'entrevistas' | 'compensatorios'>('entrevistas');
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Header General del Módulo Team Leader */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Cabecera Principal Unificada de Team Leader */}
+      <div className="rounded-3xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <button
             onClick={onBack}
-            className={`p-2.5 rounded-xl border transition-all ${
+            className={`p-2.5 rounded-2xl border transition-all ${
               isDark
-                ? 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white'
+                ? 'bg-slate-950/80 hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white'
                 : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm'
             }`}
             title="Volver al Catálogo de Proyectos"
@@ -29,69 +29,61 @@ export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 ring-1 ring-white/20 flex-shrink-0">
-              <Users className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/20 flex-shrink-0">
+            <ShieldCheck className="w-6 h-6 text-white" />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                Team Leader Mecalux
+              </h1>
+              <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                Hub de Liderazgo
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400">
-                  Team Leader
-                </h1>
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
-                  Hub de Gestión
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm font-medium text-slate-400">
-                Selección de talento Mecalux y control laboral de días compensables
-              </p>
-            </div>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
+              Gestión integral de selección de candidatos y control de días compensables del equipo
+            </p>
           </div>
         </div>
 
-        {/* Selector de Plugins */}
-        <div className={`flex items-center gap-2 p-1.5 rounded-2xl border ${
-          isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-100 border-slate-200'
-        }`}>
+        {/* Pestañas Principales: Selección de Talento vs Días Compensables del Equipo */}
+        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-950/90 border border-slate-800 self-stretch md:self-auto justify-center sm:justify-start">
           <button
-            onClick={() => setActivePlugin('entrevistas')}
+            onClick={() => setActiveTab('entrevistas')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              activePlugin === 'entrevistas'
-                ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-lg shadow-cyan-500/25'
-                : isDark
-                ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+              activeTab === 'entrevistas'
+                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
-            <Building className="w-4 h-4" />
-            <span>Plugin Entrevistas</span>
+            <Users className="w-4 h-4" />
+            <span>Selección & Entrevistas</span>
           </button>
 
           <button
-            onClick={() => setActivePlugin('trabajo')}
+            onClick={() => setActiveTab('compensatorios')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              activePlugin === 'trabajo'
+              activeTab === 'compensatorios'
                 ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
-                : isDark
-                ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
-            <Briefcase className="w-4 h-4" />
-            <span>Plugin Trabajo</span>
+            <CalendarCheck2 className="w-4 h-4" />
+            <span>Días Compensables (Equipo)</span>
           </button>
         </div>
       </div>
 
-      {/* Renderizado del Plugin Activo */}
+      {/* Contenido según la pestaña seleccionada */}
       <div>
-        {activePlugin === 'entrevistas' && <EntrevistasApp />}
-        {activePlugin === 'trabajo' && (
-          <div className={`min-h-[500px] rounded-3xl border p-4 sm:p-6 ${
-            isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-          }`}>
-            <WorkView />
-          </div>
+        {activeTab === 'entrevistas' && (
+          <EntrevistasApp hideHeader={true} />
+        )}
+
+        {activeTab === 'compensatorios' && (
+          <TeamCompensatoryView />
         )}
       </div>
     </div>

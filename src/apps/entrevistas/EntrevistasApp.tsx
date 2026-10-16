@@ -33,9 +33,10 @@ import { MecaluxCompetencyRubric } from '../../types';
 
 interface EntrevistasAppProps {
   onBack?: () => void;
+  hideHeader?: boolean;
 }
 
-export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
+export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack, hideHeader = false }) => {
   const { currentUser, hasAccessToApp } = useAuth();
   const canAccess = hasAccessToApp('entrevistas');
   const toast = useToast();
@@ -181,46 +182,116 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
   return (
     <div className="space-y-6">
       {/* 1. Barra de Navegación del Módulo Entrevistas Mecalux */}
-      <div className="rounded-3xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Título & Badge Mecalux */}
-        <div className="flex items-center gap-3.5">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all"
-              title="Volver al Catálogo de Proyectos"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-          )}
+      {!hideHeader ? (
+        <div className="rounded-3xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Título & Badge Mecalux */}
+          <div className="flex items-center gap-3.5">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all"
+                title="Volver al Catálogo de Proyectos"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
 
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 ring-1 ring-white/20 flex-shrink-0">
-            <Building className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 ring-1 ring-white/20 flex-shrink-0">
+              <Building className="w-5 h-5" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  Mecalux Talent & Entrevistas
+                </h1>
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  Team Leader
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Evaluación por competencias, disparadores dinámicos y generación nativa de Excel (.xlsx)
+              </p>
+            </div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                Mecalux Talent & Entrevistas
-              </h1>
-              <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                Team Leader
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Evaluación por competencias, disparadores dinámicos y generación nativa de Excel (.xlsx)
-            </p>
+          {/* Pestañas Principales */}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('candidates')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'candidates'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Candidatos ({candidates.length})</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (selectedCandidate) setActiveTab('interview');
+                else setIsModalOpen(true);
+              }}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'interview'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60'
+              }`}
+            >
+              <Play className="w-3.5 h-3.5" />
+              <span>Entrevista en Directo</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (selectedCandidate) setActiveTab('resultado');
+              }}
+              disabled={!selectedCandidate}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'resultado'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60 disabled:opacity-40'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>Resultado</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('rubrics')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'rubrics'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Banco Rúbricas</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('excel_center')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'excel_center'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20'
+                  : 'bg-slate-800/80 text-emerald-300 hover:bg-emerald-950/60 hover:text-white border border-emerald-500/30'
+              }`}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Plantilla Excel</span>
+            </button>
           </div>
         </div>
-
-        {/* Pestañas Principales */}
-        <div className="flex items-center gap-2 overflow-x-auto">
+      ) : (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveTab('candidates')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === 'candidates'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60'
+                : 'bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -235,7 +306,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === 'interview'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60'
+                : 'bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
             <Play className="w-3.5 h-3.5" />
@@ -250,7 +321,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === 'resultado'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60 disabled:opacity-40'
+                : 'bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800 disabled:opacity-40'
             }`}
           >
             <Award className="w-3.5 h-3.5" />
@@ -262,7 +333,7 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === 'rubrics'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white border border-slate-700/60'
+                : 'bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
@@ -274,14 +345,14 @@ export const EntrevistasApp: React.FC<EntrevistasAppProps> = ({ onBack }) => {
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === 'excel_center'
                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20'
-                : 'bg-slate-800/80 text-emerald-300 hover:bg-emerald-950/60 hover:text-white border border-emerald-500/30'
+                : 'bg-slate-900/80 text-emerald-400 hover:bg-emerald-950/40 hover:text-emerald-300 border border-emerald-500/20'
             }`}
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
             <span>Plantilla Excel</span>
           </button>
         </div>
-      </div>
+      )}
 
       {/* 2. Selector de Candidato Activo (visible cuando estamos en Entrevista o Resultado) */}
       {(activeTab === 'interview' || activeTab === 'resultado') && selectedCandidate && (

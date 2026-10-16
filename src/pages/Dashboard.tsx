@@ -158,8 +158,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
       tagColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
       btnGradient: 'from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 shadow-cyan-500/25',
       highlights: [
-        { text: 'Plugin Entrevistas', label: 'Plugin Entrevistas', icon: Award },
-        { text: 'Plugin Trabajo', label: 'Plugin Trabajo', icon: Calendar },
+        { text: 'Selección & Entrevistas', label: 'Selección & Entrevistas', icon: Award },
+        { text: 'Compensables Equipo', label: 'Compensables Equipo', icon: Calendar },
         { text: 'Plantilla Excel (.xlsx)', label: 'Plantilla Excel (.xlsx)', icon: FileSpreadsheet }
       ]
     },

@@ -600,6 +600,7 @@ export interface AgendaCompensatoryDay {
   id: string;
   user_id: string;
   title: string;
+  technician_name?: string; // Nombre del técnico o "Mío / Asier"
   total_days: number;
   spent_days: number;
   date: string;
