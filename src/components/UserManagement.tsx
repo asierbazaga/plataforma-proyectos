@@ -292,8 +292,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     }
   };
 
-  // Renderizador del control de 3 estados para cada celda de aplicación
-  const renderPermissionControl = (user: UserProfile, app: typeof appsList[number], compact = false) => {
+  // Renderizador del control de 3 estados con tamaño ampliado y cómodo
+  const renderPermissionControl = (user: UserProfile, app: typeof appsList[number]) => {
     const level = getUserAppLevel(user, app.id);
     const isTeamLeaderApp = app.id === 'entrevistas';
 
@@ -310,66 +310,64 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         : level === 'read'
         ? isTeamLeaderApp
           ? 'Ver Saldo'
-          : 'Lectura'
+          : 'Solo Lectura'
         : isTeamLeaderApp
         ? 'Field Ops'
         : 'Edición';
 
     return (
       <div
-        className={`group/cell flex flex-col items-center justify-center rounded-xl border transition-all ${
-          compact ? 'p-1.5' : 'p-2'
-        } ${
+        className={`group/cell flex flex-col items-center justify-center rounded-2xl border p-2.5 transition-all ${
           level === 'none'
-            ? 'bg-[#090C15]/50 border-white/[0.04] hover:border-white/15 opacity-55 hover:opacity-100'
+            ? 'bg-[#090C15]/60 border-white/[0.05] hover:border-white/15 opacity-60 hover:opacity-100'
             : level === 'read'
-            ? 'bg-sky-500/[0.08] border-sky-500/30 shadow-sm shadow-sky-500/5'
+            ? 'bg-sky-500/[0.10] border-sky-500/35 shadow-md shadow-sky-500/5'
             : isTeamLeaderApp
-            ? 'bg-cyan-500/[0.12] border-cyan-500/35 shadow-sm shadow-cyan-500/10'
-            : 'bg-emerald-500/[0.10] border-emerald-500/30 shadow-sm shadow-emerald-500/10'
+            ? 'bg-cyan-500/[0.14] border-cyan-500/40 shadow-md shadow-cyan-500/10'
+            : 'bg-emerald-500/[0.12] border-emerald-500/35 shadow-md shadow-emerald-500/10'
         }`}
       >
         {/* Botonera segmentada de 1 clic: Bloqueado | Lectura | Edición */}
-        <div className="flex items-center gap-0.5 bg-[#090C15]/90 p-0.5 rounded-lg border border-white/5">
+        <div className="flex items-center gap-1 bg-[#090C15] p-1 rounded-xl border border-white/10">
           <button
             type="button"
             onClick={() => level !== 'none' && handleSetPermissionLevel(user.id, app.id, 'none')}
             title="Bloquear acceso"
-            className={`p-1 rounded-md transition-all ${
+            className={`px-2 py-1.5 rounded-lg transition-all ${
               level === 'none'
-                ? 'bg-rose-500/20 text-rose-400 shadow-inner'
-                : 'text-slate-600 hover:text-rose-400 hover:bg-white/5'
+                ? 'bg-rose-500/25 text-rose-400 shadow-inner'
+                : 'text-slate-500 hover:text-rose-400 hover:bg-white/5'
             }`}
           >
-            <Ban className="w-3 h-3" />
+            <Ban className="w-4 h-4" />
           </button>
 
           <button
             type="button"
             onClick={() => level !== 'read' && handleSetPermissionLevel(user.id, app.id, 'read')}
             title={isTeamLeaderApp ? 'Solo lectura de saldo Field Ops' : 'Acceso de Solo Lectura'}
-            className={`p-1 rounded-md transition-all ${
+            className={`px-2 py-1.5 rounded-lg transition-all ${
               level === 'read'
-                ? 'bg-sky-500/25 text-sky-300 shadow-inner'
+                ? 'bg-sky-500/30 text-sky-300 shadow-inner'
                 : 'text-slate-500 hover:text-sky-300 hover:bg-white/5'
             }`}
           >
-            <Eye className="w-3 h-3" />
+            <Eye className="w-4 h-4" />
           </button>
 
           <button
             type="button"
             onClick={() => level !== 'edit' && handleSetPermissionLevel(user.id, app.id, 'edit')}
             title={isTeamLeaderApp ? 'Field Ops: Registrar bolsas y librar días' : 'Acceso Total (Lectura y Edición)'}
-            className={`p-1 rounded-md transition-all ${
+            className={`px-2 py-1.5 rounded-lg transition-all ${
               level === 'edit'
                 ? isTeamLeaderApp
-                  ? 'bg-cyan-500/25 text-cyan-300 shadow-inner'
-                  : 'bg-emerald-500/25 text-emerald-300 shadow-inner'
+                  ? 'bg-cyan-500/30 text-cyan-200 shadow-inner'
+                  : 'bg-emerald-500/30 text-emerald-300 shadow-inner'
                 : 'text-slate-500 hover:text-emerald-300 hover:bg-white/5'
             }`}
           >
-            <Edit3 className="w-3 h-3" />
+            <Edit3 className="w-4 h-4" />
           </button>
         </div>
 
@@ -378,11 +376,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           type="button"
           onClick={handleQuickCycle}
           title="Clic para alternar permiso rápidamente"
-          className={`mt-1 text-[10px] font-extrabold tracking-tight leading-none transition-colors ${
+          className={`mt-1.5 text-xs font-extrabold tracking-tight leading-none transition-colors ${
             level === 'none'
               ? 'text-slate-500 group-hover/cell:text-slate-300'
               : level === 'read'
-              ? 'text-sky-400'
+              ? 'text-sky-300'
               : isTeamLeaderApp
               ? 'text-cyan-300'
               : 'text-emerald-400'
@@ -395,27 +393,27 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="space-y-5 max-w-[1600px] w-full mx-auto pb-12 px-2 sm:px-4">
+    <div className="space-y-6 w-full max-w-full mx-auto pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#111622] p-5 sm:p-6 rounded-3xl border border-white/5 shadow-xl">
-        <div className="flex items-center gap-3.5 sm:gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#111622] p-6 sm:p-7 rounded-3xl border border-white/5 shadow-xl">
+        <div className="flex items-center gap-4">
           {onBack && (
             <button
               onClick={onBack}
               title="Volver a la Plataforma"
-              className="p-2.5 sm:p-3 rounded-2xl bg-[#090C15] hover:bg-white/10 text-slate-300 border border-white/5 transition-all flex items-center justify-center"
+              className="p-3 rounded-2xl bg-[#090C15] hover:bg-white/10 text-slate-300 border border-white/5 transition-all flex items-center justify-center"
             >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center shadow-lg shadow-[#FF6B00]/10 flex-shrink-0 border border-[#FF6B00]/20">
-            <ShieldCheck className="w-6 h-6" />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center shadow-lg shadow-[#FF6B00]/10 flex-shrink-0 border border-[#FF6B00]/20">
+            <ShieldCheck className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
               Control de Usuarios & Permisos
             </h1>
-            <p className="text-slate-400 text-xs mt-0.5">
+            <p className="text-slate-400 text-xs sm:text-sm mt-1">
               Gestiona accesos y niveles de edición en un clic para cada módulo de la plataforma.
             </p>
           </div>
@@ -423,117 +421,117 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#FF6B00] hover:bg-[#FA8500] text-white font-bold text-xs rounded-2xl shadow-lg shadow-[#FF6B00]/20 transition-all hover:scale-[1.02] w-full md:w-auto justify-center"
+          className="flex items-center gap-2.5 px-6 py-3 bg-[#FF6B00] hover:bg-[#FA8500] text-white font-bold text-sm rounded-2xl shadow-lg shadow-[#FF6B00]/20 transition-all hover:scale-[1.02] w-full md:w-auto justify-center"
         >
-          <UserPlus className="w-4 h-4" />
+          <UserPlus className="w-5 h-5" />
           Crear Nuevo Usuario
         </button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <button
           type="button"
           onClick={() => {
             setRoleFilter('all');
             setStatusFilter('all');
           }}
-          className={`text-left p-4 rounded-2xl bg-[#111622] border transition-all ${
+          className={`text-left p-5 rounded-3xl bg-[#111622] border transition-all ${
             roleFilter === 'all' && statusFilter === 'all'
               ? 'border-[#FF6B00]/40 shadow-lg shadow-[#FF6B00]/5'
               : 'border-white/5 hover:border-white/10'
           }`}
         >
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Total Cuentas</span>
-            <Users className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-bold uppercase tracking-wider">Total Cuentas</span>
+            <Users className="w-5 h-5 text-slate-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-white mt-1">{totalUsers}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500">Usuarios registrados</p>
+          <div className="text-2xl sm:text-3xl font-black text-white mt-1.5">{totalUsers}</div>
+          <p className="text-xs text-slate-500 mt-0.5">Usuarios registrados</p>
         </button>
 
         <button
           type="button"
           onClick={() => setRoleFilter(roleFilter === 'admin' ? 'all' : 'admin')}
-          className={`text-left p-4 rounded-2xl bg-[#111622] border transition-all ${
+          className={`text-left p-5 rounded-3xl bg-[#111622] border transition-all ${
             roleFilter === 'admin'
               ? 'border-indigo-500/50 bg-indigo-500/[0.04]'
               : 'border-white/5 hover:border-white/10'
           }`}
         >
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Super Admins</span>
-            <Shield className="w-4 h-4 text-indigo-400" />
+            <span className="text-xs font-bold uppercase tracking-wider">Super Admins</span>
+            <Shield className="w-5 h-5 text-indigo-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-indigo-400 mt-1">{adminUsers}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500">Acceso total automático</p>
+          <div className="text-2xl sm:text-3xl font-black text-indigo-400 mt-1.5">{adminUsers}</div>
+          <p className="text-xs text-slate-500 mt-0.5">Acceso total automático</p>
         </button>
 
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
-          className={`text-left p-4 rounded-2xl bg-[#111622] border transition-all ${
+          className={`text-left p-5 rounded-3xl bg-[#111622] border transition-all ${
             statusFilter === 'active'
               ? 'border-emerald-500/50 bg-emerald-500/[0.04]'
               : 'border-white/5 hover:border-white/10'
           }`}
         >
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Activos</span>
-            <Activity className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-bold uppercase tracking-wider">Activos</span>
+            <Activity className="w-5 h-5 text-emerald-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">{activeUsers}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500">Sesión autorizada</p>
+          <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1.5">{activeUsers}</div>
+          <p className="text-xs text-slate-500 mt-0.5">Sesión autorizada</p>
         </button>
 
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'suspended' ? 'all' : 'suspended')}
-          className={`text-left p-4 rounded-2xl bg-[#111622] border transition-all ${
+          className={`text-left p-5 rounded-3xl bg-[#111622] border transition-all ${
             statusFilter === 'suspended'
               ? 'border-rose-500/50 bg-rose-500/[0.04]'
               : 'border-white/5 hover:border-white/10'
           }`}
         >
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Suspendidos</span>
-            <UserX className="w-4 h-4 text-rose-400" />
+            <span className="text-xs font-bold uppercase tracking-wider">Suspendidos</span>
+            <UserX className="w-5 h-5 text-rose-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-400 mt-1">{suspendedUsers}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500">Acceso bloqueado</p>
+          <div className="text-2xl sm:text-3xl font-black text-rose-400 mt-1.5">{suspendedUsers}</div>
+          <p className="text-xs text-slate-500 mt-0.5">Acceso bloqueado</p>
         </button>
       </div>
 
       {/* Barra de Filtros, Filtro por App y Selector de Vista */}
-      <div className="p-3.5 sm:p-4 rounded-3xl bg-[#111622] border border-white/5 shadow-md space-y-3">
+      <div className="p-4 sm:p-5 rounded-3xl bg-[#111622] border border-white/5 shadow-md space-y-4">
         <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3">
           {/* Buscador */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Buscar por nombre, correo o departamento..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-[#090C15] border border-white/5 rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#FF6B00]"
+              className="w-full bg-[#090C15] border border-white/5 rounded-2xl pl-11 pr-10 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#FF6B00]"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
           {/* Selectores y Modo de Vista */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <select
               value={roleFilter}
               onChange={e => setRoleFilter(e.target.value as any)}
-              className="bg-[#090C15] border border-white/5 rounded-2xl px-3 py-2.5 text-xs text-slate-300 font-bold focus:outline-none cursor-pointer"
+              className="bg-[#090C15] border border-white/5 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-300 font-bold focus:outline-none cursor-pointer"
             >
               <option value="all">Rol: Todos</option>
               <option value="admin">Administrador</option>
@@ -544,7 +542,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as any)}
-              className="bg-[#090C15] border border-white/5 rounded-2xl px-3 py-2.5 text-xs text-slate-300 font-bold focus:outline-none cursor-pointer"
+              className="bg-[#090C15] border border-white/5 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-300 font-bold focus:outline-none cursor-pointer"
             >
               <option value="all">Estado: Todos</option>
               <option value="active">Activos</option>
@@ -560,9 +558,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   setAppFilter('all');
                   setSearchTerm('');
                 }}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs sm:text-sm font-bold transition-all"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-4 h-4" />
                 Limpiar
               </button>
             )}
@@ -572,25 +570,25 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
               <button
                 type="button"
                 onClick={() => setViewMode('matrix')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                   viewMode === 'matrix'
                     ? 'bg-[#FF6B00] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <Table2 className="w-3.5 h-3.5" />
-                Matriz Compacta
+                <Table2 className="w-4 h-4" />
+                Matriz Completa
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('cards')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                   viewMode === 'cards'
                     ? 'bg-[#FF6B00] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
+                <LayoutGrid className="w-4 h-4" />
                 Tarjetas Detalle
               </button>
             </div>
@@ -598,14 +596,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         </div>
 
         {/* Píldoras de Filtro Rápido por Aplicación */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-white/5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1 mr-1 flex-shrink-0">
-            <Filter className="w-3 h-3" /> Filtrar con acceso a:
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-2 border-t border-white/5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 mr-1 flex-shrink-0">
+            <Filter className="w-3.5 h-3.5" /> Filtrar por módulo:
           </span>
           <button
             type="button"
             onClick={() => setAppFilter('all')}
-            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex-shrink-0 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex-shrink-0 ${
               appFilter === 'all'
                 ? 'bg-white/10 text-white border-white/20'
                 : 'bg-[#090C15] text-slate-400 border-white/5 hover:text-white'
@@ -620,15 +618,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 key={app.id}
                 type="button"
                 onClick={() => setAppFilter(isSelected ? 'all' : app.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex-shrink-0 ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex-shrink-0 ${
                   isSelected
                     ? 'bg-[#FF6B00]/15 text-[#FF6B00] border-[#FF6B00]/40'
                     : 'bg-[#090C15] text-slate-400 border-white/5 hover:border-white/15 hover:text-slate-200'
                 }`}
               >
-                <app.icon className={`w-3 h-3 ${app.color}`} />
+                <app.icon className={`w-3.5 h-3.5 ${app.color}`} />
                 <span>{app.shortName}</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-white/5 text-slate-300">
+                <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/5 text-slate-300">
                   {appAccessCounts[app.id] || 0}
                 </span>
               </button>
@@ -643,7 +641,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Usuarios ({filteredProfiles.length})
           </h2>
-          <span className="text-[10px] text-slate-500">Toca un usuario para gestionar</span>
+          <span className="text-[11px] text-slate-500">Toca un usuario para gestionar</span>
         </div>
 
         {filteredProfiles.map(user => {
@@ -664,20 +662,20 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             >
               {/* Header de Usuario sin foto */}
               <div className="flex items-start justify-between gap-3">
-                <div className="border-l-2 pl-3 border-[#FF6B00]">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="font-black text-white text-sm">{user.full_name}</h3>
+                <div className="border-l-4 pl-3 border-[#FF6B00]">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-black text-white text-base">{user.full_name}</h3>
                     {isSelf && (
-                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#FF6B00]/20 text-[#FF6B00] font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B00]/20 text-[#FF6B00] font-bold">
                         Tú
                       </span>
                     )}
-                    <span className="text-[10px] px-2 py-0.5 rounded-lg bg-white/5 text-slate-300 font-bold">
+                    <span className="text-xs px-2 py-0.5 rounded-lg bg-white/5 text-slate-300 font-bold">
                       {activeAppsCount}/{appsList.length} apps
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 truncate max-w-[230px]">{user.email}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{user.department || 'General'}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{user.department || 'General'}</p>
                 </div>
 
                 {/* Status Toggle Badge */}
@@ -685,7 +683,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   type="button"
                   disabled={isSelf}
                   onClick={() => handleStatusChange(user.id, user.status || 'active')}
-                  className={`px-3 py-1 rounded-xl font-bold text-[10px] border flex-shrink-0 ${
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs border flex-shrink-0 ${
                     !isSuspended
                       ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
@@ -696,13 +694,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
               </div>
 
               {/* Selector de Rol en Móvil */}
-              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#090C15] border border-white/5">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-[#090C15] border border-white/5">
                 <span className="text-xs text-slate-400 font-medium">Rol asignado:</span>
                 <select
                   value={user.role}
                   disabled={isSelf}
                   onChange={e => handleRoleChange(user.id, e.target.value as Role)}
-                  className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border focus:outline-none ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border focus:outline-none ${
                     user.role === 'admin'
                       ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
                       : user.role === 'user'
@@ -736,35 +734,35 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   ) : (
                     <>
                       <div className="flex items-center justify-between gap-2 pb-1">
-                        <span className="text-[10px] text-slate-500 font-bold uppercase">Acción rápida:</span>
+                        <span className="text-xs text-slate-500 font-bold uppercase">Acción rápida:</span>
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => handleBulkUserPermissions(user.id, 'edit')}
-                            className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold"
                           >
                             Activar Todo
                           </button>
                           <button
                             type="button"
                             onClick={() => handleBulkUserPermissions(user.id, 'none')}
-                            className="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-bold"
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-bold"
                           >
                             Bloquear Todo
                           </button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2.5">
                         {appsList.map(app => (
                           <div
                             key={app.id}
-                            className="p-2.5 rounded-2xl bg-[#090C15] border border-white/5 flex flex-col justify-between gap-2"
+                            className="p-3 rounded-2xl bg-[#090C15] border border-white/5 flex flex-col justify-between gap-2"
                           >
                             <div className="flex items-center gap-1.5">
-                              <app.icon className={`w-3.5 h-3.5 ${app.color} flex-shrink-0`} />
-                              <span className="text-[11px] font-bold text-white truncate">{app.shortName}</span>
+                              <app.icon className={`w-4 h-4 ${app.color} flex-shrink-0`} />
+                              <span className="text-xs font-bold text-white truncate">{app.shortName}</span>
                             </div>
-                            {renderPermissionControl(user, app, true)}
+                            {renderPermissionControl(user, app)}
                           </div>
                         ))}
                       </div>
@@ -806,34 +804,34 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         })}
       </div>
 
-      {/* 2A. VISTA ESCRITORIO: MATRIZ COMPACTA SIN FOTOS Y DE FÁCIL REVISIÓN */}
+      {/* 2A. VISTA ESCRITORIO: MATRIZ AMPLIA Y GRANDE */}
       {viewMode === 'matrix' && (
-        <div className="hidden md:block p-5 sm:p-6 rounded-3xl bg-[#111622] border border-white/5 space-y-4 shadow-xl">
+        <div className="hidden md:block p-6 sm:p-8 rounded-3xl bg-[#111622] border border-white/5 space-y-5 shadow-xl">
           {/* Cabecera + Leyenda Visual */}
-          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 pb-2 border-b border-white/5">
-            <div className="flex items-center gap-2.5">
-              <ShieldCheck className="w-5 h-5 text-[#FF6B00]" />
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 pb-3 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="w-6 h-6 text-[#FF6B00]" />
               <div>
-                <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
                   Matriz de Control y Permisos ({filteredProfiles.length} usuarios)
                 </h2>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
                   Haz clic directo en el icono de cada módulo para cambiar entre Bloqueado, Solo Lectura o Edición.
                 </p>
               </div>
             </div>
 
             {/* Leyenda de Estados */}
-            <div className="flex flex-wrap items-center gap-2 text-[11px] bg-[#090C15] px-3.5 py-2 rounded-2xl border border-white/5">
-              <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] mr-1">Leyenda:</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">
-                <Ban className="w-3 h-3" /> Bloqueado
+            <div className="flex flex-wrap items-center gap-2.5 text-xs bg-[#090C15] px-4 py-2.5 rounded-2xl border border-white/5">
+              <span className="text-slate-500 font-bold uppercase tracking-wider text-xs mr-1">Leyenda:</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">
+                <Ban className="w-3.5 h-3.5" /> Bloqueado
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-300 border border-sky-500/30 font-bold">
-                <Eye className="w-3 h-3" /> Solo Lectura
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-sky-500/15 text-sky-300 border border-sky-500/30 font-bold">
+                <Eye className="w-3.5 h-3.5" /> Solo Lectura
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
-                <Edit3 className="w-3 h-3" /> Edición / Field Ops
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+                <Edit3 className="w-3.5 h-3.5" /> Edición / Field Ops
               </span>
             </div>
           </div>
@@ -841,35 +839,35 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider bg-[#090C15]/80">
-                  <th className="py-3.5 px-4 min-w-[210px] rounded-tl-2xl">Usuario & Resumen</th>
-                  <th className="py-3.5 px-2.5 text-center min-w-[115px]">Rol & Estado</th>
+                <tr className="border-b border-white/10 text-xs font-extrabold text-slate-300 uppercase tracking-wider bg-[#090C15]/80">
+                  <th className="py-4 px-5 min-w-[240px] rounded-tl-2xl">Usuario & Resumen</th>
+                  <th className="py-4 px-3 text-center min-w-[130px]">Rol & Estado</th>
                   {appsList.map(app => (
-                    <th key={app.id} className="py-3 px-1.5 text-center min-w-[104px]">
+                    <th key={app.id} className="py-3.5 px-2 text-center min-w-[125px]">
                       <button
                         type="button"
                         onClick={() => setAppFilter(appFilter === app.id ? 'all' : app.id)}
                         title={`Filtrar usuarios con acceso a ${app.name}`}
-                        className={`w-full flex flex-col items-center justify-center gap-1 py-1 px-1.5 rounded-xl transition-all ${
+                        className={`w-full flex flex-col items-center justify-center gap-1 py-1.5 px-2 rounded-xl transition-all ${
                           appFilter === app.id
                             ? 'bg-[#FF6B00]/15 ring-1 ring-[#FF6B00]/40 text-white'
                             : 'hover:bg-white/5 text-slate-200'
                         }`}
                       >
-                        <div className="flex items-center gap-1">
-                          <app.icon className={`w-3.5 h-3.5 ${app.color} flex-shrink-0`} />
-                          <span className="truncate max-w-[78px]">{app.shortName}</span>
+                        <div className="flex items-center gap-1.5">
+                          <app.icon className={`w-4 h-4 ${app.color} flex-shrink-0`} />
+                          <span className="text-xs font-extrabold">{app.shortName}</span>
                         </div>
-                        <span className="text-[9px] font-bold text-slate-500">
+                        <span className="text-[11px] font-bold text-slate-500">
                           {appAccessCounts[app.id]}/{totalUsers} activos
                         </span>
                       </button>
                     </th>
                   ))}
-                  <th className="py-3.5 px-3 text-right min-w-[120px] rounded-tr-2xl">Acciones</th>
+                  <th className="py-4 px-4 text-right min-w-[140px] rounded-tr-2xl">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs">
+              <tbody className="divide-y divide-white/5 text-sm">
                 {filteredProfiles.map(user => {
                   const isAdmin = user.role === 'admin';
                   const isSuspended = user.status === 'suspended';
@@ -889,10 +887,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                         isSuspended ? 'opacity-55 bg-rose-950/10' : ''
                       }`}
                     >
-                      {/* Usuario Info (SIN FOTO LATERAL) */}
-                      <td className="py-3.5 px-4">
+                      {/* Usuario Info (SIN FOTO LATERAL, TEXTO MÁS GRANDE) */}
+                      <td className="py-5 px-5">
                         <div
-                          className={`border-l-[3px] pl-3 transition-colors ${
+                          className={`border-l-4 pl-3.5 transition-colors ${
                             isSuspended
                               ? 'border-rose-500'
                               : isAdmin
@@ -903,23 +901,23 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                           }`}
                         >
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-extrabold text-white text-sm leading-tight">
+                            <p className="font-black text-white text-base leading-snug">
                               {user.full_name}
                             </p>
                             {isSelf && (
-                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#FF6B00]/20 text-[#FF6B00] font-black uppercase">
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#FF6B00]/20 text-[#FF6B00] font-black uppercase">
                                 Tú
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{user.email}</p>
+                          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">{user.email}</p>
 
-                          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] text-slate-400 border border-white/5 font-semibold">
+                          <div className="flex items-center gap-2 flex-wrap mt-2">
+                            <span className="text-xs px-2.5 py-0.5 rounded-lg bg-white/[0.04] text-slate-300 border border-white/5 font-semibold">
                               {user.department || 'General'}
                             </span>
                             <span
-                              className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${
+                              className={`text-xs px-2.5 py-0.5 rounded-lg font-extrabold border ${
                                 isAdmin
                                   ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
                                   : activeAppsCount > 0
@@ -933,21 +931,21 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                           </div>
 
                           {user.last_login && (
-                            <p className="text-[10px] text-slate-500 mt-1">
+                            <p className="text-xs text-slate-500 mt-1.5">
                               Último acceso: {new Date(user.last_login).toLocaleDateString()}
                             </p>
                           )}
                         </div>
                       </td>
 
-                      {/* Rol & Estado Compactos */}
-                      <td className="py-3.5 px-2.5 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
+                      {/* Rol & Estado Más Grandes */}
+                      <td className="py-5 px-3 text-center">
+                        <div className="flex flex-col items-center gap-2">
                           <select
                             value={user.role}
                             disabled={isSelf}
                             onChange={e => handleRoleChange(user.id, e.target.value as Role)}
-                            className={`w-full max-w-[105px] px-2 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border focus:outline-none cursor-pointer text-center ${
+                            className={`w-full max-w-[120px] px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border focus:outline-none cursor-pointer text-center ${
                               user.role === 'admin'
                                 ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
                                 : user.role === 'user'
@@ -964,7 +962,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                             type="button"
                             disabled={isSelf}
                             onClick={() => handleStatusChange(user.id, user.status || 'active')}
-                            className={`w-full max-w-[105px] px-2 py-0.5 rounded-lg font-bold text-[10px] border transition-all ${
+                            className={`w-full max-w-[120px] px-3 py-1 rounded-xl font-bold text-xs border transition-all ${
                               !isSuspended
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/30'
                                 : 'bg-rose-500/15 text-rose-400 border-rose-500/30 hover:bg-emerald-500/15 hover:text-emerald-400'
@@ -979,31 +977,31 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       {appsList.map(app => {
                         if (isAdmin) {
                           return (
-                            <td key={app.id} className="py-3.5 px-1.5 text-center">
-                              <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300">
-                                <CheckCircle2 className="w-4 h-4 mb-0.5 text-indigo-400" />
-                                <span className="text-[10px] font-extrabold tracking-tight">Total Admin</span>
+                            <td key={app.id} className="py-5 px-2 text-center">
+                              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300">
+                                <CheckCircle2 className="w-5 h-5 mb-1 text-indigo-400" />
+                                <span className="text-xs font-extrabold tracking-tight">Total Admin</span>
                               </div>
                             </td>
                           );
                         }
 
                         return (
-                          <td key={app.id} className="py-3 px-1.5 text-center align-middle">
-                            {renderPermissionControl(user, app, true)}
+                          <td key={app.id} className="py-4 px-2 text-center align-middle">
+                            {renderPermissionControl(user, app)}
                           </td>
                         );
                       })}
 
                       {/* Acciones + Atajos Masivos */}
-                      <td className="py-3.5 px-3 text-right">
-                        <div className="flex flex-col items-end gap-1.5">
-                          <div className="flex items-center justify-end gap-1">
+                      <td className="py-5 px-4 text-right">
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
                               onClick={() => setResetPasswordUser(user)}
                               title="Cambiar contraseña"
-                              className="p-1.5 text-slate-400 hover:text-amber-400 rounded-xl hover:bg-white/5 transition-colors"
+                              className="p-2 text-slate-400 hover:text-amber-400 rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition-colors"
                             >
                               <KeyRound className="w-4 h-4" />
                             </button>
@@ -1012,7 +1010,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                               type="button"
                               onClick={() => openEditModal(user)}
                               title="Editar datos del usuario"
-                              className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+                              className="p-2 text-slate-400 hover:text-white rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition-colors"
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
@@ -1022,7 +1020,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                 type="button"
                                 onClick={() => setUserToDelete(user)}
                                 title="Eliminar usuario"
-                                className="p-1.5 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-white/5 transition-colors"
+                                className="p-2 text-slate-400 hover:text-rose-400 rounded-xl bg-white/[0.03] hover:bg-rose-500/15 border border-white/5 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -1031,12 +1029,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
                           {/* Botones rápidos de fila para usuarios no admin */}
                           {!isAdmin && (
-                            <div className="flex items-center gap-1 opacity-75 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1.5 opacity-85 group-hover:opacity-100 transition-opacity">
                               <button
                                 type="button"
                                 onClick={() => handleBulkUserPermissions(user.id, 'edit')}
                                 title="Conceder acceso y edición a todas las apps"
-                                className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold"
+                                className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold"
                               >
                                 Todo Sí
                               </button>
@@ -1044,7 +1042,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                 type="button"
                                 onClick={() => handleBulkUserPermissions(user.id, 'none')}
                                 title="Bloquear todas las apps para este usuario"
-                                className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold"
+                                className="text-[11px] px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold"
                               >
                                 Ninguno
                               </button>
@@ -1061,9 +1059,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* 2B. VISTA ESCRITORIO: TARJETAS DETALLE (Cero scroll horizontal, ideal para revisar usuario por usuario) */}
+      {/* 2B. VISTA ESCRITORIO: TARJETAS DETALLE */}
       {viewMode === 'cards' && (
-        <div className="hidden md:grid md:grid-cols-2 gap-4">
+        <div className="hidden md:grid md:grid-cols-2 gap-5">
           {filteredProfiles.map(user => {
             const isAdmin = user.role === 'admin';
             const isSuspended = user.status === 'suspended';
@@ -1075,14 +1073,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             return (
               <div
                 key={user.id}
-                className={`p-5 rounded-3xl bg-[#111622] border border-white/5 flex flex-col justify-between space-y-4 shadow-xl transition-all ${
+                className={`p-6 rounded-3xl bg-[#111622] border border-white/5 flex flex-col justify-between space-y-5 shadow-xl transition-all ${
                   isSuspended ? 'opacity-60 border-rose-500/20' : 'hover:border-white/10'
                 }`}
               >
                 {/* Cabecera del Usuario (Sin foto lateral) */}
-                <div className="flex items-start justify-between gap-4 border-b border-white/5 pb-3.5">
+                <div className="flex items-start justify-between gap-4 border-b border-white/5 pb-4">
                   <div
-                    className={`border-l-4 pl-3.5 ${
+                    className={`border-l-4 pl-4 ${
                       isSuspended
                         ? 'border-rose-500'
                         : isAdmin
@@ -1092,15 +1090,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                         : 'border-slate-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-black text-white">{user.full_name}</h3>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h3 className="text-lg font-black text-white">{user.full_name}</h3>
                       {isSelf && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B00]/20 text-[#FF6B00] font-black">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#FF6B00]/20 text-[#FF6B00] font-black">
                           Tú
                         </span>
                       )}
                       <span
-                        className={`text-[10px] px-2.5 py-0.5 rounded-full font-extrabold border ${
+                        className={`text-xs px-3 py-0.5 rounded-full font-extrabold border ${
                           isAdmin
                             ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
                             : activeAppsCount > 0
@@ -1111,9 +1109,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                         {activeAppsCount} de {appsList.length} módulos activos
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">{user.email}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1">
-                      <span className="font-semibold text-slate-400">{user.department || 'General'}</span>
+                    <p className="text-sm text-slate-400 mt-1">{user.email}</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-1.5">
+                      <span className="font-semibold text-slate-300">{user.department || 'General'}</span>
                       {user.last_login && (
                         <>
                           <span>•</span>
@@ -1124,13 +1122,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   </div>
 
                   {/* Controles de Rol, Estado y Acciones */}
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex flex-col items-end gap-2.5">
+                    <div className="flex items-center gap-2">
                       <select
                         value={user.role}
                         disabled={isSelf}
                         onChange={e => handleRoleChange(user.id, e.target.value as Role)}
-                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border focus:outline-none cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border focus:outline-none cursor-pointer ${
                           user.role === 'admin'
                             ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
                             : user.role === 'user'
@@ -1147,7 +1145,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                         type="button"
                         disabled={isSelf}
                         onClick={() => handleStatusChange(user.id, user.status || 'active')}
-                        className={`px-2.5 py-1 rounded-xl font-bold text-[10px] border transition-all ${
+                        className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all ${
                           !isSuspended
                             ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                             : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
@@ -1157,20 +1155,20 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {!isAdmin && (
                         <>
                           <button
                             type="button"
                             onClick={() => handleBulkUserPermissions(user.id, 'edit')}
-                            className="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold"
+                            className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold"
                           >
                             Activar Todo
                           </button>
                           <button
                             type="button"
                             onClick={() => handleBulkUserPermissions(user.id, 'none')}
-                            className="text-[10px] px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold"
+                            className="text-xs px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold"
                           >
                             Bloquear Todo
                           </button>
@@ -1180,26 +1178,26 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                         type="button"
                         onClick={() => setResetPasswordUser(user)}
                         title="Cambiar contraseña"
-                        className="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-white/5"
+                        className="p-2 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-white/5"
                       >
-                        <KeyRound className="w-3.5 h-3.5" />
+                        <KeyRound className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => openEditModal(user)}
                         title="Editar usuario"
-                        className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+                        className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Edit3 className="w-4 h-4" />
                       </button>
                       {!isSelf && (
                         <button
                           type="button"
                           onClick={() => setUserToDelete(user)}
                           title="Eliminar usuario"
-                          className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5"
+                          className="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -1208,24 +1206,24 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
                 {/* Grid de los 8 Módulos dentro de la Tarjeta */}
                 {isAdmin ? (
-                  <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center gap-2 text-xs font-extrabold text-indigo-300">
-                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <div className="p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center gap-2.5 text-sm font-extrabold text-indigo-300">
+                    <Sparkles className="w-5 h-5 text-indigo-400" />
                     Super Administrador — Control y edición habilitados en los {appsList.length} módulos
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {appsList.map(app => (
                       <div
                         key={app.id}
-                        className="p-2.5 rounded-2xl bg-[#090C15]/70 border border-white/5 flex flex-col justify-between gap-2"
+                        className="p-3 rounded-2xl bg-[#090C15]/70 border border-white/5 flex flex-col justify-between gap-2.5"
                       >
-                        <div className="flex items-center gap-1.5">
-                          <app.icon className={`w-3.5 h-3.5 ${app.color} flex-shrink-0`} />
-                          <span className="text-[11px] font-bold text-slate-200 truncate" title={app.name}>
+                        <div className="flex items-center gap-2">
+                          <app.icon className={`w-4 h-4 ${app.color} flex-shrink-0`} />
+                          <span className="text-xs font-bold text-slate-200 truncate" title={app.name}>
                             {app.shortName}
                           </span>
                         </div>
-                        {renderPermissionControl(user, app, true)}
+                        {renderPermissionControl(user, app)}
                       </div>
                     ))}
                   </div>

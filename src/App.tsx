@@ -131,7 +131,7 @@ const MainLayout: React.FC = () => {
       <Navbar currentTab={currentTab} onSelectTab={handleSelectTab} />
       <div className="flex flex-1">
         <Sidebar currentTab={currentTab} onSelectTab={handleSelectTab} />
-        <main className="flex-1 p-3 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">
+        <main className={`flex-1 p-3 sm:p-6 md:p-8 mx-auto w-full ${currentTab === 'permissions' ? 'max-w-[1920px]' : 'max-w-7xl'}`}>
           <Suspense fallback={<ModuleLoader />}>
             {renderContent()}
           </Suspense>
