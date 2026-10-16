@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, 
   UserCheck, 
@@ -10,17 +10,33 @@ import {
   Calendar, 
   X, 
   Calculator, 
-  Filter, 
   Clock,
   User,
   ShieldCheck,
+  Search,
+  Award,
+  Sparkles,
   ChevronRight,
-  Info
+  UserPlus,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { agendaService } from '../../../services/agendaService';
 import { AgendaCompensatoryDay } from '../../../types';
+
+export const OFFICIAL_TEAM_MEMBERS = [
+  { name: 'Asier Bazaga', role: 'Team Leader', isLead: true },
+  { name: 'Asier Beamonte Urretxo', role: 'Técnico', isLead: false },
+  { name: 'Hugo Uría Miguelez', role: 'Técnico', isLead: false },
+  { name: 'Javier Masero Delgado', role: 'Técnico', isLead: false },
+  { name: 'Jose Maria Abad Fernández', role: 'Técnico', isLead: false },
+  { name: 'Pablo Navareño Bernardo de la Rua', role: 'Técnico', isLead: false },
+  { name: 'Pablo Plaza Perez', role: 'Técnico', isLead: false },
+  { name: 'Roberto Gomez Fernandez', role: 'Técnico', isLead: false },
+  { name: 'Yoel Rozada Penil', role: 'Técnico', isLead: false }
+] as const;
 
 export const TeamCompensatoryView: React.FC = () => {
   const { currentUser } = useAuth();
@@ -31,11 +47,12 @@ export const TeamCompensatoryView: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   
-  // Filtro de miembro del equipo ('all', 'Asier' / 'mío', o nombre del técnico)
+  // Filtro de miembro del equipo ('all', o nombre completo)
   const [selectedMember, setSelectedMember] = useState<string>('all');
+  const [searchMember, setSearchMember] = useState<string>('');
 
-  // Form states
-  const [newTechnician, setNewTechnician] = useState('Asier Bazaga (Team Leader)');
+  // Form states para asignación
+  const [newTechnician, setNewTechnician] = useState<string>('Asier Bazaga');
   const [customTechnicianName, setCustomTechnicianName] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newTotal, setNewTotal] = useState<number | string>(1);
@@ -46,18 +63,6 @@ export const TeamCompensatoryView: React.FC = () => {
 
   // Date selection state for logging spent days
   const [spendDateInputs, setSpendDateInputs] = useState<Record<string, string>>({});
-
-  // Lista de técnicos sugeridos (o existentes en los registros)
-  const knownTechnicians = React.useMemo(() => {
-    const list = new Set<string>();
-    list.add('Asier Bazaga (Team Leader)');
-    days.forEach(d => {
-      if (d.technician_name && d.technician_name.trim()) {
-        list.add(d.technician_name.trim());
-      }
-    });
-    return Array.from(list);
-  }, [days]);
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -76,6 +81,53 @@ export const TeamCompensatoryView: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Normalizar nombre de técnico en registros antiguos
+  const normalizeTechName = (rawName?: string) => {
+    if (!rawName) return 'Asier Bazaga';
+    if (rawName.includes('Bazaga')) return 'Asier Bazaga';
+    return rawName.trim();
+  };
+
+  // Lista dinámica de miembros (los 9 oficiales + cualquier extra añadido)
+  const allMembersList = useMemo(() => {
+    const list = new Map<string, { name: string; role: string; isLead: boolean }>();
+    OFFICIAL_TEAM_MEMBERS.forEach(m => list.set(m.name, { ...m }));
+
+    days.forEach(d => {
+      const norm = normalizeTechName(d.technician_name);
+      if (!list.has(norm)) {
+        list.set(norm, { name: norm, role: 'Técnico', isLead: false });
+      }
+    });
+
+    return Array.from(list.values());
+  }, [days]);
+
+  // Estadísticas por cada miembro del equipo
+  const memberStats = useMemo(() => {
+    const stats: Record<string, { earned: number; spent: number; remaining: number; totalBags: number }> = {};
+    
+    allMembersList.forEach(m => {
+      stats[m.name] = { earned: 0, spent: 0, remaining: 0, totalBags: 0 };
+    });
+
+    days.forEach(d => {
+      const norm = normalizeTechName(d.technician_name);
+      if (!stats[norm]) {
+        stats[norm] = { earned: 0, spent: 0, remaining: 0, totalBags: 0 };
+      }
+      stats[norm].earned += Number(d.total_days || 0);
+      stats[norm].spent += Number(d.spent_days || 0);
+      stats[norm].totalBags += 1;
+    });
+
+    Object.keys(stats).forEach(k => {
+      stats[k].remaining = stats[k].earned - stats[k].spent;
+    });
+
+    return stats;
+  }, [allMembersList, days]);
 
   const handleAddDay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,9 +209,9 @@ export const TeamCompensatoryView: React.FC = () => {
 
   // Filtrado por miembro del equipo
   const filteredDays = days.filter(d => {
+    const norm = normalizeTechName(d.technician_name);
     if (selectedMember === 'all') return true;
-    const tech = d.technician_name || 'Asier Bazaga (Team Leader)';
-    return tech === selectedMember;
+    return norm === selectedMember;
   });
 
   const totalEarned = filteredDays.reduce((sum, d) => sum + Number(d.total_days), 0);
@@ -225,89 +277,147 @@ export const TeamCompensatoryView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Barra de Filtros por Técnico y Acciones */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-        {/* Selector de Miembro */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-          <button
-            onClick={() => setSelectedMember('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-              selectedMember === 'all'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Todo el Equipo ({days.length})</span>
-          </button>
+      {/* 1. Tarjetas del Equipo de Técnicos (Overview Visual Rápido) */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+          <div>
+            <h2 className="text-sm font-black text-white flex items-center gap-2">
+              <Users className="w-4 h-4 text-cyan-400" />
+              Equipo Mecalux ({allMembersList.length} Miembros)
+            </h2>
+            <p className="text-xs text-slate-400">
+              Selecciona un técnico para filtrar sus bolsas de compensables o ver su saldo disponible
+            </p>
+          </div>
 
-          {knownTechnicians.map(tech => {
-            const count = days.filter(d => (d.technician_name || 'Asier Bazaga (Team Leader)') === tech).length;
-            const isSelected = selectedMember === tech;
-            const isMe = tech.includes('Asier');
-
-            return (
-              <button
-                key={tech}
-                onClick={() => setSelectedMember(tech)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                  isSelected
-                    ? isMe 
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
-                      : 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>{tech} ({count})</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Botones de acción */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => setShowCalculator(!showCalculator)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-              showCalculator 
-                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
-                : isDark 
-                ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white' 
-                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <Calculator className="w-3.5 h-3.5" />
-            <span>Calc. Horas Agosto</span>
-          </button>
-
-          {!isAdding && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/20"
+              onClick={() => setShowCalculator(!showCalculator)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                showCalculator 
+                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
+                  : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Calc. Horas Agosto</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (selectedMember !== 'all') {
+                  setNewTechnician(selectedMember);
+                } else {
+                  setNewTechnician('Asier Bazaga');
+                }
+                setIsAdding(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>+ Asignar Compensable</span>
             </button>
-          )}
+          </div>
+        </div>
+
+        {/* Grid de Miembros del Equipo */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+          {/* Botón Ver Todos */}
+          <button
+            onClick={() => setSelectedMember('all')}
+            className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+              selectedMember === 'all'
+                ? 'bg-gradient-to-b from-indigo-900/60 to-slate-900 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
+                : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
+                <Users className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                {days.length} bolsas
+              </span>
+            </div>
+            <div>
+              <p className="text-xs font-black text-white">Todo el Equipo</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Vista global</p>
+            </div>
+          </button>
+
+          {/* Tarjetas individuales de los 8 técnicos + Asier */}
+          {allMembersList.map((m) => {
+            const isSelected = selectedMember === m.name;
+            const stats = memberStats[m.name] || { earned: 0, spent: 0, remaining: 0, totalBags: 0 };
+            const initials = m.name
+              .split(' ')
+              .filter(p => p.length > 2)
+              .slice(0, 2)
+              .map(p => p[0])
+              .join('');
+
+            return (
+              <button
+                key={m.name}
+                onClick={() => setSelectedMember(m.name)}
+                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group ${
+                  isSelected
+                    ? m.isLead
+                      ? 'bg-gradient-to-b from-blue-900/60 to-slate-900 border-blue-500/50 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/30'
+                      : 'bg-gradient-to-b from-cyan-900/60 to-slate-900 border-cyan-500/50 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30'
+                    : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm ${
+                    m.isLead 
+                      ? 'bg-blue-600/25 text-blue-300 border border-blue-500/30' 
+                      : 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/30'
+                  }`}>
+                    {initials || m.name.slice(0, 2).toUpperCase()}
+                  </div>
+
+                  <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                    stats.remaining > 0 
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' 
+                      : 'bg-slate-800 text-slate-500'
+                  }`}>
+                    {stats.remaining} d.
+                  </span>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-white truncate max-w-[130px]" title={m.name}>
+                      {m.name}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
+                    <span className={m.isLead ? 'text-blue-400 font-semibold' : 'text-slate-500'}>
+                      {m.isLead ? 'Team Leader' : 'Técnico'}
+                    </span>
+                    <span>{stats.totalBags} reg.</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Calculadora de Agosto */}
+      {/* 2. Calculadora de Horas de Agosto (Desplegable) */}
       {showCalculator && (
-        <div className={`p-5 rounded-2xl border transition-all ${
-          isDark ? 'bg-slate-900/90 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200'
-        }`}>
+        <div className="p-5 rounded-3xl bg-slate-900/90 border border-indigo-500/30 shadow-xl transition-all">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Calculator className="w-4 h-4 text-indigo-400" />
-                <h3 className={`font-bold text-sm ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                  Cálculo de Días Compensables por Jornada Intensiva de Agosto
+                <h3 className="font-bold text-sm text-indigo-300">
+                  Calculadora de Días Compensables por Jornada Intensiva de Agosto
                 </h3>
               </div>
               <p className="text-xs text-slate-400">
-                Regla Mecalux: 36 minutos acumulados por cada día trabajado en jornada completa. Cada 8 horas (480 min) equivale a 1 día libre.
+                Regla Mecalux: 36 minutos acumulados por cada día trabajado en jornada intensiva. Cada 8 horas (480 min) equivale a 1 día libre.
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -320,14 +430,12 @@ export const TeamCompensatoryView: React.FC = () => {
                   placeholder="Ej: 21"
                   value={augustDays}
                   onChange={(e) => setAugustDays(e.target.value === '' ? '' : Number(e.target.value))}
-                  className={`w-28 px-3 py-2 rounded-xl border text-center font-bold text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${
-                    isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
-                  }`}
+                  className="w-28 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-center font-bold text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div className="text-right min-w-[140px] flex flex-col items-end">
-                <span className={`text-xl font-black ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                <span className="text-xl font-black text-indigo-400">
                   {augResult.hours}h {augResult.minutes}m
                 </span>
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
@@ -354,7 +462,7 @@ export const TeamCompensatoryView: React.FC = () => {
         </div>
       )}
 
-      {/* Tarjetas de Resumen KPI */}
+      {/* 3. Métricas Globales del Miembro o Equipo Seleccionado */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
           <div className="flex items-center justify-between text-slate-400">
@@ -363,9 +471,9 @@ export const TeamCompensatoryView: React.FC = () => {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">{totalEarned}</div>
+          <div className="text-2xl font-black text-white">{totalEarned} días</div>
           <p className="text-[11px] text-slate-500">
-            {selectedMember === 'all' ? 'Total en todo el equipo' : `Asignados a ${selectedMember}`}
+            {selectedMember === 'all' ? 'Total sumando todo el equipo' : `Asignados a ${selectedMember}`}
           </p>
         </div>
 
@@ -376,28 +484,28 @@ export const TeamCompensatoryView: React.FC = () => {
               <TrendingDown className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">{totalSpent}</div>
-          <p className="text-[11px] text-slate-500">Días ya consumidos o librados</p>
+          <div className="text-2xl font-black text-white">{totalSpent} días</div>
+          <p className="text-[11px] text-slate-500">Consumidos o librados en calendario</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-tr from-indigo-950/40 via-slate-900/80 to-blue-950/40 border border-indigo-500/30 space-y-1">
+        <div className="p-4 rounded-2xl bg-gradient-to-tr from-cyan-950/40 via-slate-900/80 to-blue-950/40 border border-cyan-500/30 space-y-1">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">Saldo Disponible</span>
-            <div className="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg">
+            <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">Saldo Pendiente</span>
+            <div className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-indigo-400">{totalRemaining}</div>
-          <p className="text-[11px] text-slate-400">Días pendientes por disfrutar</p>
+          <div className="text-2xl font-black text-cyan-400">{totalRemaining} días</div>
+          <p className="text-[11px] text-slate-400">Disponibles por disfrutar</p>
         </div>
       </div>
 
-      {/* Formulario de Alta de Días Compensables */}
+      {/* 4. Formulario de Alta de Bolsa Compensable */}
       {isAdding && (
-        <form onSubmit={handleAddDay} className="p-6 rounded-3xl bg-slate-900 border border-indigo-500/30 space-y-4 shadow-xl">
+        <form onSubmit={handleAddDay} className="p-6 rounded-3xl bg-slate-900 border border-cyan-500/30 space-y-4 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Plus className="w-4 h-4 text-indigo-400" />
+              <Plus className="w-4 h-4 text-cyan-400" />
               Asignar Bolsa de Días Compensables
             </h3>
             <button 
@@ -412,20 +520,26 @@ export const TeamCompensatoryView: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Asignado a */}
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1">Miembro del Equipo</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Técnico / Miembro del Equipo</label>
               <select
                 value={newTechnician}
                 onChange={(e) => setNewTechnician(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold focus:outline-none focus:border-indigo-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
               >
-                <option value="Asier Bazaga (Team Leader)">Asier Bazaga (Team Leader - Mío)</option>
-                {knownTechnicians
-                  .filter(t => !t.includes('Asier'))
-                  .map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))
-                }
-                <option value="__custom__">+ Añadir nuevo técnico...</option>
+                <optgroup label="Team Leader">
+                  <option value="Asier Bazaga">Asier Bazaga (Team Leader - Mío)</option>
+                </optgroup>
+                <optgroup label="Técnicos Mecalux">
+                  {allMembersList
+                    .filter(m => !m.isLead)
+                    .map(m => (
+                      <option key={m.name} value={m.name}>{m.name}</option>
+                    ))
+                  }
+                </optgroup>
+                <optgroup label="Otros">
+                  <option value="__custom__">+ Añadir otro técnico...</option>
+                </optgroup>
               </select>
 
               {newTechnician === '__custom__' && (
@@ -434,7 +548,7 @@ export const TeamCompensatoryView: React.FC = () => {
                   placeholder="Nombre y Apellidos del Técnico"
                   value={customTechnicianName}
                   onChange={(e) => setCustomTechnicianName(e.target.value)}
-                  className="w-full mt-2 px-3.5 py-2 rounded-xl bg-slate-950 border border-indigo-500/50 text-xs text-white focus:outline-none"
+                  className="w-full mt-2 px-3.5 py-2 rounded-xl bg-slate-950 border border-cyan-500/50 text-xs text-white focus:outline-none"
                   autoFocus
                 />
               )}
@@ -445,10 +559,10 @@ export const TeamCompensatoryView: React.FC = () => {
               <label className="block text-xs font-bold text-slate-400 mb-1">Motivo / Concepto</label>
               <input
                 type="text"
-                placeholder="Ej: Finde de guardia, Exceso jornada, Go-live..."
+                placeholder="Ej: Finde guardia, Puesta en marcha, Exceso..."
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-cyan-500"
                 required
               />
             </div>
@@ -462,7 +576,7 @@ export const TeamCompensatoryView: React.FC = () => {
                 min="0.5"
                 value={newTotal}
                 onChange={(e) => setNewTotal(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold focus:outline-none focus:border-indigo-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
                 required
               />
             </div>
@@ -472,10 +586,10 @@ export const TeamCompensatoryView: React.FC = () => {
             <label className="block text-xs font-bold text-slate-400 mb-1">Notas / Observaciones (Opcional)</label>
             <input
               type="text"
-              placeholder="Detalles sobre el proyecto, guardia o autorización..."
+              placeholder="Instalación, cliente, horario o notas adicionales..."
               value={newNotes}
               onChange={(e) => setNewNotes(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-cyan-500"
             />
           </div>
 
@@ -490,39 +604,41 @@ export const TeamCompensatoryView: React.FC = () => {
             <button
               type="submit"
               disabled={!newTitle.trim()}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-indigo-600/20"
+              className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-cyan-600/20"
             >
-              Guardar Bolsa
+              Guardar Bolsa Compensable
             </button>
           </div>
         </form>
       )}
 
-      {/* Lista de Registros */}
+      {/* 5. Lista de Registros */}
       <div className="space-y-3.5">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Registros ({filteredDays.length})
+            Registros Detallados ({filteredDays.length})
           </h3>
-          <span className="text-[11px] text-slate-500">
-            Mostrando: <strong className="text-slate-300">{selectedMember === 'all' ? 'Todo el equipo' : selectedMember}</strong>
+          <span className="text-[11px] text-slate-400">
+            Filtrando por: <strong className="text-white">{selectedMember === 'all' ? 'Todo el equipo' : selectedMember}</strong>
           </span>
         </div>
 
         {filteredDays.length === 0 ? (
           <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
             <Clock className="w-8 h-8 text-slate-600 mx-auto" />
-            <h4 className="text-sm font-bold text-slate-300">No hay registros para este filtro</h4>
+            <h4 className="text-sm font-bold text-slate-300">
+              No hay días registrados para {selectedMember === 'all' ? 'el equipo' : selectedMember}
+            </h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Pulsa en "+ Asignar Compensable" para registrar nuevos días ganados para ti o para los técnicos de tu equipo.
+              Pulsa en "+ Asignar Compensable" para registrar nuevos días ganados por guardias, viajes o exceso de horas.
             </p>
           </div>
         ) : (
           filteredDays.map(day => {
             const progress = (day.spent_days / day.total_days) * 100;
             const isCompleted = day.spent_days >= day.total_days;
-            const techName = day.technician_name || 'Asier Bazaga (Team Leader)';
-            const isMe = techName.includes('Asier');
+            const techName = normalizeTechName(day.technician_name);
+            const isLead = techName.includes('Bazaga');
 
             return (
               <div
@@ -535,7 +651,7 @@ export const TeamCompensatoryView: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg border ${
-                        isMe 
+                        isLead 
                           ? 'bg-blue-500/15 text-blue-300 border-blue-500/30' 
                           : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                       }`}>
@@ -560,13 +676,13 @@ export const TeamCompensatoryView: React.FC = () => {
                         ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
                         : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                     }`}>
-                      {isCompleted ? 'Completamente Disfrutado' : `Saldo: ${day.total_days - day.spent_days} días`}
+                      {isCompleted ? 'Completado' : `Saldo: ${day.total_days - day.spent_days} d.`}
                     </span>
 
                     <button
                       onClick={() => deleteDay(day.id)}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Eliminar bolsa"
+                      title="Eliminar registro"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -581,7 +697,7 @@ export const TeamCompensatoryView: React.FC = () => {
                   </div>
                   <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
                     <div 
-                      className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                      className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : 'bg-cyan-500'}`}
                       style={{ width: `${Math.min(100, progress)}%` }}
                     />
                   </div>
@@ -595,7 +711,7 @@ export const TeamCompensatoryView: React.FC = () => {
                         key={log.id} 
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-950 border border-slate-800 text-slate-300"
                       >
-                        <Calendar className="w-3 h-3 text-indigo-400" />
+                        <Calendar className="w-3 h-3 text-cyan-400" />
                         <span>{new Date(log.date).toLocaleDateString()}</span>
                         <button 
                           onClick={() => removeSpentLog(day, log.id)}
@@ -621,10 +737,10 @@ export const TeamCompensatoryView: React.FC = () => {
                       />
                       <button
                         onClick={() => addSpentLog(day)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 whitespace-nowrap"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-md shadow-cyan-600/20 whitespace-nowrap"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>Gastar 1 día</span>
+                        <span>Librar 1 día</span>
                       </button>
                     </div>
                   )}
