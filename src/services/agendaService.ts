@@ -248,42 +248,106 @@ export const agendaService = {
       .select('*')
       .order('date', { ascending: false });
 
-    // Si se especifica userId y no es un usuario global, podemos filtrar, o si es técnico obtener los de su equipo/empresa
     const { data, error } = await query;
 
     if (error) {
       console.warn('Fallback al consultar agenda_compensatory_days:', error.message);
-      // Intentar filtrar por user_id si hay RLS estricto
       if (userId) {
         const res = await supabase.from('agenda_compensatory_days').select('*').eq('user_id', userId).order('date', { ascending: false });
-        if (!res.error && res.data) return res.data;
+        if (!res.error && res.data) {
+          return (res.data as any[]).map(this.mapCompensatoryDayFromDb);
+        }
       }
       return [];
     }
-    return data || [];
+
+    return (data || []).map(this.mapCompensatoryDayFromDb);
+  },
+
+  mapCompensatoryDayFromDb(raw: any): AgendaCompensatoryDay {
+    let technician_name = raw.technician_name;
+    let cleanNotes = raw.notes || '';
+
+    // Si technician_name no viene de la columna directa de Supabase, leer de la etiqueta embebida en notes: [TECH:Nombre]
+    if (!technician_name && cleanNotes.includes('[TECH:')) {
+      const match = cleanNotes.match(/\[TECH:(.*?)\]/);
+      if (match && match[1]) {
+        technician_name = match[1];
+        cleanNotes = cleanNotes.replace(/\[TECH:.*?\]\s*/, '');
+      }
+    }
+
+    return {
+      ...raw,
+      technician_name: technician_name || 'Asier Bazaga',
+      notes: cleanNotes
+    };
   },
 
   async createCompensatoryDay(day: Partial<AgendaCompensatoryDay>): Promise<AgendaCompensatoryDay> {
-    const { data, error } = await supabase
+    const techName = day.technician_name || 'Asier Bazaga';
+    // Embeber [TECH:Nombre] en notes para garantizar compatibilidad si la columna aún no está creada en Supabase
+    const notesWithTag = `[TECH:${techName}] ${day.notes || ''}`.trim();
+
+    // Intentar primero con el payload completo
+    const payloadWithCol: any = {
+      ...day,
+      notes: notesWithTag
+    };
+
+    // Intentar insertar
+    let { data, error } = await supabase
       .from('agenda_compensatory_days')
-      .insert([day])
+      .insert([payloadWithCol])
       .select()
       .single();
 
+    // Si la columna technician_name falla en Supabase schema cache, reintentar sin la columna directa
+    if (error && error.message?.includes('technician_name')) {
+      const { technician_name, ...payloadWithoutCol } = payloadWithCol;
+      const res = await supabase
+        .from('agenda_compensatory_days')
+        .insert([payloadWithoutCol])
+        .select()
+        .single();
+      data = res.data;
+      error = res.error;
+    }
+
     if (error) throw error;
-    return data;
+    return this.mapCompensatoryDayFromDb({ ...data, technician_name: techName });
   },
 
   async updateCompensatoryDay(dayId: string, updates: Partial<AgendaCompensatoryDay>): Promise<AgendaCompensatoryDay> {
-    const { data, error } = await supabase
+    const payload: any = { ...updates, updated_at: new Date().toISOString() };
+    
+    if (updates.technician_name) {
+      const existingNotes = updates.notes || '';
+      const clean = existingNotes.replace(/\[TECH:.*?\]\s*/, '');
+      payload.notes = `[TECH:${updates.technician_name}] ${clean}`.trim();
+    }
+
+    let { data, error } = await supabase
       .from('agenda_compensatory_days')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', dayId)
       .select()
       .single();
 
+    if (error && error.message?.includes('technician_name')) {
+      const { technician_name, ...payloadWithoutCol } = payload;
+      const res = await supabase
+        .from('agenda_compensatory_days')
+        .update(payloadWithoutCol)
+        .eq('id', dayId)
+        .select()
+        .single();
+      data = res.data;
+      error = res.error;
+    }
+
     if (error) throw error;
-    return data;
+    return this.mapCompensatoryDayFromDb(data);
   },
 
   async deleteCompensatoryDay(dayId: string): Promise<void> {

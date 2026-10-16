@@ -89,7 +89,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     { id: 'gastos', name: 'Gastos & Finanzas', icon: DollarSign, color: 'text-emerald-400' },
     { id: 'libros-juegos', name: 'Libros, Cine & Juegos', icon: BookOpen, color: 'text-purple-400' },
     { id: 'lore', name: 'Lore CRM & Rutas', icon: BookMarked, color: 'text-sky-400' },
-    { id: 'entrevistas', name: 'Team Leader', icon: Building, color: 'text-cyan-400' },
+    { id: 'entrevistas', name: 'Mecalux Ops Hub', icon: Building, color: 'text-cyan-400' },
     { id: 'inversiones', name: 'Inversiones', icon: Package, color: 'text-yellow-400' },
     { id: 'agenda', name: 'Agenda Personal', icon: CalendarDays, color: 'text-blue-400' },
     { id: 'recetas', name: 'Recetas & Nutrición', icon: ChefHat, color: 'text-rose-400' },
@@ -485,7 +485,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                     : 'bg-white/5 border-white/5 text-slate-500'
                                 }`}
                               >
-                                {canAccess ? (app.id === 'entrevistas' ? 'Compensables SI' : 'Acceso SI') : 'Bloqueado'}
+                                {canAccess ? (app.id === 'entrevistas' ? 'Field Ops SI' : 'Acceso SI') : 'Bloqueado'}
                               </button>
 
                               {/* Toggle Edición */}
@@ -499,7 +499,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                       : 'bg-white/5 text-slate-400 border-white/5'
                                   }`}
                                 >
-                                  {canEdit ? (app.id === 'entrevistas' ? 'Librar Días' : 'Edición') : 'Solo Lectura'}
+                                  {canEdit ? (app.id === 'entrevistas' ? 'Registrar/Librar' : 'Edición') : 'Solo Lectura'}
                                 </button>
                               )}
                             </div>
@@ -678,10 +678,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                     : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                                   : 'bg-[#090C15] border-white/5 text-slate-500 hover:text-white'
                               }`}
-                              title={isTeamLeaderApp ? (canAccess ? 'Acceso concedido a Días Compensables' : 'Acceso denegado') : undefined}
+                              title={isTeamLeaderApp ? (canAccess ? 'Acceso concedido a Field Ops (Días Compensables)' : 'Acceso denegado') : undefined}
                             >
                               {canAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                              {canAccess ? (isTeamLeaderApp ? 'Compensables' : 'Acceso') : 'Bloqueado'}
+                              {canAccess ? (isTeamLeaderApp ? 'Field Ops' : 'Acceso') : 'Bloqueado'}
                             </button>
 
                             {/* Toggle Edición */}
@@ -694,10 +694,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                                     ? 'bg-[#FF6B00]/10 text-[#FF6B00] border-[#FF6B00]/25'
                                     : 'bg-white/5 text-slate-400 border-white/5'
                                 }`}
-                                title={isTeamLeaderApp ? (canEdit ? 'Puede registrar sus días librados' : 'Solo lectura de saldo') : undefined}
+                                title={isTeamLeaderApp ? (canEdit ? 'Puede registrar bolsas y librar días' : 'Solo lectura de saldo') : undefined}
                               >
                                 {canEdit ? <Edit3 className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
-                                {canEdit ? 'Librar Días' : 'Solo Lectura'}
+                                {canEdit ? (isTeamLeaderApp ? 'Registrar/Librar' : 'Edición') : 'Solo Lectura'}
                               </button>
                             )}
                           </div>

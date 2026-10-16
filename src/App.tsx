@@ -66,7 +66,7 @@ const MainLayout: React.FC = () => {
       case 'gastos': return 'App Gastos & Finanzas';
       case 'libros-juegos': return 'App Libros & Juegos';
       case 'lore': return 'App Lore & Rutas';
-      case 'entrevistas': return 'Team Leader';
+      case 'entrevistas': return (currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga')) ? 'Mecalux Ops Hub' : 'Mecalux Field Ops';
       case 'inversiones': return 'Inversiones & Coleccionismo';
       case 'agenda': return 'Agenda Personal';
       case 'recetas': return 'Recetas & Nutrición';
@@ -98,7 +98,7 @@ const MainLayout: React.FC = () => {
         return <LoreApp onBack={handleBackToDashboard} />;
 
       case 'entrevistas':
-        if (!hasAccessToApp('entrevistas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="TEAM LEADER" />;
+        if (!hasAccessToApp('entrevistas')) return <AccessDeniedView onBack={handleBackToDashboard} appName="MECALUX OPS" />;
         return <TeamLeaderApp onBack={handleBackToDashboard} />;
         
       case 'inversiones':
@@ -218,7 +218,7 @@ const MainLayout: React.FC = () => {
             }`}
           >
             <Building className="w-4 h-4" />
-            <span className="text-[10px]">Team Leader</span>
+            <span className="text-[10px]">{(currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga')) ? 'Ops Hub' : 'Field Ops'}</span>
           </button>
         )}
 

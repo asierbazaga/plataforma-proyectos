@@ -21,7 +21,8 @@ import {
   Layers, 
   ArrowRight,
   Lock,
-  CalendarCheck2
+  CalendarCheck2,
+  CalendarPlus
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -41,11 +42,13 @@ export const OFFICIAL_TEAM_MEMBERS = [
 ] as const;
 
 export const TeamCompensatoryView: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, canEditApp, hasAccessToApp } = useAuth();
   const { isDark } = useTheme();
   
   // Asier es Team Leader / Admin
   const isTeamLeader = currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga');
+  // Puede registrar o solicitar días si es Team Leader o tiene permiso/acceso a la aplicación concedido
+  const canEditCompensatory = isTeamLeader || canEditApp('entrevistas') || hasAccessToApp('entrevistas');
 
   const [days, setDays] = useState<AgendaCompensatoryDay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +82,6 @@ export const TeamCompensatoryView: React.FC = () => {
     // Intentar buscar coincidencia inteligente por apellidos o emails corporativos
     for (const m of OFFICIAL_TEAM_MEMBERS) {
       const mName = m.name.toLowerCase();
-      // Si el email contiene palabras clave (ej: jmaria.abad -> abad)
       if (userEmail) {
         const emailLocal = userEmail.split('@')[0];
         if (mName.includes('abad') && (emailLocal.includes('abad') || userFullName.includes('abad'))) return m.name;
@@ -92,7 +94,6 @@ export const TeamCompensatoryView: React.FC = () => {
         if (mName.includes('rozada') && (emailLocal.includes('rozada') || userFullName.includes('rozada'))) return m.name;
       }
       
-      // Si el nombre contiene palabras coincidentes
       if (userFullName) {
         const parts = userFullName.split(' ').filter(p => p.length >= 3);
         const matchAnyPart = parts.some(p => mName.includes(p));
@@ -104,7 +105,6 @@ export const TeamCompensatoryView: React.FC = () => {
   }, [currentUser, isTeamLeader]);
   
   // Filtro de miembro del equipo ('all', o nombre completo)
-  // Si es un técnico, forzamos su propio nombre por defecto
   const [selectedMember, setSelectedMember] = useState<string>(
     isTeamLeader ? 'all' : (currentTechnicianMatch || 'all')
   );
@@ -117,6 +117,14 @@ export const TeamCompensatoryView: React.FC = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newTotal, setNewTotal] = useState<number | string>(1);
   const [newNotes, setNewNotes] = useState('');
+
+  // Sincronizar automáticamente el técnico activo cuando se detecta el login
+  useEffect(() => {
+    if (!isTeamLeader && currentTechnicianMatch) {
+      setSelectedMember(currentTechnicianMatch);
+      setNewTechnician(currentTechnicianMatch);
+    }
+  }, [currentTechnicianMatch, isTeamLeader]);
 
   // Calculadora de agosto
   const [augustDays, setAugustDays] = useState<number | string>('');
@@ -133,7 +141,6 @@ export const TeamCompensatoryView: React.FC = () => {
   const loadDays = async () => {
     try {
       setLoading(true);
-      // Cargar todas las bolsas compensables del equipo
       const data = await agendaService.getCompensatoryDays(currentUser!.id);
       setDays(data);
     } catch (error) {
@@ -188,9 +195,12 @@ export const TeamCompensatoryView: React.FC = () => {
     const totalNum = Number(newTotal);
     if (!newTitle.trim() || !currentUser?.id || !totalNum || totalNum <= 0) return;
 
-    const assignedTechnician = newTechnician === '__custom__' 
-      ? (customTechnicianName.trim() || 'Técnico Sin Nombre')
-      : newTechnician;
+    // Si es técnico, la bolsa se le asigna siempre a sí mismo
+    const assignedTechnician = !isTeamLeader 
+      ? (currentTechnicianMatch || currentUser.full_name)
+      : (newTechnician === '__custom__' 
+          ? (customTechnicianName.trim() || 'Técnico Sin Nombre')
+          : newTechnician);
 
     try {
       const day = await agendaService.createCompensatoryDay({
@@ -216,13 +226,19 @@ export const TeamCompensatoryView: React.FC = () => {
     }
   };
 
-  const addSpentLog = async (day: AgendaCompensatoryDay) => {
+  const addSpentLog = async (day: AgendaCompensatoryDay, amount: number = 1) => {
     if (day.spent_days >= day.total_days) return;
 
+    const remaining = day.total_days - day.spent_days;
+    const actualSpend = Math.min(amount, remaining);
     const dateToLog = spendDateInputs[day.id] || new Date().toISOString().split('T')[0];
-    const newLog = { id: Date.now().toString(), date: dateToLog };
+    const newLog = { 
+      id: Date.now().toString(), 
+      date: dateToLog,
+      days: actualSpend
+    };
     const newLogs = [...(day.spent_logs || []), newLog];
-    const newSpent = day.spent_days + 1;
+    const newSpent = Number((day.spent_days + actualSpend).toFixed(1));
 
     // Optimistic
     setDays(days.map(d => d.id === day.id ? { ...d, spent_days: newSpent, spent_logs: newLogs } : d));
@@ -237,8 +253,10 @@ export const TeamCompensatoryView: React.FC = () => {
   };
 
   const removeSpentLog = async (day: AgendaCompensatoryDay, logId: string) => {
+    const targetLog = (day.spent_logs || []).find(l => l.id === logId);
+    const amountToDeduct = (targetLog as any)?.days || 1;
     const newLogs = (day.spent_logs || []).filter(l => l.id !== logId);
-    const newSpent = Math.max(0, day.spent_days - 1);
+    const newSpent = Math.max(0, Number((day.spent_days - amountToDeduct).toFixed(1)));
 
     // Optimistic
     setDays(days.map(d => d.id === day.id ? { ...d, spent_days: newSpent, spent_logs: newLogs } : d));
@@ -251,8 +269,8 @@ export const TeamCompensatoryView: React.FC = () => {
     }
   };
 
-  const deleteDay = async (id: string) => {
-    if (!isTeamLeader) return; // Solo el Team Leader puede eliminar bolsas
+  const deleteDay = async (id: string, dayOwnerId?: string) => {
+    if (!isTeamLeader && dayOwnerId !== currentUser?.id) return;
     setDays(days.filter(d => d.id !== id));
     try {
       await agendaService.deleteCompensatoryDay(id);
@@ -263,11 +281,19 @@ export const TeamCompensatoryView: React.FC = () => {
   };
 
   // Filtrado de días:
-  // Si es técnico y no es TL, solo ve SUS PROPIOS DÍAS COMPENSABLES
+  // Si es técnico y no es TL, ve sus propios días compensables
   const filteredDays = days.filter(d => {
     const norm = normalizeTechName(d.technician_name);
-    if (!isTeamLeader && currentTechnicianMatch) {
-      return norm === currentTechnicianMatch;
+    if (!isTeamLeader) {
+      // 1. Si el registro pertenece directamente al usuario logueado
+      if (currentUser?.id && d.user_id === currentUser.id) return true;
+      // 2. Si coincide con su nombre de técnico asignado
+      if (currentTechnicianMatch) {
+        const currentNorm = normalizeTechName(currentTechnicianMatch);
+        const userNorm = normalizeTechName(currentUser?.full_name);
+        return norm === currentNorm || norm === userNorm || norm.includes(currentNorm) || currentNorm.includes(norm);
+      }
+      return false;
     }
     if (selectedMember === 'all') return true;
     return norm === selectedMember;
@@ -343,7 +369,7 @@ export const TeamCompensatoryView: React.FC = () => {
             <div>
               <h2 className="text-sm font-black text-white flex items-center gap-2">
                 <Users className="w-4 h-4 text-cyan-400" />
-                Equipo Mecalux ({allMembersList.length} Miembros)
+                Equipo de Campo ({allMembersList.length} Miembros)
               </h2>
               <p className="text-xs text-slate-400">
                 Selecciona un técnico para filtrar sus bolsas o asignar nuevos días compensables
@@ -363,20 +389,22 @@ export const TeamCompensatoryView: React.FC = () => {
                 <span>Calc. Horas Agosto</span>
               </button>
 
-              <button
-                onClick={() => {
-                  if (selectedMember !== 'all') {
-                    setNewTechnician(selectedMember);
-                  } else {
-                    setNewTechnician('Asier Bazaga');
-                  }
-                  setIsAdding(true);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ Asignar Compensable</span>
-              </button>
+              {!isAdding && (
+                <button
+                  onClick={() => {
+                    if (selectedMember !== 'all') {
+                      setNewTechnician(selectedMember);
+                    } else {
+                      setNewTechnician('Asier Bazaga');
+                    }
+                    setIsAdding(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Añadir Días</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -476,7 +504,7 @@ export const TeamCompensatoryView: React.FC = () => {
                 Tus Días Compensables ({currentTechnicianMatch || currentUser?.full_name})
               </h2>
               <p className="text-xs text-slate-400">
-                Consulta tu saldo disponible, días asignados por tu Team Leader y días ya disfrutados
+                Consulta tu saldo disponible, registra tus días librados o solicita nuevas bolsas por guardias/intervenciones
               </p>
             </div>
           </div>
@@ -489,6 +517,19 @@ export const TeamCompensatoryView: React.FC = () => {
               <Calculator className="w-3.5 h-3.5 text-indigo-400" />
               <span>Calc. Agosto</span>
             </button>
+
+            {!isAdding && (
+              <button
+                onClick={() => {
+                  setNewTechnician(currentTechnicianMatch || currentUser?.full_name || 'Técnico');
+                  setIsAdding(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Añadir Días</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -590,13 +631,13 @@ export const TeamCompensatoryView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Formulario de Alta de Bolsa Compensable (Solo Team Leader) */}
-      {isTeamLeader && isAdding && (
-        <form onSubmit={handleAddDay} className="p-6 rounded-3xl bg-slate-900 border border-cyan-500/30 space-y-4 shadow-xl">
+      {/* 4. Formulario de Alta de Días Compensables */}
+      {isAdding && (
+        <form onSubmit={handleAddDay} className="p-6 rounded-3xl bg-slate-900 border border-indigo-500/30 space-y-4 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Plus className="w-4 h-4 text-cyan-400" />
-              Asignar Bolsa de Días Compensables
+              <Plus className="w-4 h-4 text-indigo-400" />
+              {isTeamLeader ? 'Asignar Días Compensables' : 'Añadir Días Compensables'}
             </h3>
             <button 
               type="button" 
@@ -611,28 +652,37 @@ export const TeamCompensatoryView: React.FC = () => {
             {/* Asignado a */}
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1">Técnico / Miembro del Equipo</label>
-              <select
-                value={newTechnician}
-                onChange={(e) => setNewTechnician(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
-              >
-                <optgroup label="Team Leader">
-                  <option value="Asier Bazaga">Asier Bazaga (Team Leader - Mío)</option>
-                </optgroup>
-                <optgroup label="Técnicos Mecalux">
-                  {allMembersList
-                    .filter(m => !m.isLead)
-                    .map(m => (
-                      <option key={m.name} value={m.name}>{m.name}</option>
-                    ))
-                  }
-                </optgroup>
-                <optgroup label="Otros">
-                  <option value="__custom__">+ Añadir otro técnico...</option>
-                </optgroup>
-              </select>
+              {isTeamLeader ? (
+                <select
+                  value={newTechnician}
+                  onChange={(e) => setNewTechnician(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
+                >
+                  <optgroup label="Team Leader">
+                    <option value="Asier Bazaga">Asier Bazaga (Team Leader - Mío)</option>
+                  </optgroup>
+                  <optgroup label="Técnicos Mecalux">
+                    {allMembersList
+                      .filter(m => !m.isLead)
+                      .map(m => (
+                        <option key={m.name} value={m.name}>{m.name}</option>
+                      ))
+                    }
+                  </optgroup>
+                  <optgroup label="Otros">
+                    <option value="__custom__">+ Añadir otro técnico...</option>
+                  </optgroup>
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  disabled
+                  value={currentTechnicianMatch || currentUser?.full_name}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-300 font-bold opacity-80 cursor-not-allowed"
+                />
+              )}
 
-              {newTechnician === '__custom__' && (
+              {isTeamLeader && newTechnician === '__custom__' && (
                 <input
                   type="text"
                   placeholder="Nombre y Apellidos del Técnico"
@@ -694,9 +744,9 @@ export const TeamCompensatoryView: React.FC = () => {
             <button
               type="submit"
               disabled={!newTitle.trim()}
-              className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-cyan-600/20"
+              className="px-5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-indigo-500/20"
             >
-              Guardar Bolsa Compensable
+              Guardar
             </button>
           </div>
         </form>
@@ -718,16 +768,38 @@ export const TeamCompensatoryView: React.FC = () => {
         </div>
 
         {filteredDays.length === 0 ? (
-          <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
-            <Clock className="w-8 h-8 text-slate-600 mx-auto" />
-            <h4 className="text-sm font-bold text-slate-300">
-              No hay días registrados {isTeamLeader ? `para ${selectedMember === 'all' ? 'el equipo' : selectedMember}` : 'en tu cuenta aún'}
-            </h4>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              {isTeamLeader 
-                ? 'Pulsa en "+ Asignar Compensable" para registrar nuevos días ganados por guardias o exceso de horas.' 
-                : 'Tu Team Leader (Asier Bazaga) asignará tus días compensables cuando realices guardias o exceso de jornada.'}
-            </p>
+          <div className="p-8 sm:p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto shadow-inner">
+              <CalendarPlus className="w-7 h-7" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1.5">
+              <h4 className="text-base font-bold text-white">
+                {isTeamLeader 
+                  ? `No hay registros para ${selectedMember === 'all' ? 'el equipo' : selectedMember}`
+                  : 'Aún no tienes bolsas de días compensables registradas'}
+              </h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {isTeamLeader 
+                  ? 'Asigna nuevas bolsas de días generados por guardias, puestas en marcha o exceso de jornada a los técnicos.' 
+                  : 'Registra tus días ganados por guardias de fin de semana, puestas en marcha en clientes o exceso de horas para llevar el control de tu saldo y libranzas.'}
+              </p>
+            </div>
+
+            {!isAdding && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewTechnician(currentTechnicianMatch || currentUser?.full_name || 'Técnico');
+                    setIsAdding(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.02]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Añadir Días</span>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           filteredDays.map(day => {
@@ -772,14 +844,14 @@ export const TeamCompensatoryView: React.FC = () => {
                         ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
                         : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                     }`}>
-                      {isCompleted ? 'Completado' : `Saldo: ${day.total_days - day.spent_days} d.`}
+                      {isCompleted ? 'Completado' : `Saldo: ${Number((day.total_days - day.spent_days).toFixed(1))} d.`}
                     </span>
 
-                    {isTeamLeader && (
+                    {(isTeamLeader || day.user_id === currentUser?.id) && (
                       <button
-                        onClick={() => deleteDay(day.id)}
+                        onClick={() => deleteDay(day.id, day.user_id)}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                        title="Eliminar registro"
+                        title="Eliminar bolsa completa"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -795,7 +867,7 @@ export const TeamCompensatoryView: React.FC = () => {
                   </div>
                   <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
                     <div 
-                      className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : 'bg-cyan-500'}`}
+                      className={`h-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-500'}`}
                       style={{ width: `${Math.min(100, progress)}%` }}
                     />
                   </div>
@@ -804,44 +876,56 @@ export const TeamCompensatoryView: React.FC = () => {
                 {/* Días disfrutados y botón de gasto */}
                 <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center pt-3 border-t border-slate-800/60">
                   <div className="flex flex-wrap gap-1.5 flex-1 items-center">
-                    {(day.spent_logs || []).map((log) => (
+                    {(day.spent_logs || []).map((log: any) => (
                       <div 
                         key={log.id} 
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-950 border border-slate-800 text-slate-300"
                       >
-                        <Calendar className="w-3 h-3 text-cyan-400" />
+                        <Calendar className="w-3 h-3 text-indigo-400" />
                         <span>{new Date(log.date).toLocaleDateString()}</span>
-                        {isTeamLeader && (
-                          <button 
-                            onClick={() => removeSpentLog(day, log.id)}
-                            className="hover:text-rose-400 ml-1 text-slate-500"
-                            title="Deshacer este día librado"
-                          >
-                            ✕
-                          </button>
+                        {log.days && log.days < 1 && (
+                          <span className="text-[10px] font-bold text-amber-400">({log.days}d)</span>
                         )}
+                        <button 
+                          onClick={() => removeSpentLog(day, log.id)}
+                          className="hover:text-rose-400 ml-1 text-slate-500 font-bold"
+                          title="Deshacer este día gastado"
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))}
                     {(!day.spent_logs || day.spent_logs.length === 0) && (
-                      <span className="text-[11px] text-slate-500 italic">No se ha registrado ningún día librado aún.</span>
+                      <span className="text-[11px] text-slate-500 italic">No se ha registrado ningún día gastado aún.</span>
                     )}
                   </div>
 
                   {!isCompleted && (
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
                       <input
                         type="date"
                         value={spendDateInputs[day.id] || ''}
                         onChange={(e) => setSpendDateInputs(prev => ({ ...prev, [day.id]: e.target.value }))}
-                        className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500"
+                        title="Fecha en la que gastas el día"
                       />
                       <button
-                        onClick={() => addSpentLog(day)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-md shadow-cyan-600/20 whitespace-nowrap"
+                        onClick={() => addSpentLog(day, 1)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold transition-all shadow-md shadow-indigo-500/20 whitespace-nowrap"
+                        title="Gastar 1 día"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>Librar 1 día</span>
+                        <span>Gastar 1 día</span>
                       </button>
+                      {day.total_days - day.spent_days >= 0.5 && (
+                        <button
+                          onClick={() => addSpentLog(day, 0.5)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all whitespace-nowrap"
+                          title="Gastar 0.5 día (media jornada)"
+                        >
+                          <span>0.5 día</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

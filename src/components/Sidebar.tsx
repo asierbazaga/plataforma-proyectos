@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight, Building, Package, CalendarDays, ChefHat } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, DollarSign, BookOpen, BookMarked, ShieldCheck, FileText, Lock, ChevronRight, Building, Package, CalendarDays, ChefHat, Wrench } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { AppId } from '../types';
@@ -13,12 +13,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
   const { currentUser, hasAccessToApp } = useAuth();
   const { isDark } = useTheme();
 
+  const isTeamLeader = currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga');
+
   const appsList: { id: AppId; name: string; icon: React.FC<{ className?: string }>; color: string }[] = [
     { id: 'fitness', name: 'APP FITNESS', icon: Dumbbell, color: 'text-orange-400' },
     { id: 'gastos', name: 'APP GASTOS', icon: DollarSign, color: 'text-emerald-400' },
     { id: 'libros-juegos', name: 'LIBROS, CINE & JUEGOS', icon: BookOpen, color: 'text-purple-400' },
     { id: 'lore', name: 'APP LORE', icon: BookMarked, color: 'text-blue-400' },
-    { id: 'entrevistas', name: 'TEAM LEADER', icon: Building, color: 'text-cyan-400' },
+    { id: 'entrevistas', name: isTeamLeader ? 'MECALUX OPS HUB' : 'MECALUX FIELD OPS', icon: isTeamLeader ? Building : Wrench, color: 'text-cyan-400' },
     { id: 'agenda', name: 'AGENDA PERSONAL', icon: CalendarDays, color: 'text-blue-400' },
     { id: 'inversiones', name: 'INVERSIONES & COLECCIONISMO', icon: Package, color: 'text-yellow-400' },
     { id: 'recetas', name: 'RECETAS & NUTRICIÓN', icon: ChefHat, color: 'text-rose-400' },

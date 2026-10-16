@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Users, CalendarCheck2, ShieldCheck, Briefcase, Lock } from 'lucide-react';
+import { ArrowLeft, Users, CalendarCheck2, ShieldCheck, Briefcase, Lock, Wrench } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { EntrevistasApp } from '../entrevistas/EntrevistasApp';
@@ -23,7 +23,7 @@ export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Cabecera Principal Unificada de Team Leader */}
+      {/* Cabecera Principal Unificada de Mecalux Operations */}
       <div className="rounded-3xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <button
@@ -39,26 +39,30 @@ export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
           </button>
 
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/20 flex-shrink-0">
-            <ShieldCheck className="w-6 h-6 text-white" />
+            {isTeamLeader ? (
+              <ShieldCheck className="w-6 h-6 text-white" />
+            ) : (
+              <Wrench className="w-6 h-6 text-white" />
+            )}
           </div>
 
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {isTeamLeader ? 'Team Leader Mecalux' : 'Días Compensables Mecalux'}
+                {isTeamLeader ? 'Mecalux Ops Hub' : 'Mecalux Field Ops'}
               </h1>
               <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-lg border ${
                 isTeamLeader 
                   ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' 
                   : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
               }`}>
-                {isTeamLeader ? 'Hub de Liderazgo' : 'Portal del Técnico'}
+                {isTeamLeader ? 'Team Leader & Operaciones' : 'Área Técnica Mecalux'}
               </span>
             </div>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               {isTeamLeader 
-                ? 'Gestión integral de selección de candidatos y control de días compensables del equipo' 
-                : 'Consulta tus días compensables ganados, disfrutados y saldo disponible'}
+                ? 'Plataforma unificada: Selección técnica de candidatos Mecalux y gestión de días compensables' 
+                : 'Control de saldo, registro de bolsas de guardias e intervenciones y libranza de días'}
             </p>
           </div>
         </div>

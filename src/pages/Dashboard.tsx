@@ -27,7 +27,9 @@ import {
   Package,
   CalendarDays,
   ListTodo,
-  ChefHat
+  ChefHat,
+  Wrench,
+  Calculator
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { storageService } from '../services/storageService';
@@ -41,7 +43,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
   const { currentUser, hasAccessToApp } = useAuth();
 
   const isLore = currentUser?.email?.toLowerCase().includes('lore') || currentUser?.full_name?.toLowerCase().includes('lore');
-  const isAsier = currentUser?.role === 'admin';
+  const isAsier = currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga');
+  const isTeamLeader = isAsier;
 
   // Leer datos de objetivos de Lore sincronizados
   const [loreGoal, setLoreGoal] = useState({
@@ -148,19 +151,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectApp }) => {
     {
       id: 'entrevistas' as AppId,
       number: '05',
-      category: 'Gestión & Liderazgo',
-      title: 'Team Leader',
-      subtitle: 'Entrevistas Mecalux y Gestión de Trabajo',
-      description: 'Hub de gestión para el Team Leader. Integra el plugin de entrevistas técnicas y de liderazgo para Mecalux (rúbricas, análisis de CV y Excel) junto con el plugin de Trabajo y días compensables.',
-      icon: Building,
+      category: isTeamLeader ? 'Gestión & Operaciones' : 'Operaciones Mecalux',
+      title: isTeamLeader ? 'Mecalux Ops Hub' : 'Mecalux Field Ops',
+      subtitle: isTeamLeader ? 'Selección Mecalux y Días del Equipo' : 'Tus Días Compensables y Guardias',
+      description: isTeamLeader
+        ? 'Hub central de operaciones para Team Leader. Integra selección de candidatos Mecalux (rúbricas y Excel) y gestión de días compensables del equipo técnico.'
+        : 'Panel del técnico de campo. Consulta tu saldo de días compensables por guardias o excesos, registra tus días librados y usa la calculadora de horas de agosto.',
+      icon: isTeamLeader ? Building : Wrench,
       glowColor: 'group-hover:shadow-cyan-500/20 group-hover:border-cyan-500/50',
       iconGradient: 'from-cyan-500 via-blue-600 to-indigo-600 shadow-cyan-500/30',
       tagColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
       btnGradient: 'from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 shadow-cyan-500/25',
-      highlights: [
+      highlights: isTeamLeader ? [
         { text: 'Selección & Entrevistas', label: 'Selección & Entrevistas', icon: Award },
         { text: 'Compensables Equipo', label: 'Compensables Equipo', icon: Calendar },
         { text: 'Plantilla Excel (.xlsx)', label: 'Plantilla Excel (.xlsx)', icon: FileSpreadsheet }
+      ] : [
+        { text: 'Tus Días Compensables', label: 'Tus Días Compensables', icon: Calendar },
+        { text: 'Registrar Días Librados', label: 'Registrar Días Librados', icon: CheckCircle2 },
+        { text: 'Calculadora Horas Agosto', label: 'Calculadora Horas Agosto', icon: Calculator }
       ]
     },
     {

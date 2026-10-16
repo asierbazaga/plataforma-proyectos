@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, Dumbbell, DollarSign, BookOpen, BookMarked, FileText, Building, RotateCcw, Sun, Moon } from 'lucide-react';
+import { ShieldCheck, LogOut, User, Database, CheckCircle2, AlertTriangle, ArrowLeft, Dumbbell, DollarSign, BookOpen, BookMarked, FileText, Building, RotateCcw, Sun, Moon, Wrench } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -50,9 +50,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab = 'dashboard', onSele
         };
       case 'entrevistas':
         return {
-          title: 'TEAM LEADER MECALUX',
-          subtitle: 'Selección & Días Compensables del Equipo',
-          icon: <Building className="w-5 h-5 text-white" />,
+          title: (currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga')) ? 'MECALUX OPS HUB' : 'MECALUX FIELD OPS',
+          subtitle: (currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga')) ? 'Team Leader & Operaciones' : 'Área Técnica & Días Compensables',
+          icon: (currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga')) ? <Building className="w-5 h-5 text-white" /> : <Wrench className="w-5 h-5 text-white" />,
           gradient: 'from-cyan-600 via-blue-600 to-indigo-600 shadow-blue-500/25',
           accent: 'hover:text-cyan-300'
         };
