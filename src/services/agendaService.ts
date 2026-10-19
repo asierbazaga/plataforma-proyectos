@@ -279,15 +279,15 @@ export const agendaService = {
 
     return {
       ...raw,
-      technician_name: technician_name || 'Asier Bazaga',
+      technician_name: technician_name || '',
       notes: cleanNotes
     };
   },
 
   async createCompensatoryDay(day: Partial<AgendaCompensatoryDay>): Promise<AgendaCompensatoryDay> {
-    const techName = day.technician_name || 'Asier Bazaga';
+    const techName = day.technician_name || '';
     // Embeber [TECH:Nombre] en notes para garantizar compatibilidad si la columna aún no está creada en Supabase
-    const notesWithTag = `[TECH:${techName}] ${day.notes || ''}`.trim();
+    const notesWithTag = techName ? `[TECH:${techName}] ${day.notes || ''}`.trim() : (day.notes || '').trim();
 
     // Intentar primero con el payload completo
     const payloadWithCol: any = {

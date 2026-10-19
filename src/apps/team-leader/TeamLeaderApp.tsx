@@ -97,7 +97,12 @@ export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
         ) : (
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-950 border border-slate-800 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-slate-300 font-bold">{currentUser?.full_name}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+              <span className="text-white font-bold">{currentUser?.full_name}</span>
+              {currentUser?.email && (
+                <span className="text-[11px] text-cyan-400 font-medium">({currentUser.email})</span>
+              )}
+            </div>
           </div>
         )}
       </div>

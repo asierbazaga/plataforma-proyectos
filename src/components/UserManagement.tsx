@@ -836,14 +836,21 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-xs font-extrabold text-slate-300 uppercase tracking-wider bg-[#090C15]/80">
-                  <th className="py-4 px-5 min-w-[240px] rounded-tl-2xl">Usuario & Resumen</th>
-                  <th className="py-4 px-3 text-center min-w-[130px]">Rol & Estado</th>
+          <div className="relative">
+            <table className="w-full text-left border-separate border-spacing-0">
+              <thead className="sticky top-16 z-30">
+                <tr className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                  <th className="sticky top-16 z-30 bg-[#090C15]/95 backdrop-blur-md py-4 px-5 min-w-[220px] rounded-tl-2xl border-b border-white/15 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.8)]">
+                    Usuario & Resumen
+                  </th>
+                  <th className="sticky top-16 z-30 bg-[#090C15]/95 backdrop-blur-md py-4 px-3 text-center min-w-[125px] border-b border-white/15 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.8)]">
+                    Rol & Estado
+                  </th>
                   {appsList.map(app => (
-                    <th key={app.id} className="py-3.5 px-2 text-center min-w-[125px]">
+                    <th
+                      key={app.id}
+                      className="sticky top-16 z-30 bg-[#090C15]/95 backdrop-blur-md py-3.5 px-2 text-center min-w-[118px] border-b border-white/15 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.8)]"
+                    >
                       <button
                         type="button"
                         onClick={() => setAppFilter(appFilter === app.id ? 'all' : app.id)}
@@ -864,10 +871,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       </button>
                     </th>
                   ))}
-                  <th className="py-4 px-4 text-right min-w-[140px] rounded-tr-2xl">Acciones</th>
+                  <th className="sticky top-16 z-30 bg-[#090C15]/95 backdrop-blur-md py-4 px-4 text-right min-w-[135px] rounded-tr-2xl border-b border-white/15 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.8)]">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-sm">
+              <tbody className="text-sm">
                 {filteredProfiles.map(user => {
                   const isAdmin = user.role === 'admin';
                   const isSuspended = user.status === 'suspended';
@@ -888,7 +897,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       }`}
                     >
                       {/* Usuario Info (SIN FOTO LATERAL, TEXTO MÁS GRANDE) */}
-                      <td className="py-5 px-5">
+                      <td className="py-5 px-5 border-b border-white/5">
                         <div
                           className={`border-l-4 pl-3.5 transition-colors ${
                             isSuspended
@@ -939,7 +948,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       </td>
 
                       {/* Rol & Estado Más Grandes */}
-                      <td className="py-5 px-3 text-center">
+                      <td className="py-5 px-3 text-center border-b border-white/5">
                         <div className="flex flex-col items-center gap-2">
                           <select
                             value={user.role}
@@ -977,7 +986,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                       {appsList.map(app => {
                         if (isAdmin) {
                           return (
-                            <td key={app.id} className="py-5 px-2 text-center">
+                            <td key={app.id} className="py-5 px-2 text-center border-b border-white/5">
                               <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300">
                                 <CheckCircle2 className="w-5 h-5 mb-1 text-indigo-400" />
                                 <span className="text-xs font-extrabold tracking-tight">Total Admin</span>
@@ -987,14 +996,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                         }
 
                         return (
-                          <td key={app.id} className="py-4 px-2 text-center align-middle">
+                          <td key={app.id} className="py-4 px-2 text-center align-middle border-b border-white/5">
                             {renderPermissionControl(user, app)}
                           </td>
                         );
                       })}
 
                       {/* Acciones + Atajos Masivos */}
-                      <td className="py-5 px-4 text-right">
+                      <td className="py-5 px-4 text-right border-b border-white/5">
                         <div className="flex flex-col items-end gap-2">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
