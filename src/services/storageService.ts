@@ -735,17 +735,19 @@ class StorageService {
       try {
         const { data, error } = await supabase.from('savings_goals').select('*').eq('user_id', userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11').order('created_at', { ascending: false });
         if (!error && data) {
-          const list: SavingsGoal[] = (data as any[]).map(row => ({
-            id: row.id,
-            user_id: row.user_id,
-            title: row.title,
-            target_amount: Number(row.target_amount) || 0,
-            current_amount: Number(row.current_amount) || 0,
-            account: row.account || 'ing',
-            target_date: row.target_date,
-            notes: row.notes,
-            created_at: row.created_at
-          }));
+          const list: SavingsGoal[] = (data as any[])
+            .filter(row => row.account !== 'agenda_loan')
+            .map(row => ({
+              id: row.id,
+              user_id: row.user_id,
+              title: row.title,
+              target_amount: Number(row.target_amount) || 0,
+              current_amount: Number(row.current_amount) || 0,
+              account: row.account || 'ing',
+              target_date: row.target_date,
+              notes: row.notes,
+              created_at: row.created_at
+            }));
           this.setLocal('savings_goals', list);
           return list;
         }
@@ -1574,6 +1576,21 @@ class StorageService {
     this.broadcastChange();
   }
 
+  async deleteLoreCRMItemsByCategory(category: 'cliente' | 'prospeccion'): Promise<PharmacyCRMItem[]> {
+    const current = this.getLocal<PharmacyCRMItem[]>('lore_crm_items', []);
+    const remaining = current.filter(i => (i.category_type || 'cliente') !== category);
+    this.setLocal('lore_crm_items', remaining);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('lore_crm_pharmacies').delete().eq('category_type', category);
+      } catch (e) {}
+    }
+
+    this.broadcastChange();
+    return remaining;
+  }
+
   async deleteAllLoreCRMItems(): Promise<void> {
     this.setLocal('lore_crm_items', []);
     
@@ -2160,12 +2177,129 @@ class StorageService {
   // ==========================================
   // AGENDA LOANS (PRÉSTAMOS)
   // ==========================================
+  private getDefaultAgendaLoans(userId: string): import('../types').AgendaLoan[] {
+    if (userId !== 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') return [];
+    return [
+      {
+        id: 'loan_colchon_maxcolchon',
+        user_id: userId,
+        name: 'Colchon MaxColchon',
+        total_amount: 512.08,
+        paid_amount: 42.67,
+        installment_amount: 42.67,
+        start_date: '2026-09-30',
+        notes: '',
+        payments: [
+          {
+            id: 'pay_colchon_20261006',
+            date: '2026-10-06',
+            amount: 42.67,
+            notes: 'Cetelem préstamo colchón',
+            created_at: '2026-10-06T11:49:48.000Z'
+          }
+        ],
+        created_at: '2026-09-30T15:00:00.000Z',
+        updated_at: '2026-10-14T10:00:00.000Z'
+      },
+      {
+        id: 'loan_coche',
+        user_id: userId,
+        name: 'Coche',
+        total_amount: 17000,
+        paid_amount: 1833.08,
+        installment_amount: 324.7,
+        start_date: '2026-09-30',
+        notes: '',
+        payments: [
+          {
+            id: 'pay_coche_20261001',
+            date: '2026-10-01',
+            amount: 324.7,
+            notes: 'Préstamo Audi',
+            created_at: '2026-10-01T07:50:52.000Z'
+          },
+          {
+            id: 'pay_coche_20260901',
+            date: '2026-09-01',
+            amount: 324.7,
+            notes: 'Préstamo Coche',
+            created_at: '2026-09-01T07:47:00.000Z'
+          }
+        ],
+        created_at: '2026-09-30T14:55:00.000Z',
+        updated_at: '2026-10-14T10:00:00.000Z'
+      }
+    ];
+  }
+
+  private mapLoanToSavingsGoalRow(loan: import('../types').AgendaLoan) {
+    return {
+      id: loan.id,
+      user_id: loan.user_id,
+      title: loan.name,
+      target_amount: Number(loan.total_amount) || 0,
+      current_amount: Number(loan.paid_amount) || 0,
+      account: 'agenda_loan',
+      target_date: loan.start_date || new Date().toISOString().split('T')[0],
+      notes: JSON.stringify({
+        installment_amount: Number(loan.installment_amount) || 0,
+        notes: loan.notes || '',
+        payments: Array.isArray(loan.payments) ? loan.payments : []
+      }),
+      created_at: loan.created_at || new Date().toISOString(),
+      updated_at: loan.updated_at || new Date().toISOString()
+    };
+  }
+
+  private mapSavingsGoalRowToLoan(row: any): import('../types').AgendaLoan {
+    let meta: any = {};
+    if (row.notes) {
+      try {
+        meta = JSON.parse(row.notes);
+      } catch {
+        meta = { notes: row.notes };
+      }
+    }
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      name: row.title,
+      total_amount: Number(row.target_amount) || 0,
+      paid_amount: Number(row.current_amount) || 0,
+      installment_amount: Number(meta.installment_amount) || 0,
+      start_date: row.target_date || (row.created_at ? String(row.created_at).split('T')[0] : new Date().toISOString().split('T')[0]),
+      notes: meta.notes || '',
+      payments: Array.isArray(meta.payments) ? meta.payments : [],
+      created_at: row.created_at || new Date().toISOString(),
+      updated_at: row.updated_at || row.created_at || new Date().toISOString()
+    };
+  }
+
+  private async upsertAgendaLoanCloud(loan: import('../types').AgendaLoan): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const { error } = await supabase.from('agenda_loans').upsert([loan]);
+      if (!error) return;
+    } catch (e) {}
+    try {
+      await supabase.from('savings_goals').upsert([this.mapLoanToSavingsGoalRow(loan)]);
+    } catch (e) {}
+  }
+
   async getAgendaLoans(userId: string): Promise<import('../types').AgendaLoan[]> {
+    const localRaw = this.getLocal<import('../types').AgendaLoan[]>(`agenda_loans_${userId}`, []);
+    const local = localRaw.map(item => ({
+      ...item,
+      payments: Array.isArray(item.payments) ? item.payments : []
+    }));
+
     if (isSupabaseConfigured && supabase) {
+      let cloudLoans: import('../types').AgendaLoan[] | null = null;
+
       try {
         const { data, error } = await supabase.from('agenda_loans').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-        if (!error && data) {
-          const formatted = data.map((row: any) => ({
+        if (!error && data && data.length > 0) {
+          cloudLoans = data.map((row: any) => ({
             id: row.id,
             user_id: row.user_id,
             name: row.name,
@@ -2178,16 +2312,62 @@ class StorageService {
             created_at: row.created_at,
             updated_at: row.updated_at
           }));
-          this.setLocal(`agenda_loans_${userId}`, formatted);
-          return formatted;
         }
       } catch (e) {}
+
+      if (!cloudLoans) {
+        try {
+          const { data: sgData, error: sgError } = await supabase
+            .from('savings_goals')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('account', 'agenda_loan')
+            .order('created_at', { ascending: false });
+
+          if (!sgError && sgData) {
+            cloudLoans = sgData.map((row: any) => this.mapSavingsGoalRowToLoan(row));
+          }
+        } catch (e) {}
+      }
+
+      if (cloudLoans) {
+        const merged = [...cloudLoans];
+        for (const l of local) {
+          if (!merged.find(m => m.id === l.id)) {
+            merged.push(l);
+            this.upsertAgendaLoanCloud(l);
+          }
+        }
+
+        if (merged.length === 0 && typeof window !== 'undefined' && !localStorage.getItem(`plataforma_loans_restored_${userId}`)) {
+          const defaults = this.getDefaultAgendaLoans(userId);
+          if (defaults.length > 0) {
+            localStorage.setItem(`plataforma_loans_restored_${userId}`, 'true');
+            for (const d of defaults) {
+              merged.push(d);
+              this.upsertAgendaLoanCloud(d);
+            }
+          }
+        }
+
+        this.setLocal(`agenda_loans_${userId}`, merged);
+        return merged;
+      }
     }
-    const local = this.getLocal<import('../types').AgendaLoan[]>(`agenda_loans_${userId}`, []);
-    return local.map(item => ({
-      ...item,
-      payments: Array.isArray(item.payments) ? item.payments : []
-    }));
+
+    if (local.length === 0 && typeof window !== 'undefined' && !localStorage.getItem(`plataforma_loans_restored_${userId}`)) {
+      const defaults = this.getDefaultAgendaLoans(userId);
+      if (defaults.length > 0) {
+        localStorage.setItem(`plataforma_loans_restored_${userId}`, 'true');
+        this.setLocal(`agenda_loans_${userId}`, defaults);
+        for (const d of defaults) {
+          this.upsertAgendaLoanCloud(d);
+        }
+        return defaults;
+      }
+    }
+
+    return local;
   }
 
   async addAgendaLoan(loan: Omit<import('../types').AgendaLoan, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<import('../types').AgendaLoan> {
@@ -2204,27 +2384,28 @@ class StorageService {
     };
 
     const current = await this.getAgendaLoans(userId);
-    this.setLocal(`agenda_loans_${userId}`, [newItem, ...current]);
+    this.setLocal(`agenda_loans_${userId}`, [newItem, ...current.filter(i => i.id !== newItem.id)]);
     this.broadcastChange();
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('agenda_loans').insert([newItem]);
-      } catch (e) {}
-    }
+    await this.upsertAgendaLoanCloud(newItem);
     return newItem;
   }
 
   async updateAgendaLoan(id: string, updates: Partial<import('../types').AgendaLoan>, userId: string): Promise<void> {
     const current = await this.getAgendaLoans(userId);
-    const updatedList = current.map(item => item.id === id ? { ...item, ...updates, updated_at: new Date().toISOString() } : item);
+    let updatedItem: import('../types').AgendaLoan | null = null;
+    const updatedList = current.map(item => {
+      if (item.id === id) {
+        updatedItem = { ...item, ...updates, updated_at: new Date().toISOString() };
+        return updatedItem;
+      }
+      return item;
+    });
     this.setLocal(`agenda_loans_${userId}`, updatedList);
     this.broadcastChange();
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('agenda_loans').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
-      } catch (e) {}
+    if (updatedItem) {
+      await this.upsertAgendaLoanCloud(updatedItem);
     }
   }
 
@@ -2236,6 +2417,9 @@ class StorageService {
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('agenda_loans').delete().eq('id', id);
+      } catch (e) {}
+      try {
+        await supabase.from('savings_goals').delete().eq('id', id);
       } catch (e) {}
     }
   }

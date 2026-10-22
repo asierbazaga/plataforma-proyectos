@@ -225,9 +225,10 @@ export const LorePharmaciesCRM: React.FC = () => {
   };
 
   // Eliminar farmacia
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('¿Seguro que deseas eliminar esta farmacia?')) {
-      persistItems(items.filter(item => item.id !== id));
+      setItems(prev => prev.filter(item => item.id !== id));
+      await storageService.deleteLoreCRMItem(id);
       toast.success('Farmacia eliminada');
     }
   };
@@ -478,12 +479,16 @@ export const LorePharmaciesCRM: React.FC = () => {
     }
   };
 
-  const handleDeleteAllData = async () => {
-    const pwd = window.prompt('Introduce la clave de seguridad (2222) para borrar todos los datos:');
+  const handleDeleteCategoryData = async (category: 'cliente' | 'prospeccion') => {
+    const label = category === 'cliente' ? 'CLIENTES ACTIVOS' : 'PROSPECCIÓN';
+    const otherLabel = category === 'cliente' ? 'Prospección' : 'Clientes Activos';
+    const pwd = window.prompt(
+      `Introduce la clave de seguridad (2222) para borrar únicamente los datos de ${label} (se mantendrán los datos de ${otherLabel}):`
+    );
     if (pwd === '2222') {
-      await storageService.deleteAllLoreCRMItems();
-      setItems([]);
-      toast.success('Todos los datos han sido borrados correctamente.');
+      const remaining = await storageService.deleteLoreCRMItemsByCategory(category);
+      setItems(remaining);
+      toast.success(`Datos de ${category === 'cliente' ? 'Clientes Activos' : 'Prospección'} borrados correctamente.`);
     } else if (pwd !== null) {
       toast.error('Clave incorrecta. Operación cancelada.');
     }
@@ -623,14 +628,26 @@ export const LorePharmaciesCRM: React.FC = () => {
               <Upload className="w-4 h-4 text-emerald-400" />
               <span>Exportar Excel</span>
             </button>
-            <button
-              onClick={handleDeleteAllData}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-bold rounded-xl border border-rose-500/20 transition-all shadow-sm backdrop-blur-sm"
-              title="Borrar todos los datos actuales"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Borrar Datos</span>
-            </button>
+            {activeSection !== 'prospeccion' && (
+              <button
+                onClick={() => handleDeleteCategoryData('cliente')}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-bold rounded-xl border border-rose-500/20 transition-all shadow-sm backdrop-blur-sm"
+                title="Borrar únicamente los datos de Clientes Activos"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Borrar Clientes Activos</span>
+              </button>
+            )}
+            {activeSection !== 'clientes' && (
+              <button
+                onClick={() => handleDeleteCategoryData('prospeccion')}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-bold rounded-xl border border-rose-500/20 transition-all shadow-sm backdrop-blur-sm"
+                title="Borrar únicamente los datos de Prospección"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Borrar Prospección</span>
+              </button>
+            )}
           </div>
         </div>
 
