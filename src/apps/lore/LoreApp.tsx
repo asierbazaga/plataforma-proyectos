@@ -438,17 +438,37 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
     setRouteClientIds(finalRoute.map(c => c.id));
   };
 
-  // Guardar Ruta
+  // Iniciar una Nueva Ruta en blanco
+  const handleStartNewRoute = () => {
+    setRouteClientIds([]);
+    setRejectedSubstitutes([]);
+    setActiveSavedRouteId(null);
+    setRouteNameInput('');
+    toast.info('Nueva ruta iniciada: añade las farmacias para tu nuevo recorrido');
+  };
+
+  // Guardar Ruta (crea una nueva o actualiza la seleccionada)
   const handleSaveRoute = async () => {
     if (routeClientIds.length === 0) return;
     const name = routeNameInput.trim() || `Ruta ${new Date().toLocaleDateString('es-ES')}`;
     const totalKm = calculateRouteDistance();
 
-    const saved = await storageService.saveRoute(name, routeClientIds, totalKm);
-    setRouteNameInput(saved.name);
-    setActiveSavedRouteId(saved.id);
+    const isUpdatingExisting = Boolean(activeSavedRouteId);
+    const saved = await storageService.saveRoute(name, routeClientIds, totalKm, activeSavedRouteId || undefined);
     await loadData();
-    toast.success(`Ruta "${saved.name}" guardada correctamente`);
+
+    if (isUpdatingExisting) {
+      setRouteNameInput(saved.name);
+      setActiveSavedRouteId(saved.id);
+      toast.success(`Ruta "${saved.name}" actualizada correctamente`);
+    } else {
+      // Al guardar una ruta nueva, dejamos el panel limpio listo para crear otra ruta sin pisar la anterior
+      setRouteClientIds([]);
+      setRejectedSubstitutes([]);
+      setRouteNameInput('');
+      setActiveSavedRouteId(null);
+      toast.success(`Ruta "${saved.name}" guardada en Mis Rutas Guardadas. Panel listo para una nueva ruta.`);
+    }
   };
 
   // Seleccionar una Ruta Guardada
@@ -670,6 +690,15 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
               <button
+                onClick={handleStartNewRoute}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl shadow-md shadow-cyan-600/20 transition-all flex-1 sm:flex-none whitespace-nowrap"
+                title="Empezar una nueva ruta en blanco"
+              >
+                <Plus className="w-4 h-4" />
+                Nueva Ruta
+              </button>
+
+              <button
                 onClick={() => { setRouteClientIds([]); setRejectedSubstitutes([]); setActiveSavedRouteId(null); setRouteNameInput(''); }}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all flex-1 sm:flex-none whitespace-nowrap"
                 title="Vaciar ruta actual para empezar de cero"
@@ -722,7 +751,9 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Ruta Activa Seleccionada</p>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    {activeSavedRouteId ? 'Editando Ruta Guardada' : 'Creando Nueva Ruta'}
+                  </p>
                   {activeSavedRouteId && (
                     <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
                       {savedRoutes.find(r => r.id === activeSavedRouteId)?.name || routeNameInput}
@@ -741,16 +772,21 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                   <select
                     value={activeSavedRouteId || ''}
                     onChange={e => {
-                      const found = savedRoutes.find(r => r.id === e.target.value);
-                      if (found) handleSelectSavedRoute(found);
+                      const val = e.target.value;
+                      if (!val) {
+                        handleStartNewRoute();
+                      } else {
+                        const found = savedRoutes.find(r => r.id === val);
+                        if (found) handleSelectSavedRoute(found);
+                      }
                     }}
                     className="bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-indigo-300 font-bold focus:outline-none focus:border-indigo-400 cursor-pointer"
                     title="Seleccionar una ruta guardada"
                   >
-                    <option value="">📂 Cargar ruta guardada ({savedRoutes.length})...</option>
+                    <option value="">✨ + Crear Nueva Ruta...</option>
                     {savedRoutes.map(r => (
                       <option key={r.id} value={r.id}>
-                        {r.name} ({(r.clientIds || []).length} paradas • {r.totalDistanceKm} km)
+                        📂 {r.name} ({(r.clientIds || []).length} paradas • {r.totalDistanceKm} km)
                       </option>
                     ))}
                   </select>
@@ -767,8 +803,17 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                   disabled={routeClientIds.length === 0}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none"
                 >
-                  <Save className="w-4 h-4" /> Guardar
+                  <Save className="w-4 h-4" /> {activeSavedRouteId ? 'Actualizar' : 'Guardar'}
                 </button>
+                {(routeClientIds.length > 0 || activeSavedRouteId) && (
+                  <button
+                    onClick={handleStartNewRoute}
+                    className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none"
+                    title="Dejar esta ruta y empezar una nueva ruta desde cero"
+                  >
+                    <Plus className="w-4 h-4" /> Nueva Ruta
+                  </button>
+                )}
                 <button
                   onClick={handleExportRoute}
                   disabled={routeClientIds.length === 0}
@@ -791,7 +836,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
           {/* Mis Rutas Guardadas Panel */}
           <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Save className="w-4 h-4 text-indigo-400" />
                 <span>Mis Rutas Guardadas</span>
@@ -799,11 +844,23 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                   {savedRoutes.length}
                 </span>
               </h3>
-              {savedRoutes.length > 0 && (
-                <span className="text-[11px] text-slate-400">
-                  Haz clic en una ruta para cargarla en el mapa
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {savedRoutes.length > 0 && (
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    Haz clic en una ruta para cargarla en el mapa
+                  </span>
+                )}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={handleStartNewRoute}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Nueva Ruta
+                  </button>
+                )}
+              </div>
             </div>
 
             {savedRoutes.length === 0 ? (
