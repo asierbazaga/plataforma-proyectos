@@ -1651,6 +1651,7 @@ class StorageService {
   }
 
   async getSavedRoutes(): Promise<LoreSavedRoute[]> {
+    const local = this.getLocal<LoreSavedRoute[]>('lore_saved_routes', []);
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('lore_saved_routes').select('*').order('created_at', { ascending: false });
@@ -1659,23 +1660,37 @@ class StorageService {
             id: r.id,
             name: r.name,
             date: r.date,
-            clientIds: r.client_ids || [],
+            clientIds: Array.isArray(r.client_ids) ? r.client_ids : [],
             totalDistanceKm: Number(r.total_distance_km) || 0,
             createdAt: r.created_at
           }));
-          this.setLocal('lore_saved_routes', list);
-          return list;
+          const merged = [...list];
+          for (const l of local) {
+            if (!merged.find(m => m.id === l.id)) {
+              merged.push(l);
+              supabase.from('lore_saved_routes').upsert({
+                id: l.id,
+                name: l.name,
+                date: l.date,
+                client_ids: l.clientIds,
+                total_distance_km: l.totalDistanceKm,
+                created_at: l.createdAt
+              }).then();
+            }
+          }
+          this.setLocal('lore_saved_routes', merged);
+          return merged;
         }
       } catch (e) {}
     }
-    return this.getLocal<LoreSavedRoute[]>('lore_saved_routes', []);
+    return local;
   }
 
-  async saveRoute(nameOrObj: string | Omit<LoreSavedRoute, 'id' | 'createdAt'>, clientIds?: string[], totalDistanceKm?: number): Promise<LoreSavedRoute> {
+  async saveRoute(nameOrObj: string | Omit<LoreSavedRoute, 'id' | 'createdAt'>, clientIds?: string[], totalDistanceKm?: number, existingId?: string): Promise<LoreSavedRoute> {
     let item: LoreSavedRoute;
     if (typeof nameOrObj === 'string') {
       item = {
-        id: generateId('route'),
+        id: existingId || generateId('route'),
         name: nameOrObj,
         date: new Date().toISOString().split('T')[0],
         clientIds: clientIds || [],
@@ -1686,13 +1701,12 @@ class StorageService {
       item = {
         ...nameOrObj,
         totalDistanceKm: Number(nameOrObj.totalDistanceKm) || 0,
-        id: generateId('route'),
+        id: existingId || generateId('route'),
         createdAt: new Date().toISOString()
       };
     }
     const current = this.getLocal<LoreSavedRoute[]>('lore_saved_routes', []);
     this.setLocal('lore_saved_routes', [item, ...current.filter(r => r.id !== item.id)]);
-    this.broadcastChange();
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -1706,6 +1720,7 @@ class StorageService {
         });
       } catch (e) {}
     }
+    this.broadcastChange();
     return item;
   }
 

@@ -45,6 +45,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   const [rejectedSubstitutes, setRejectedSubstitutes] = useState<string[]>([]);
   const [savedRoutes, setSavedRoutes] = useState<LoreSavedRoute[]>([]);
   const [routeNameInput, setRouteNameInput] = useState('');
+  const [activeSavedRouteId, setActiveSavedRouteId] = useState<string | null>(null);
 
   // Coordenadas iniciales (Madrid Centro)
   const [userCoords, setUserCoords] = useState({ lat: 40.4168, lng: -3.7038 });
@@ -440,12 +441,35 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
   // Guardar Ruta
   const handleSaveRoute = async () => {
     if (routeClientIds.length === 0) return;
-    const name = routeNameInput.trim() || `Ruta ${new Date().toLocaleDateString()}`;
+    const name = routeNameInput.trim() || `Ruta ${new Date().toLocaleDateString('es-ES')}`;
     const totalKm = calculateRouteDistance();
 
-    await storageService.saveRoute(name, routeClientIds, totalKm);
-    setRouteNameInput('');
+    const saved = await storageService.saveRoute(name, routeClientIds, totalKm);
+    setRouteNameInput(saved.name);
+    setActiveSavedRouteId(saved.id);
     await loadData();
+    toast.success(`Ruta "${saved.name}" guardada correctamente`);
+  };
+
+  // Seleccionar una Ruta Guardada
+  const handleSelectSavedRoute = (route: LoreSavedRoute) => {
+    setRouteClientIds(route.clientIds || []);
+    setRouteNameInput(route.name);
+    setActiveSavedRouteId(route.id);
+    setRejectedSubstitutes([]);
+    toast.info(`Ruta "${route.name}" cargada (${(route.clientIds || []).length} paradas)`);
+  };
+
+  // Eliminar una Ruta Guardada
+  const handleDeleteSavedRoute = async (id: string, name: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`¿Seguro que deseas eliminar la ruta "${name}"?`)) return;
+    await storageService.deleteLoreRoute(id);
+    if (activeSavedRouteId === id) {
+      setActiveSavedRouteId(null);
+    }
+    await loadData();
+    toast.success(`Ruta "${name}" eliminada`);
   };
 
   // Calcular distancia total de la ruta actual
@@ -646,7 +670,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
               <button
-                onClick={() => { setRouteClientIds([]); setRejectedSubstitutes([]); }}
+                onClick={() => { setRouteClientIds([]); setRejectedSubstitutes([]); setActiveSavedRouteId(null); setRouteNameInput(''); }}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all flex-1 sm:flex-none whitespace-nowrap"
                 title="Vaciar ruta actual para empezar de cero"
               >
@@ -665,7 +689,7 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
               </button>
 
               <button
-                onClick={() => { generateRecommendedRoute(); setRejectedSubstitutes([]); }}
+                onClick={() => { generateRecommendedRoute(); setRejectedSubstitutes([]); setActiveSavedRouteId(null); }}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all flex-1 sm:flex-none w-full sm:w-auto whitespace-nowrap"
                 title="Generar automáticamente una ruta con farmacias top (D10)"
               >
@@ -697,7 +721,14 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                 <Route className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Ruta Activa Seleccionada</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Ruta Activa Seleccionada</p>
+                  {activeSavedRouteId && (
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
+                      {savedRoutes.find(r => r.id === activeSavedRouteId)?.name || routeNameInput}
+                    </span>
+                  )}
+                </div>
                 <p className="text-lg font-bold text-white mt-0.5">
                   {routeClientIds.length} Paradas ({calculateRouteDistance()} km totales)
                 </p>
@@ -706,6 +737,24 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
 
             {canEdit && (
               <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:justify-end">
+                {savedRoutes.length > 0 && (
+                  <select
+                    value={activeSavedRouteId || ''}
+                    onChange={e => {
+                      const found = savedRoutes.find(r => r.id === e.target.value);
+                      if (found) handleSelectSavedRoute(found);
+                    }}
+                    className="bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-indigo-300 font-bold focus:outline-none focus:border-indigo-400 cursor-pointer"
+                    title="Seleccionar una ruta guardada"
+                  >
+                    <option value="">📂 Cargar ruta guardada ({savedRoutes.length})...</option>
+                    {savedRoutes.map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} ({(r.clientIds || []).length} paradas • {r.totalDistanceKm} km)
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <input
                   type="text"
                   placeholder="Nombre de la Ruta..."
@@ -736,6 +785,118 @@ export const LoreApp: React.FC<LoreAppProps> = ({ onBack }) => {
                 >
                   <Map className="w-4 h-4" /> Google Maps
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* Mis Rutas Guardadas Panel */}
+          <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Save className="w-4 h-4 text-indigo-400" />
+                <span>Mis Rutas Guardadas</span>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
+                  {savedRoutes.length}
+                </span>
+              </h3>
+              {savedRoutes.length > 0 && (
+                <span className="text-[11px] text-slate-400">
+                  Haz clic en una ruta para cargarla en el mapa
+                </span>
+              )}
+            </div>
+
+            {savedRoutes.length === 0 ? (
+              <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 text-center text-xs text-slate-400">
+                Aún no tienes rutas guardadas. Añade farmacias a la ruta activa, ponle un nombre y pulsa <b>Guardar</b>.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {savedRoutes.map(route => {
+                  const isCurrent = activeSavedRouteId === route.id;
+                  const stopCount = (route.clientIds || []).length;
+                  const stopNames = (route.clientIds || [])
+                    .map(cid => clientes.find(c => c.id === cid)?.nombre)
+                    .filter(Boolean);
+
+                  return (
+                    <div
+                      key={route.id}
+                      onClick={() => handleSelectSavedRoute(route)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                        isCurrent
+                          ? 'bg-indigo-600/15 border-indigo-500 shadow-lg shadow-indigo-500/10'
+                          : 'bg-slate-900/60 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Route className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-indigo-400' : 'text-slate-400'}`} />
+                            <p className="text-xs font-bold text-white truncate" title={route.name}>
+                              {route.name}
+                            </p>
+                          </div>
+                          {isCurrent && (
+                            <span className="px-1.5 py-0.5 rounded bg-indigo-500 text-white text-[9px] font-bold uppercase shrink-0">
+                              Activa
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+                          <span className="font-semibold text-indigo-300">{stopCount} Paradas</span>
+                          <span>•</span>
+                          <span>{route.totalDistanceKm} km</span>
+                          {route.date && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-2.5 h-2.5" />
+                                {route.date}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {stopNames.length > 0 && (
+                          <p className="text-[10px] text-slate-500 truncate" title={stopNames.join(' → ')}>
+                            {stopNames.slice(0, 3).join(' → ')}{stopNames.length > 3 ? ` (+${stopNames.length - 3} más)` : ''}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectSavedRoute(route);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 ${
+                            isCurrent
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30'
+                          }`}
+                        >
+                          <CheckCircle className="w-3 h-3" />
+                          {isCurrent ? 'Ruta Seleccionada' : 'Seleccionar Ruta'}
+                        </button>
+
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSavedRoute(route.id, route.name, e)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all"
+                            title="Eliminar ruta guardada"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
