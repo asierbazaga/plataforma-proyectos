@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Users, CalendarCheck2, ShieldCheck, Briefcase, Lock, Wrench } from 'lucide-react';
+import { ArrowLeft, Users, CalendarCheck2, ShieldCheck, Briefcase, Lock, Wrench, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { EntrevistasApp } from '../entrevistas/EntrevistasApp';
 import { TeamCompensatoryView } from './components/TeamCompensatoryView';
+import { TeamTimeTrackingView } from './components/TeamTimeTrackingView';
 
 interface TeamLeaderAppProps {
   onBack: () => void;
@@ -16,8 +17,8 @@ export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
   // Asier Bazaga es el Team Leader / Super Admin
   const isTeamLeader = currentUser?.role === 'admin' || currentUser?.email?.toLowerCase().includes('asier.bazaga');
 
-  // Si es un técnico, siempre estará en la pestaña de compensatorios
-  const [activeTab, setActiveTab] = useState<'entrevistas' | 'compensatorios'>(
+  // Si es un técnico, entra en compensatorios por defecto pero también puede usar sus fichajes
+  const [activeTab, setActiveTab] = useState<'entrevistas' | 'compensatorios' | 'fichajes'>(
     isTeamLeader ? 'entrevistas' : 'compensatorios'
   );
 
@@ -93,15 +94,53 @@ export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
               <CalendarCheck2 className="w-4 h-4" />
               <span>Días Compensables (Equipo)</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('fichajes')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                activeTab === 'fichajes'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Fichajes</span>
+            </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-950 border border-slate-800 text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
-              <span className="text-white font-bold">{currentUser?.full_name}</span>
-              {currentUser?.email && (
-                <span className="text-[11px] text-cyan-400 font-medium">({currentUser.email})</span>
-              )}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/90 border border-slate-800">
+              <button
+                onClick={() => setActiveTab('compensatorios')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'compensatorios'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <CalendarCheck2 className="w-3.5 h-3.5" />
+                <span>Compensatorios</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('fichajes')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'fichajes'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Mis Fichajes</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-950 border border-slate-800 text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <span className="text-white font-bold">{currentUser?.full_name}</span>
+                {currentUser?.email && (
+                  <span className="text-[11px] text-cyan-400 font-medium">({currentUser.email})</span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -113,8 +152,12 @@ export const TeamLeaderApp: React.FC<TeamLeaderAppProps> = ({ onBack }) => {
           <EntrevistasApp hideHeader={true} />
         )}
 
-        {(!isTeamLeader || activeTab === 'compensatorios') && (
+        {activeTab === 'compensatorios' && (
           <TeamCompensatoryView />
+        )}
+
+        {activeTab === 'fichajes' && (
+          <TeamTimeTrackingView />
         )}
       </div>
     </div>
