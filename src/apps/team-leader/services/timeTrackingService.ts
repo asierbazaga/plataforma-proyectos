@@ -233,6 +233,7 @@ export const timeTrackingService = {
       .order('entry_date', { ascending: false });
 
     if (error) {
+      console.warn('[timeTrackingService] Error consultando Supabase:', error);
       if (isMissingTableError(error)) {
         return { entries: readLocalEntries(userId), storageMode: 'local' };
       }

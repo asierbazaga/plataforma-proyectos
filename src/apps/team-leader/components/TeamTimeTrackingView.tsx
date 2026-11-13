@@ -254,7 +254,7 @@ export const TeamTimeTrackingView: React.FC = () => {
   ) => {
     setSaving(true);
     try {
-      const res = await timeTrackingService.upsertEntry(payload, storageMode === 'local');
+      const res = await timeTrackingService.upsertEntry(payload, false);
       setStorageMode(res.storageMode);
       setEntries((prev) => {
         const filtered = prev.filter((e) => e.entry_date !== res.entry.entry_date);
@@ -421,7 +421,7 @@ export const TeamTimeTrackingView: React.FC = () => {
   const handleDeleteEntry = async (entry: TimeEntry) => {
     if (!currentUser?.id) return;
     try {
-      await timeTrackingService.deleteEntry(currentUser.id, entry.id, storageMode === 'local');
+      await timeTrackingService.deleteEntry(currentUser.id, entry.id, false);
       setEntries((prev) => prev.filter((e) => e.id !== entry.id));
       setFeedback({ type: 'success', text: `Fichaje del ${formatDisplayDate(entry.entry_date)} eliminado` });
     } catch (err) {

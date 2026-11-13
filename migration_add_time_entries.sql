@@ -39,3 +39,6 @@ CREATE POLICY "Users can update own time entries"
 CREATE POLICY "Users can delete own time entries"
   ON public.mecalux_time_entries FOR DELETE
   USING (auth.uid() = user_id);
+
+GRANT ALL ON TABLE public.mecalux_time_entries TO anon, authenticated, service_role;
+NOTIFY pgrst, 'reload schema';
