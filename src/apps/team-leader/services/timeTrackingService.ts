@@ -70,7 +70,7 @@ function isMissingTableError(error: unknown): boolean {
     err.code === 'PGRST205' ||
     err.status === 404 ||
     (typeof err.message === 'string' &&
-      (err.message.includes('mecalux_time_entries') || err.message.includes('does not exist')))
+      (err.message.includes('does not exist') || err.message.includes('Could not find the table')))
   );
 }
 
