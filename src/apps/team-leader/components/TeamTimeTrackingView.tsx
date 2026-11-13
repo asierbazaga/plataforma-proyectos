@@ -9,7 +9,7 @@ import {
   Calendar,
   TrendingUp,
   TrendingDown,
-  Utensils,
+  Coffee,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -23,9 +23,13 @@ import {
   timeTrackingService,
   TimeEntry,
   TimeDayType,
+  TimePunch,
   timeToMinutes,
   minutesToTime,
   getDefaultTargetMinutes,
+  getEntryPunches,
+  getBreakMinutes,
+  hasOpenPunch,
   getWorkedMinutes,
   getBalanceMinutes,
   formatDuration,
@@ -61,7 +65,7 @@ function getCurrentTimeStr(): string {
 function getWeekBounds(dateStr: string): { start: string; end: string } {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  const day = date.getDay(); // 0=Sun, 1=Mon...
+  const day = date.getDay();
   const diffToMon = day === 0 ? -6 : 1 - day;
   const monday = new Date(date);
   monday.setDate(date.getDate() + diffToMon);
@@ -99,25 +103,24 @@ export const TeamTimeTrackingView: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Reloj en vivo para el panel de hoy
+  // Reloj en vivo (actualiza cada 15s)
   const [nowTime, setNowTime] = useState<string>(getCurrentTimeStr());
   const todayStr = getTodayDateStr();
 
   // Mes seleccionado para la tabla
   const initialDate = new Date();
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
-  const [viewMonth, setViewMonth] = useState(initialDate.getMonth()); // 0-11
-
-  // Pausa rápida por defecto para el botón de fichar hoy
-  const [quickLunchMinutes, setQuickLunchMinutes] = useState<number>(60);
+  const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
 
   // Modal de registro/edición a posteriori
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formDate, setFormDate] = useState(todayStr);
   const [formDayType, setFormDayType] = useState<TimeDayType>('normal');
-  const [formStart, setFormStart] = useState('08:00');
-  const [formEnd, setFormEnd] = useState('17:00');
-  const [formLunch, setFormLunch] = useState<number>(60);
+  const [formPunches, setFormPunches] = useState<TimePunch[]>([
+    { id: '1', start: '08:00', end: '13:00' },
+    { id: '2', start: '14:00', end: '17:00' },
+  ]);
+  const [formSingleLunch, setFormSingleLunch] = useState<number>(0);
   const [formNotes, setFormNotes] = useState('');
 
   useEffect(() => {
@@ -163,14 +166,39 @@ export const TeamTimeTrackingView: React.FC = () => {
     [entries, todayStr]
   );
 
-  // Sincronizar selector rápido de comida con el fichaje de hoy si existe
-  useEffect(() => {
-    if (todayEntry) {
-      setQuickLunchMinutes(todayEntry.lunch_minutes);
-    }
-  }, [todayEntry?.id, todayEntry?.lunch_minutes]);
+  const todayPunches = useMemo(
+    () => (todayEntry ? getEntryPunches(todayEntry) : []),
+    [todayEntry]
+  );
 
-  // Cálculos globales, semanales y mensuales
+  const isTodayOpen = useMemo(
+    () => (todayEntry ? hasOpenPunch(todayEntry) : false),
+    [todayEntry]
+  );
+
+  // Resumen en vivo del día de hoy (incluye tramo abierto hasta `nowTime`)
+  const todayLive = useMemo(() => {
+    if (!todayEntry) return null;
+    const workedSoFar = getWorkedMinutes(todayEntry, nowTime) ?? 0;
+    const target = todayEntry.target_minutes;
+    const diff = workedSoFar - target;
+    const nowMins = timeToMinutes(nowTime);
+    const expectedExit =
+      isTodayOpen && nowMins !== null && diff < 0
+        ? minutesToTime(nowMins + Math.abs(diff))
+        : null;
+    const breakMins = getBreakMinutes(todayEntry);
+
+    return {
+      workedSoFar,
+      target,
+      diff,
+      expectedExit,
+      breakMins,
+    };
+  }, [todayEntry, nowTime, isTodayOpen]);
+
+  // Cálculos globales, semanales y mensuales (sobre días cerrados; hoy se refleja en vivo en su tarjeta)
   const stats = useMemo(() => {
     let totalBalance = 0;
     let totalClosedDays = 0;
@@ -220,26 +248,6 @@ export const TeamTimeTrackingView: React.FC = () => {
       .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
   }, [entries, viewYear, viewMonth]);
 
-  // Cálculo en vivo si hoy está abierto (fichada entrada pero no salida)
-  const liveTodayInfo = useMemo(() => {
-    if (!todayEntry || todayEntry.day_type !== 'normal' || !todayEntry.start_time || todayEntry.end_time) {
-      return null;
-    }
-    const startMins = timeToMinutes(todayEntry.start_time);
-    const nowMins = timeToMinutes(nowTime);
-    if (startMins === null || nowMins === null) return null;
-
-    const targetExitMins = startMins + todayEntry.target_minutes + quickLunchMinutes;
-    const elapsedGross = Math.max(0, nowMins - startMins);
-    const elapsedNet = Math.max(0, elapsedGross - quickLunchMinutes);
-
-    return {
-      expectedExit: minutesToTime(targetExitMins),
-      elapsedNet,
-      remainingToTarget: todayEntry.target_minutes - elapsedNet,
-    };
-  }, [todayEntry, nowTime, quickLunchMinutes]);
-
   const upsertAndMerge = async (
     payload: Parameters<typeof timeTrackingService.upsertEntry>[0],
     successMsg: string
@@ -263,73 +271,70 @@ export const TeamTimeTrackingView: React.FC = () => {
     }
   };
 
-  // Acciones rápidas de hoy
-  const handleClockInNow = async () => {
+  // Fichar ENTRADA / VUELTA (abre un nuevo tramo con la hora actual)
+  const handlePunchInNow = async () => {
     if (!currentUser?.id) return;
     const now = getCurrentTimeStr();
+    const updatedPunches: TimePunch[] = [
+      ...todayPunches,
+      { id: crypto.randomUUID(), start: now, end: null },
+    ];
     await upsertAndMerge(
       {
         user_id: currentUser.id,
         entry_date: todayStr,
-        start_time: now,
-        end_time: null,
-        lunch_minutes: quickLunchMinutes,
-        day_type: 'normal',
+        punches: updatedPunches,
+        lunch_minutes: 0,
+        day_type: todayEntry?.day_type || 'normal',
+        target_minutes: todayEntry?.target_minutes,
+        notes: todayEntry?.notes,
       },
-      `Entrada fichada a las ${now}`
+      todayPunches.length === 0
+        ? `Entrada fichada a las ${now}`
+        : `Vuelta fichada a las ${now} (Tramo ${updatedPunches.length})`
     );
   };
 
-  const handleClockOutNow = async () => {
+  // Fichar SALIDA / PAUSA (cierra el tramo abierto con la hora actual)
+  const handlePunchOutNow = async () => {
     if (!currentUser?.id || !todayEntry) return;
     const now = getCurrentTimeStr();
+    const updatedPunches = todayPunches.map((p, idx) =>
+      idx === todayPunches.length - 1 && !p.end ? { ...p, end: now } : p
+    );
     await upsertAndMerge(
       {
         user_id: currentUser.id,
         entry_date: todayStr,
-        start_time: todayEntry.start_time,
-        end_time: now,
-        lunch_minutes: quickLunchMinutes,
+        punches: updatedPunches,
+        lunch_minutes: updatedPunches.length === 1 ? todayEntry.lunch_minutes : 0,
         day_type: todayEntry.day_type,
         target_minutes: todayEntry.target_minutes,
         notes: todayEntry.notes,
       },
-      `Salida fichada a las ${now}`
+      `Salida / pausa fichada a las ${now}`
     );
   };
 
-  const handleQuickStandardToday = async () => {
-    if (!currentUser?.id) return;
+  const handleRemoveTodayPunch = async (punchId: string) => {
+    if (!currentUser?.id || !todayEntry) return;
+    const remaining = todayPunches.filter((p) => p.id !== punchId);
+    if (remaining.length === 0) {
+      await handleDeleteEntry(todayEntry);
+      return;
+    }
     await upsertAndMerge(
       {
         user_id: currentUser.id,
         entry_date: todayStr,
-        start_time: '08:00',
-        end_time: '17:00',
-        lunch_minutes: quickLunchMinutes,
-        day_type: 'normal',
+        punches: remaining,
+        lunch_minutes: remaining.length === 1 ? todayEntry.lunch_minutes : 0,
+        day_type: todayEntry.day_type,
+        target_minutes: todayEntry.target_minutes,
+        notes: todayEntry.notes,
       },
-      'Jornada de hoy registrada (08:00 - 17:00)'
+      'Tramo eliminado'
     );
-  };
-
-  const handleChangeQuickLunch = async (mins: number) => {
-    setQuickLunchMinutes(mins);
-    if (todayEntry && currentUser?.id) {
-      await upsertAndMerge(
-        {
-          user_id: currentUser.id,
-          entry_date: todayStr,
-          start_time: todayEntry.start_time,
-          end_time: todayEntry.end_time,
-          lunch_minutes: mins,
-          day_type: todayEntry.day_type,
-          target_minutes: todayEntry.target_minutes,
-          notes: todayEntry.notes,
-        },
-        `Pausa de comida actualizada a ${mins} min`
-      );
-    }
   };
 
   const openModalForNew = (date = todayStr) => {
@@ -340,29 +345,59 @@ export const TeamTimeTrackingView: React.FC = () => {
     }
     setFormDate(date);
     setFormDayType('normal');
-    setFormStart('08:00');
-    setFormEnd('17:00');
-    setFormLunch(60);
+    setFormPunches([
+      { id: crypto.randomUUID(), start: '08:00', end: '13:00' },
+      { id: crypto.randomUUID(), start: '14:00', end: '17:00' },
+    ]);
+    setFormSingleLunch(0);
     setFormNotes('');
     setIsModalOpen(true);
   };
 
   const openModalForEntry = (entry: TimeEntry) => {
+    const existingPunches = getEntryPunches(entry);
     setFormDate(entry.entry_date);
     setFormDayType(entry.day_type);
-    setFormStart(entry.start_time || '08:00');
-    setFormEnd(entry.end_time || '');
-    setFormLunch(entry.lunch_minutes ?? 60);
+    setFormPunches(
+      existingPunches.length > 0
+        ? existingPunches.map((p) => ({ ...p }))
+        : [{ id: crypto.randomUUID(), start: '08:00', end: '' }]
+    );
+    setFormSingleLunch(existingPunches.length <= 1 ? entry.lunch_minutes || 0 : 0);
     setFormNotes(entry.notes || '');
     setIsModalOpen(true);
+  };
+
+  const handleAddFormPunch = () => {
+    const last = formPunches[formPunches.length - 1];
+    const nextStart = last?.end || '14:00';
+    setFormPunches((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), start: nextStart, end: '' },
+    ]);
+  };
+
+  const handleUpdateFormPunch = (id: string, field: 'start' | 'end', value: string) => {
+    setFormPunches((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value || null } : p))
+    );
+  };
+
+  const handleDeleteFormPunch = (id: string) => {
+    setFormPunches((prev) => (prev.length > 1 ? prev.filter((p) => p.id !== id) : prev));
   };
 
   const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser?.id) return;
 
-    if (formDayType === 'normal' && !formStart) {
-      setFeedback({ type: 'error', text: 'Indica al menos la hora de entrada.' });
+    const cleanPunches =
+      formDayType === 'normal'
+        ? formPunches.filter((p) => p.start && p.start.trim() !== '')
+        : [];
+
+    if (formDayType === 'normal' && cleanPunches.length === 0) {
+      setFeedback({ type: 'error', text: 'Añade al menos una hora de entrada.' });
       return;
     }
 
@@ -370,9 +405,8 @@ export const TeamTimeTrackingView: React.FC = () => {
       {
         user_id: currentUser.id,
         entry_date: formDate,
-        start_time: formDayType === 'normal' ? formStart || null : null,
-        end_time: formDayType === 'normal' ? formEnd || null : null,
-        lunch_minutes: formDayType === 'normal' ? formLunch : 0,
+        punches: cleanPunches,
+        lunch_minutes: cleanPunches.length <= 1 ? formSingleLunch : 0,
         day_type: formDayType,
         notes: formNotes,
       },
@@ -400,20 +434,29 @@ export const TeamTimeTrackingView: React.FC = () => {
   const modalPreview = useMemo(() => {
     const target = getDefaultTargetMinutes(formDate, formDayType);
     if (formDayType !== 'normal') {
-      return { worked: 0, target: 0, balance: 0 };
+      return { worked: 0, target: 0, balance: 0, breaks: 0 };
     }
+    const lunchVal = formPunches.length <= 1 ? formSingleLunch : 0;
     const worked = getWorkedMinutes({
-      start_time: formStart || null,
-      end_time: formEnd || null,
-      lunch_minutes: formLunch,
+      punches: formPunches,
+      start_time: formPunches[0]?.start || null,
+      end_time: formPunches[formPunches.length - 1]?.end || null,
+      lunch_minutes: lunchVal,
       day_type: formDayType,
+    });
+    const breaks = getBreakMinutes({
+      punches: formPunches,
+      start_time: formPunches[0]?.start || null,
+      end_time: formPunches[formPunches.length - 1]?.end || null,
+      lunch_minutes: lunchVal,
     });
     return {
       worked,
       target,
+      breaks,
       balance: worked !== null ? worked - target : null,
     };
-  }, [formDate, formDayType, formStart, formEnd, formLunch]);
+  }, [formDate, formDayType, formPunches, formSingleLunch]);
 
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
@@ -478,18 +521,16 @@ export const TeamTimeTrackingView: React.FC = () => {
         <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
           <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <div>
-            <span className="font-bold">Guardado local activo en este navegador.</span> Tus fichajes ya
-            funcionan y se guardan automáticamente; si quieres sincronizarlos entre dispositivos en
-            Supabase, ejecuta el archivo{' '}
+            <span className="font-bold">Guardado local activo en este navegador.</span> Ejecuta{' '}
             <code className="px-1.5 py-0.5 rounded bg-amber-500/20 font-mono">
               migration_add_time_entries.sql
             </code>{' '}
-            en tu SQL Editor de Supabase.
+            en Supabase para sincronizar entre dispositivos.
           </div>
         </div>
       )}
 
-      {/* Feedback toast inline */}
+      {/* Feedback inline */}
       {feedback && (
         <div
           className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border text-xs font-bold ${
@@ -576,139 +617,114 @@ export const TeamTimeTrackingView: React.FC = () => {
           </p>
         </div>
 
-        {/* Estado de hoy / Hora salida estimada */}
+        {/* Hoy en tiempo real */}
         <div className={`rounded-3xl border p-5 ${cardBg}`}>
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Hoy</span>
+            <span>Hoy (en vivo)</span>
             <Sparkles className="w-4 h-4 text-amber-400" />
           </div>
-          {liveTodayInfo ? (
-            <>
-              <div className="mt-2 text-2xl font-black text-cyan-400">
-                Salida 8h: {liveTodayInfo.expectedExit}
-              </div>
-              <p className="mt-1 text-xs text-slate-400">
-                Llevas <span className="font-bold text-slate-200">{formatDuration(liveTodayInfo.elapsedNet)}</span> netos (pausa {quickLunchMinutes}m)
-              </p>
-            </>
-          ) : todayEntry ? (
+          {todayEntry && todayLive ? (
             <>
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-2xl font-black">
-                  {todayEntry.day_type === 'normal'
-                    ? formatDuration(getWorkedMinutes(todayEntry) ?? 0)
-                    : DAY_TYPE_LABELS[todayEntry.day_type]}
-                </span>
-                {renderBalanceBadge(getBalanceMinutes(todayEntry))}
+                <span className="text-2xl font-black">{formatDuration(todayLive.workedSoFar)}</span>
+                {renderBalanceBadge(todayLive.diff)}
               </div>
               <p className="mt-1 text-xs text-slate-400">
-                {todayEntry.start_time && todayEntry.end_time
-                  ? `${todayEntry.start_time} → ${todayEntry.end_time} (${todayEntry.lunch_minutes}m comida)`
-                  : 'Día registrado'}
+                {todayLive.expectedExit ? (
+                  <>
+                    Para 8h sales a las <span className="font-bold text-cyan-400">{todayLive.expectedExit}</span>
+                  </>
+                ) : isTodayOpen ? (
+                  <span className="text-emerald-400 font-semibold">Objetivo diario superado</span>
+                ) : (
+                  <>
+                    Pausas hoy: <span className="font-semibold">{formatDuration(todayLive.breakMins)}</span>
+                  </>
+                )}
               </p>
             </>
           ) : (
             <>
               <div className="mt-2 text-2xl font-black text-slate-400">Sin fichar</div>
-              <p className="mt-1 text-xs text-slate-400">Horario base: 08:00 - 17:00 (1h comida)</p>
+              <p className="mt-1 text-xs text-slate-400">Objetivo hoy: 8h (L-V)</p>
             </>
           )}
         </div>
       </div>
 
-      {/* Panel de Fichaje Rápido de Hoy + Botón A Posteriori */}
-      <div className={`rounded-3xl border p-5 ${cardBg}`}>
+      {/* Panel de Fichajes de Hoy (Múltiples tramos: Entrada -> Pausa -> Vuelta -> Salida) */}
+      <div className={`rounded-3xl border p-5 space-y-4 ${cardBg}`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-cyan-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 flex-shrink-0">
-              <Clock className="w-6 h-6" />
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0 ${
+                isTodayOpen
+                  ? 'bg-gradient-to-tr from-emerald-500 to-cyan-500 shadow-emerald-500/25'
+                  : todayPunches.length > 0
+                  ? 'bg-gradient-to-tr from-amber-500 to-orange-500 shadow-amber-500/20'
+                  : 'bg-gradient-to-tr from-slate-700 to-slate-600'
+              }`}
+            >
+              {isTodayOpen ? <Clock className="w-6 h-6 animate-pulse" /> : <Coffee className="w-6 h-6" />}
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-base sm:text-lg font-black">Fichaje rápido de hoy</h2>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-base sm:text-lg font-black">Fichajes de hoy</h2>
                 <span className="px-2.5 py-0.5 rounded-lg bg-slate-800 text-cyan-300 font-mono text-xs font-bold border border-slate-700">
                   {nowTime}
                 </span>
+                {isTodayOpen ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
+                    Trabajando ahora
+                  </span>
+                ) : todayPunches.length > 0 ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] font-bold">
+                    En pausa / Jornada cerrada
+                  </span>
+                ) : null}
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                {todayEntry?.start_time && !todayEntry?.end_time
-                  ? `Jornada iniciada a las ${todayEntry.start_time}. Elige tu pausa de comida y ficha la salida al terminar.`
-                  : 'Registra tu entrada en un clic o añade cualquier día a posteriori.'}
+                Marca cada entrada y salida del día (mañana, comida, tarde...). El tiempo de pausa y el balance diario se calculan solos.
               </p>
             </div>
           </div>
 
-          {/* Selector rápido de comida + Botones */}
+          {/* Botones principales de fichaje */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className={`flex items-center gap-1 p-1 rounded-xl border ${subCardBg}`}>
-              <Utensils className="w-3.5 h-3.5 text-slate-400 ml-2 mr-1" />
-              {[0, 30, 60].map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  disabled={saving}
-                  onClick={() => handleChangeQuickLunch(mins)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    quickLunchMinutes === mins
-                      ? 'bg-cyan-600 text-white shadow'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title={
-                    mins === 30
-                      ? 'Comer en 30m (genera +30m/día)'
-                      : mins === 60
-                      ? 'Comida estándar 1h'
-                      : 'Sin parada de comida'
-                  }
-                >
-                  {mins === 0 ? 'Sin comida' : mins === 30 ? '30m' : '1h'}
-                </button>
-              ))}
-            </div>
-
-            {!todayEntry && (
-              <>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleClockInNow}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
-                >
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Fichar Entrada ({nowTime})</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleQuickStandardToday}
-                  className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all ${subCardBg} hover:border-cyan-500/50`}
-                  title="Rellenar jornada completa 08:00 a 17:00"
-                >
-                  08:00 - 17:00
-                </button>
-              </>
-            )}
-
-            {todayEntry && todayEntry.start_time && !todayEntry.end_time && (
+            {isTodayOpen ? (
               <button
                 type="button"
                 disabled={saving}
-                onClick={handleClockOutNow}
+                onClick={handlePunchOutNow}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/20 transition-all disabled:opacity-50"
               >
                 <Square className="w-4 h-4 fill-current" />
-                <span>Fichar Salida ({nowTime})</span>
+                <span>Fichar Salida / Pausa ({nowTime})</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handlePunchInNow}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>
+                  {todayPunches.length === 0
+                    ? `Fichar Entrada (${nowTime})`
+                    : `Fichar Vuelta / Entrada (${nowTime})`}
+                </span>
               </button>
             )}
 
-            {todayEntry && todayEntry.end_time && (
+            {todayEntry && (
               <button
                 type="button"
                 onClick={() => openModalForEntry(todayEntry)}
                 className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold ${subCardBg} hover:border-cyan-500/50`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>Editar hoy</span>
+                <span>Ajustar tramos de hoy</span>
               </button>
             )}
 
@@ -722,6 +738,57 @@ export const TeamTimeTrackingView: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Línea temporal de tramos de hoy */}
+        {todayPunches.length > 0 && (
+          <div className={`p-3.5 rounded-2xl border flex flex-wrap items-center gap-2 ${subCardBg}`}>
+            {todayPunches.map((punch, idx) => {
+              const segStart = timeToMinutes(punch.start);
+              const segEnd = timeToMinutes(punch.end ?? nowTime);
+              const segMins =
+                segStart !== null && segEnd !== null && segEnd > segStart ? segEnd - segStart : 0;
+
+              // Pausa respecto al tramo anterior
+              let gapMins = 0;
+              if (idx > 0) {
+                const prevEnd = timeToMinutes(todayPunches[idx - 1].end);
+                if (prevEnd !== null && segStart !== null && segStart > prevEnd) {
+                  gapMins = segStart - prevEnd;
+                }
+              }
+
+              return (
+                <React.Fragment key={punch.id}>
+                  {idx > 0 && gapMins > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold">
+                      <Coffee className="w-3 h-3" />
+                      Pausa {formatDuration(gapMins)}
+                    </span>
+                  )}
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-xs">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400">
+                      Tramo {idx + 1}
+                    </span>
+                    <span className="font-mono font-bold text-white">
+                      {punch.start} → {punch.end || <span className="text-emerald-400">en curso</span>}
+                    </span>
+                    <span className="text-[11px] font-bold text-cyan-400">
+                      ({formatDuration(segMins)})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTodayPunch(punch.id)}
+                      className="text-slate-500 hover:text-rose-400 transition-colors"
+                      title="Eliminar tramo"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Histórico Mensual */}
@@ -730,7 +797,7 @@ export const TeamTimeTrackingView: React.FC = () => {
           <div>
             <h3 className="text-base font-black">Registro mensual de fichajes</h3>
             <p className="text-xs text-slate-400">
-              Objetivo L-V: 8h/día (40h/semana). Haz clic en cualquier día para ajustarlo.
+              Objetivo L-V: 8h/día (40h/semana). Haz clic en cualquier día para ajustar sus tramos.
             </p>
           </div>
 
@@ -776,8 +843,8 @@ export const TeamTimeTrackingView: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-800/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
                   <th className="py-3.5 px-5">Fecha</th>
-                  <th className="py-3.5 px-4">Horario</th>
-                  <th className="py-3.5 px-4">Comida</th>
+                  <th className="py-3.5 px-4">Tramos / Horario</th>
+                  <th className="py-3.5 px-4">Pausas</th>
                   <th className="py-3.5 px-4">Trabajado</th>
                   <th className="py-3.5 px-4">Balance</th>
                   <th className="py-3.5 px-4">Notas</th>
@@ -786,6 +853,8 @@ export const TeamTimeTrackingView: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-sm">
                 {monthEntries.map((entry) => {
+                  const punches = getEntryPunches(entry);
+                  const breakMins = getBreakMinutes(entry);
                   const worked = getWorkedMinutes(entry);
                   const balance = getBalanceMinutes(entry);
                   const isToday = entry.entry_date === todayStr;
@@ -819,18 +888,25 @@ export const TeamTimeTrackingView: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs">
-                        {entry.day_type !== 'normal' && !entry.start_time ? (
+                      <td className="py-3.5 px-4 font-mono text-xs">
+                        {entry.day_type !== 'normal' && punches.length === 0 ? (
                           <span className="text-slate-500">—</span>
                         ) : (
-                          <span>
-                            {entry.start_time || '--:--'} → {entry.end_time || 'En curso'}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {punches.map((p, i) => (
+                              <span
+                                key={p.id || i}
+                                className="px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60"
+                              >
+                                {p.start} → {p.end || 'En curso'}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </td>
 
                       <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-400">
-                        {entry.day_type === 'normal' ? `${entry.lunch_minutes}m` : '—'}
+                        {entry.day_type === 'normal' ? formatDuration(breakMins) : '—'}
                       </td>
 
                       <td className="py-3.5 px-4 whitespace-nowrap font-bold">
@@ -839,7 +915,7 @@ export const TeamTimeTrackingView: React.FC = () => {
 
                       <td className="py-3.5 px-4 whitespace-nowrap">{renderBalanceBadge(balance)}</td>
 
-                      <td className="py-3.5 px-4 text-xs text-slate-400 max-w-[220px] truncate">
+                      <td className="py-3.5 px-4 text-xs text-slate-400 max-w-[200px] truncate">
                         {entry.notes || '—'}
                       </td>
 
@@ -870,11 +946,11 @@ export const TeamTimeTrackingView: React.FC = () => {
         )}
       </div>
 
-      {/* Modal de Registro / Edición a Posteriori */}
+      {/* Modal de Registro / Edición a Posteriori con Múltiples Tramos */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
           <div
-            className={`w-full max-w-lg rounded-3xl border p-6 shadow-2xl space-y-5 ${
+            className={`w-full max-w-lg rounded-3xl border p-6 shadow-2xl space-y-5 my-auto ${
               isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
@@ -882,7 +958,7 @@ export const TeamTimeTrackingView: React.FC = () => {
               <div>
                 <h3 className="text-lg font-black">Registrar / Editar Fichaje</h3>
                 <p className="text-xs text-slate-400">
-                  Apunta tu horario real o usa una plantilla rápida.
+                  Añade los tramos del día (ej. mañana y tarde) o usa una plantilla.
                 </p>
               </div>
               <button
@@ -894,7 +970,6 @@ export const TeamTimeTrackingView: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveModal} className="space-y-4">
-              {/* Fecha y Tipo */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1.5">Fecha</label>
@@ -932,20 +1007,24 @@ export const TeamTimeTrackingView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setFormStart('08:00');
-                          setFormEnd('17:00');
-                          setFormLunch(60);
+                          setFormPunches([
+                            { id: crypto.randomUUID(), start: '08:00', end: '13:00' },
+                            { id: crypto.randomUUID(), start: '14:00', end: '17:00' },
+                          ]);
+                          setFormSingleLunch(0);
                         }}
                         className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold ${subCardBg} hover:border-cyan-500/50`}
                       >
-                        Estándar (08-17 · 1h)
+                        Estándar (08-13 · 14-17)
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          setFormStart('08:00');
-                          setFormEnd('17:00');
-                          setFormLunch(30);
+                          setFormPunches([
+                            { id: crypto.randomUUID(), start: '08:00', end: '13:00' },
+                            { id: crypto.randomUUID(), start: '13:30', end: '17:00' },
+                          ]);
+                          setFormSingleLunch(0);
                         }}
                         className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold ${subCardBg} hover:border-emerald-500/50 text-emerald-400`}
                       >
@@ -954,83 +1033,109 @@ export const TeamTimeTrackingView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setFormStart('08:00');
-                          setFormEnd('15:00');
-                          setFormLunch(0);
+                          setFormPunches([
+                            { id: crypto.randomUUID(), start: '08:00', end: '15:00' },
+                          ]);
+                          setFormSingleLunch(0);
                         }}
                         className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold ${subCardBg} hover:border-indigo-500/50 text-indigo-400`}
                       >
-                        Viernes 08-15 (sin comida)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormStart('08:00');
-                          setFormEnd('15:00');
-                          setFormLunch(60);
-                        }}
-                        className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold ${subCardBg} hover:border-indigo-500/50`}
-                      >
-                        Viernes 08-15 (1h comida)
+                        Viernes 08-15 (continua)
                       </button>
                     </div>
                   </div>
 
-                  {/* Horas y pausa */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">Entrada</label>
-                      <input
-                        type="time"
-                        value={formStart}
-                        onChange={(e) => setFormStart(e.target.value)}
-                        className={`w-full px-3 py-2.5 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
-                      />
+                  {/* Lista de tramos */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-400">
+                        Tramos del día ({formPunches.length})
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddFormPunch}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Añadir tramo</span>
+                      </button>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">Salida</label>
-                      <input
-                        type="time"
-                        value={formEnd}
-                        onChange={(e) => setFormEnd(e.target.value)}
-                        className={`w-full px-3 py-2.5 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
-                      />
-                    </div>
+
+                    {formPunches.map((punch, idx) => (
+                      <div key={punch.id} className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-slate-500 w-14 flex-shrink-0">
+                          Tramo {idx + 1}
+                        </span>
+                        <input
+                          type="time"
+                          value={punch.start}
+                          onChange={(e) => handleUpdateFormPunch(punch.id, 'start', e.target.value)}
+                          className={`flex-1 px-3 py-2 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
+                        />
+                        <span className="text-slate-500 text-xs">→</span>
+                        <input
+                          type="time"
+                          value={punch.end || ''}
+                          onChange={(e) => handleUpdateFormPunch(punch.id, 'end', e.target.value)}
+                          className={`flex-1 px-3 py-2 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
+                        />
+                        {formPunches.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFormPunch(punch.id)}
+                            className="p-2 rounded-xl text-slate-500 hover:text-rose-400"
+                            title="Quitar tramo"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Si solo hay 1 tramo, permitir descuento manual opcional */}
+                  {formPunches.length === 1 && (
                     <div>
                       <label className="block text-xs font-bold text-slate-400 mb-1.5">
-                        Comida (min)
+                        Descuento comida manual (solo si es 1 tramo continuo)
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={240}
-                        step={5}
-                        value={formLunch}
-                        onChange={(e) => setFormLunch(Math.max(0, Number(e.target.value) || 0))}
-                        className={`w-full px-3 py-2.5 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
-                      />
+                      <div className="flex items-center gap-2">
+                        {[0, 30, 60].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setFormSingleLunch(m)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-bold ${
+                              formSingleLunch === m
+                                ? 'bg-cyan-600 border-cyan-500 text-white'
+                                : subCardBg
+                            }`}
+                          >
+                            {m === 0 ? 'Sin pausa (0m)' : `${m}m`}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
 
-              {/* Notas */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1.5">
                   Nota (opcional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Ej. Comida rápida 30m, médico, salida a las 15:00..."
+                  placeholder="Ej. Comida 30m, médico, salida a las 15:00..."
                   value={formNotes}
                   onChange={(e) => setFormNotes(e.target.value)}
                   className={`w-full px-3.5 py-2.5 rounded-xl border text-sm ${subCardBg}`}
                 />
               </div>
 
-              {/* Previsualización del cálculo */}
+              {/* Previsualización */}
               <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${subCardBg}`}>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-400 space-y-0.5">
                   <div>
                     Trabajado:{' '}
                     <span className="font-bold text-white">
@@ -1038,7 +1143,7 @@ export const TeamTimeTrackingView: React.FC = () => {
                     </span>
                   </div>
                   <div>
-                    Objetivo del día:{' '}
+                    Pausas: <span className="font-semibold">{formatDuration(modalPreview.breaks)}</span> · Objetivo:{' '}
                     <span className="font-semibold">{formatDuration(modalPreview.target)}</span>
                   </div>
                 </div>

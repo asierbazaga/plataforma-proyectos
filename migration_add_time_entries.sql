@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS public.mecalux_time_entries (
   start_time TEXT, -- Formato HH:mm (ej. '08:00')
   end_time TEXT,   -- Formato HH:mm (ej. '17:00'), NULL si aún está en jornada
   lunch_minutes INTEGER NOT NULL DEFAULT 60,
+  punches JSONB NOT NULL DEFAULT '[]'::jsonb,
   day_type TEXT NOT NULL DEFAULT 'normal' CHECK (day_type IN ('normal', 'holiday', 'vacation', 'compensatory')),
   target_minutes INTEGER NOT NULL DEFAULT 480,
   notes TEXT,

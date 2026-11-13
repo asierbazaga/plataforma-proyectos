@@ -2,13 +2,20 @@ import { supabase } from '../../../lib/supabase';
 
 export type TimeDayType = 'normal' | 'holiday' | 'vacation' | 'compensatory';
 
+export interface TimePunch {
+  id: string;
+  start: string; // HH:mm
+  end: string | null; // HH:mm o null si sigue abierto
+}
+
 export interface TimeEntry {
   id: string;
   user_id: string;
   entry_date: string; // YYYY-MM-DD
-  start_time: string | null; // HH:mm
-  end_time: string | null; // HH:mm
+  start_time: string | null; // HH:mm (primer fichaje)
+  end_time: string | null; // HH:mm (último fichaje)
   lunch_minutes: number;
+  punches?: TimePunch[];
   day_type: TimeDayType;
   target_minutes: number;
   notes?: string | null;
@@ -19,9 +26,10 @@ export interface TimeEntry {
 export interface UpsertTimeEntryInput {
   user_id: string;
   entry_date: string;
-  start_time: string | null;
-  end_time: string | null;
-  lunch_minutes: number;
+  start_time?: string | null;
+  end_time?: string | null;
+  lunch_minutes?: number;
+  punches?: TimePunch[];
   day_type: TimeDayType;
   target_minutes?: number;
   notes?: string | null;
@@ -111,29 +119,93 @@ export function getDefaultTargetMinutes(dateStr: string, dayType: TimeDayType): 
 }
 
 /**
- * Calcula minutos trabajados netos (descontando comida) para un fichaje cerrado.
- * Si falta entrada o salida, devuelve null.
+ * Devuelve los tramos normalizados de un fichaje.
+ * Si el registro antiguo solo tenía start_time/end_time, los convierte en 1 tramo.
  */
-export function getWorkedMinutes(entry: Pick<TimeEntry, 'start_time' | 'end_time' | 'lunch_minutes' | 'day_type'>): number | null {
-  const start = timeToMinutes(entry.start_time);
-  const end = timeToMinutes(entry.end_time);
-  if (start === null || end === null) return null;
-  const raw = end - start - (entry.lunch_minutes || 0);
-  return Math.max(0, raw);
+export function getEntryPunches(entry: Pick<TimeEntry, 'punches' | 'start_time' | 'end_time'>): TimePunch[] {
+  if (Array.isArray(entry.punches) && entry.punches.length > 0) {
+    return entry.punches;
+  }
+  if (entry.start_time) {
+    return [
+      {
+        id: 'legacy-1',
+        start: entry.start_time,
+        end: entry.end_time || null,
+      },
+    ];
+  }
+  return [];
 }
 
 /**
- * Calcula el balance en minutos (+ de más, - de menos) de un fichaje.
- * Para días libres/festivos/vacaciones sin horas trabajadas, el balance es 0.
- * Si un fichaje normal está abierto (sin hora de salida), devuelve null.
+ * Calcula la pausa total entre tramos (en minutos).
+ * Si solo hay 1 tramo, devuelve el lunch_minutes manual (para jornadas continuas/legacy).
  */
-export function getBalanceMinutes(entry: TimeEntry): number | null {
+export function getBreakMinutes(entry: Pick<TimeEntry, 'punches' | 'start_time' | 'end_time' | 'lunch_minutes'>): number {
+  const punches = getEntryPunches(entry);
+  if (punches.length <= 1) {
+    return entry.lunch_minutes || 0;
+  }
+  let gapTotal = 0;
+  for (let i = 0; i < punches.length - 1; i++) {
+    const prevEnd = timeToMinutes(punches[i].end);
+    const nextStart = timeToMinutes(punches[i + 1].start);
+    if (prevEnd !== null && nextStart !== null && nextStart > prevEnd) {
+      gapTotal += nextStart - prevEnd;
+    }
+  }
+  return gapTotal;
+}
+
+/**
+ * Indica si el fichaje tiene un tramo abierto actualmente (sin hora de salida).
+ */
+export function hasOpenPunch(entry: Pick<TimeEntry, 'punches' | 'start_time' | 'end_time'>): boolean {
+  const punches = getEntryPunches(entry);
+  return punches.some((p) => p.start && !p.end);
+}
+
+/**
+ * Calcula minutos trabajados netos.
+ * - Si `liveNowTime` se pasa (ej. para el día de hoy), incluye el tramo abierto hasta `liveNowTime`.
+ * - Si no se pasa `liveNowTime` y hay algún tramo abierto, devuelve null (día aún en curso).
+ */
+export function getWorkedMinutes(
+  entry: Pick<TimeEntry, 'punches' | 'start_time' | 'end_time' | 'lunch_minutes' | 'day_type'>,
+  liveNowTime?: string
+): number | null {
+  const punches = getEntryPunches(entry);
+  if (punches.length === 0) return null;
+
+  let total = 0;
+  for (const punch of punches) {
+    const start = timeToMinutes(punch.start);
+    const end = timeToMinutes(punch.end ?? liveNowTime ?? null);
+    if (start === null || end === null) return null;
+    if (end > start) {
+      total += end - start;
+    }
+  }
+
+  // Si solo hay 1 tramo, descontamos el lunch_minutes manual si lo hubiera
+  if (punches.length === 1) {
+    total = Math.max(0, total - (entry.lunch_minutes || 0));
+  }
+
+  return total;
+}
+
+/**
+ * Calcula el balance en minutos (+ de más, - de menos) de un fichaje cerrado.
+ * Si un fichaje normal tiene algún tramo abierto, devuelve null.
+ */
+export function getBalanceMinutes(entry: TimeEntry, liveNowTime?: string): number | null {
   if (entry.day_type !== 'normal') {
-    const worked = getWorkedMinutes(entry);
-    // Si por ejemplo se trabaja en festivo, suma todo como extra; si no, 0.
+    const worked = getWorkedMinutes(entry, liveNowTime);
     return worked !== null ? worked : 0;
   }
-  const worked = getWorkedMinutes(entry);
+  const worked = getWorkedMinutes(entry, liveNowTime);
   if (worked === null) return null;
   return worked - entry.target_minutes;
 }
@@ -177,12 +249,27 @@ export const timeTrackingService = {
     const targetMinutes =
       input.target_minutes ?? getDefaultTargetMinutes(input.entry_date, input.day_type);
 
+    const punches: TimePunch[] =
+      input.punches && input.punches.length > 0
+        ? input.punches
+        : input.start_time
+        ? [{ id: crypto.randomUUID(), start: input.start_time, end: input.end_time ?? null }]
+        : [];
+
+    const firstStart = punches.length > 0 ? punches[0].start : input.start_time ?? null;
+    const lastEnd = punches.length > 0 ? punches[punches.length - 1].end : input.end_time ?? null;
+    const computedLunch =
+      punches.length > 1
+        ? getBreakMinutes({ punches, start_time: firstStart, end_time: lastEnd, lunch_minutes: 0 })
+        : input.lunch_minutes ?? 0;
+
     const payload = {
       user_id: input.user_id,
       entry_date: input.entry_date,
-      start_time: input.day_type === 'normal' ? input.start_time : input.start_time || null,
-      end_time: input.day_type === 'normal' ? input.end_time : input.end_time || null,
-      lunch_minutes: input.day_type === 'normal' ? input.lunch_minutes : 0,
+      start_time: input.day_type === 'normal' ? firstStart : firstStart || null,
+      end_time: input.day_type === 'normal' ? lastEnd : lastEnd || null,
+      lunch_minutes: input.day_type === 'normal' ? computedLunch : 0,
+      punches: input.day_type === 'normal' ? punches : punches,
       day_type: input.day_type,
       target_minutes: targetMinutes,
       notes: input.notes?.trim() || null,
@@ -199,6 +286,24 @@ export const timeTrackingService = {
       if (!error && data) {
         return { entry: data as TimeEntry, storageMode: 'supabase' };
       }
+
+      // Si la columna 'punches' aún no existe en Supabase, reintentar sin ella y avisar por consola
+      const errMsg = (error as { message?: string })?.message || '';
+      if (error && errMsg.includes('punches')) {
+        const { punches: _omit, ...legacyPayload } = payload;
+        const retry = await supabase
+          .from('mecalux_time_entries')
+          .upsert(legacyPayload, { onConflict: 'user_id,entry_date' })
+          .select()
+          .single();
+        if (!retry.error && retry.data) {
+          return {
+            entry: { ...(retry.data as TimeEntry), punches },
+            storageMode: 'supabase',
+          };
+        }
+      }
+
       if (error && !isMissingTableError(error)) {
         throw error;
       }
