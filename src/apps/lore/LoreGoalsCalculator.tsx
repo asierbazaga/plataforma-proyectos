@@ -15,6 +15,49 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
+import { LoreGoalsConfig } from '../../types';
+
+const roundCurrency = (value: number): number => {
+  if (!Number.isFinite(value)) return 0;
+  return value >= 0
+    ? Math.round((value + Number.EPSILON) * 100) / 100
+    : -Math.round((-value + Number.EPSILON) * 100) / 100;
+};
+
+const formatInputNumber = (value: number): string => {
+  if (!Number.isFinite(value) || value === 0) return '';
+  return String(roundCurrency(value)).replace('.', ',');
+};
+
+const parseCurrencyInput = (raw: string): number | null => {
+  const cleaned = raw.replace(/[€\s\u00A0]/g, '').trim();
+  if (!cleaned) return null;
+
+  let normalized = cleaned;
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastDot = cleaned.lastIndexOf('.');
+
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) {
+      normalized = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      normalized = cleaned.replace(/,/g, '');
+    }
+  } else if (lastComma !== -1) {
+    const commaCount = (cleaned.match(/,/g) || []).length;
+    normalized = commaCount > 1 ? cleaned.replace(/,/g, '') : cleaned.replace(',', '.');
+  } else if (lastDot !== -1) {
+    const dotCount = (cleaned.match(/\./g) || []).length;
+    if (dotCount > 1) {
+      normalized = cleaned.replace(/\./g, '');
+    }
+  }
+
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(normalized)) return null;
+  const num = Number(normalized);
+  if (!Number.isFinite(num)) return null;
+  return roundCurrency(num);
+};
 
 // Tabla oficial de incentivos según imagen R/O MES Drasanvi
 const INCENTIVE_SCALE: { [key: number]: number } = {
@@ -49,52 +92,146 @@ export const LoreGoalsCalculator: React.FC = () => {
   };
 
   // Estado del Objetivo Mensual y Venta Acumulada
+  const initialWorkDays = useMemo(() => calculateAutoWorkDays(), []);
   const [objetivoMensual, setObjetivoMensual] = useState<number>(15000);
+  const [objetivoInput, setObjetivoInput] = useState<string>('15000');
   const [ventaAcumulada, setVentaAcumulada] = useState<number>(0);
-  const [diasLaborablesRestantes, setDiasLaborablesRestantes] = useState<number>(calculateAutoWorkDays());
+  const [ventaInput, setVentaInput] = useState<string>('');
+  const [diasLaborablesRestantes, setDiasLaborablesRestantes] = useState<number>(initialWorkDays);
+  const [diasInput, setDiasInput] = useState<string>(String(initialWorkDays));
   const [incentiveImage, setIncentiveImage] = useState<string>('/tabla-incentivos.png');
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [nuevaVenta, setNuevaVenta] = useState<string>('');
 
-  const handleSumarVenta = () => {
-    const cantidad = Number(nuevaVenta);
-    if (cantidad && !isNaN(cantidad)) {
-      updateAndSaveGoals({ ventaAcumulada: ventaAcumulada + cantidad });
-      setNuevaVenta('');
+  const ventaAcumuladaRef = useRef<number>(0);
+  const editingFieldRef = useRef<'objetivo' | 'venta' | 'dias' | null>(null);
+  const pendingUpdatesRef = useRef<Partial<LoreGoalsConfig>>({});
+  const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+  const saleSeqRef = useRef<number>(0);
+
+  const flushPendingUpdates = () => {
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+      saveDebounceRef.current = null;
+    }
+    const pending = pendingUpdatesRef.current;
+    if (Object.keys(pending).length > 0) {
+      pendingUpdatesRef.current = {};
+      storageService.saveLoreGoalsConfig(pending);
+    }
+  };
+
+  const scheduleDebouncedSave = (updates: Partial<LoreGoalsConfig>) => {
+    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+    }
+    saveDebounceRef.current = setTimeout(() => {
+      flushPendingUpdates();
+    }, 400);
+  };
+
+  const applyConfigToState = (cfg: LoreGoalsConfig, respectEditing: boolean) => {
+    const hasPending = Object.keys(pendingUpdatesRef.current).length > 0;
+    if (respectEditing && hasPending) return;
+
+    if (!respectEditing || editingFieldRef.current !== 'objetivo') {
+      const obj = Math.max(0, roundCurrency(cfg.objetivoMensual));
+      setObjetivoMensual(obj);
+      setObjetivoInput(formatInputNumber(obj));
+    }
+    if (!respectEditing || editingFieldRef.current !== 'venta') {
+      const venta = Math.max(0, roundCurrency(cfg.ventaAcumulada));
+      ventaAcumuladaRef.current = venta;
+      setVentaAcumulada(venta);
+      setVentaInput(formatInputNumber(venta));
+    }
+    if (!respectEditing || editingFieldRef.current !== 'dias') {
+      const diasCfg = Math.max(1, Math.round(cfg.diasLaborablesRestantes || 1));
+      setDiasLaborablesRestantes(diasCfg);
+      setDiasInput(String(diasCfg));
+    }
+    if (cfg.incentiveImage) {
+      setIncentiveImage(cfg.incentiveImage);
+    }
+  };
+
+  const updateAndSaveGoals = (updates: Partial<{ objetivoMensual: number; ventaAcumulada: number; diasLaborablesRestantes: number; incentiveImage: string }>) => {
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+      saveDebounceRef.current = null;
+    }
+    const mergedUpdates = { ...pendingUpdatesRef.current, ...updates };
+    pendingUpdatesRef.current = {};
+
+    if (mergedUpdates.objetivoMensual !== undefined) {
+      const obj = Math.max(0, roundCurrency(mergedUpdates.objetivoMensual));
+      mergedUpdates.objetivoMensual = obj;
+      setObjetivoMensual(obj);
+      setObjetivoInput(formatInputNumber(obj));
+    }
+    if (mergedUpdates.ventaAcumulada !== undefined) {
+      const venta = Math.max(0, roundCurrency(mergedUpdates.ventaAcumulada));
+      mergedUpdates.ventaAcumulada = venta;
+      ventaAcumuladaRef.current = venta;
+      setVentaAcumulada(venta);
+      setVentaInput(formatInputNumber(venta));
+    }
+    if (mergedUpdates.diasLaborablesRestantes !== undefined) {
+      const diasVal = Math.max(1, Math.round(mergedUpdates.diasLaborablesRestantes || 1));
+      mergedUpdates.diasLaborablesRestantes = diasVal;
+      setDiasLaborablesRestantes(diasVal);
+      setDiasInput(String(diasVal));
+    }
+    if (mergedUpdates.incentiveImage !== undefined) {
+      setIncentiveImage(mergedUpdates.incentiveImage);
+    }
+    storageService.saveLoreGoalsConfig(mergedUpdates);
+  };
+
+  const handleSumarVenta = async () => {
+    const cantidad = parseCurrencyInput(nuevaVenta);
+    if (cantidad === null || cantidad === 0) return;
+
+    flushPendingUpdates();
+    const seq = ++saleSeqRef.current;
+    const nuevoTotal = Math.max(0, roundCurrency(ventaAcumuladaRef.current + cantidad));
+    ventaAcumuladaRef.current = nuevoTotal;
+    setVentaAcumulada(nuevoTotal);
+    setVentaInput(formatInputNumber(nuevoTotal));
+    setNuevaVenta('');
+
+    const confirmed = await storageService.addLoreSale(cantidad);
+    if (isMountedRef.current && seq === saleSeqRef.current && confirmed) {
+      applyConfigToState(confirmed, true);
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
+    let active = true;
     storageService.getLoreGoalsConfig().then(cfg => {
-      if (cfg) {
-        setObjetivoMensual(cfg.objetivoMensual);
-        setVentaAcumulada(cfg.ventaAcumulada);
-        setDiasLaborablesRestantes(cfg.diasLaborablesRestantes);
-        if (cfg.incentiveImage) setIncentiveImage(cfg.incentiveImage);
+      if (active && cfg) {
+        applyConfigToState(cfg, true);
       }
     });
 
     const unsubscribe = storageService.onSync(() => {
       storageService.getLoreGoalsConfig().then(cfg => {
-        if (cfg) {
-          setObjetivoMensual(cfg.objetivoMensual);
-          setVentaAcumulada(cfg.ventaAcumulada);
-          setDiasLaborablesRestantes(cfg.diasLaborablesRestantes);
-          if (cfg.incentiveImage) setIncentiveImage(cfg.incentiveImage);
+        if (active && cfg) {
+          applyConfigToState(cfg, true);
         }
       });
     });
 
-    return () => unsubscribe();
+    return () => {
+      active = false;
+      isMountedRef.current = false;
+      unsubscribe();
+      flushPendingUpdates();
+    };
   }, []);
-
-  const updateAndSaveGoals = (updates: Partial<{ objetivoMensual: number; ventaAcumulada: number; diasLaborablesRestantes: number; incentiveImage: string }>) => {
-    if (updates.objetivoMensual !== undefined) setObjetivoMensual(updates.objetivoMensual);
-    if (updates.ventaAcumulada !== undefined) setVentaAcumulada(updates.ventaAcumulada);
-    if (updates.diasLaborablesRestantes !== undefined) setDiasLaborablesRestantes(updates.diasLaborablesRestantes);
-    if (updates.incentiveImage !== undefined) setIncentiveImage(updates.incentiveImage);
-    storageService.saveLoreGoalsConfig(updates);
-  };
 
   // Cálculos de Objetivos y Ritmos
   const metaBono80 = objetivoMensual * 0.8;
@@ -115,7 +252,7 @@ export const LoreGoalsCalculator: React.FC = () => {
 
   // Incentivo actual ganado según la tabla de porcentajes
   const currentIncentive = useMemo(() => {
-    const floorPct = Math.floor(porcentajeAlcanzado);
+    const floorPct = Math.floor(porcentajeAlcanzado + 1e-9);
     if (floorPct < 80) return 0;
     if (floorPct >= 120) return INCENTIVE_SCALE[120];
     return INCENTIVE_SCALE[floorPct] || 0;
@@ -123,7 +260,7 @@ export const LoreGoalsCalculator: React.FC = () => {
 
   // Estado Actual
   const getStatus = () => {
-    if (ventaAcumulada >= objetivoMensual) {
+    if (objetivoMensual > 0 && ventaAcumulada >= objetivoMensual) {
       return {
         label: '¡Objetivo 100% Conseguido!',
         icon: '🏆',
@@ -132,7 +269,7 @@ export const LoreGoalsCalculator: React.FC = () => {
         bg: 'bg-emerald-500/10 border-emerald-500/30'
       };
     }
-    if (ventaAcumulada >= metaBono80) {
+    if (objetivoMensual > 0 && ventaAcumulada >= metaBono80) {
       return {
         label: '¡Bono 80% Asegurado!',
         icon: '🎯',
@@ -229,13 +366,34 @@ export const LoreGoalsCalculator: React.FC = () => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  min="0"
-                  step="100"
-                  value={objetivoMensual === 0 ? '' : objetivoMensual}
+                  type="text"
+                  inputMode="decimal"
+                  value={objetivoInput}
+                  onFocus={() => {
+                    editingFieldRef.current = 'objetivo';
+                  }}
                   onChange={(e) => {
-                    const val = e.target.value === '' ? 0 : Number(e.target.value);
-                    updateAndSaveGoals({ objetivoMensual: val });
+                    const raw = e.target.value;
+                    setObjetivoInput(raw);
+                    if (raw.trim() === '') {
+                      setObjetivoMensual(0);
+                      scheduleDebouncedSave({ objetivoMensual: 0 });
+                      return;
+                    }
+                    const parsed = parseCurrencyInput(raw);
+                    if (parsed !== null && parsed >= 0) {
+                      setObjetivoMensual(parsed);
+                      scheduleDebouncedSave({ objetivoMensual: parsed });
+                    }
+                  }}
+                  onBlur={() => {
+                    editingFieldRef.current = null;
+                    const parsed = parseCurrencyInput(objetivoInput);
+                    const finalVal = parsed !== null && parsed >= 0 ? parsed : 0;
+                    setObjetivoMensual(finalVal);
+                    setObjetivoInput(formatInputNumber(finalVal));
+                    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, objetivoMensual: finalVal };
+                    flushPendingUpdates();
                   }}
                   placeholder="0"
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
@@ -250,27 +408,58 @@ export const LoreGoalsCalculator: React.FC = () => {
               </label>
               <div className="flex flex-col gap-2">
                 <input
-                  type="number"
-                  min="0"
-                  step="10"
-                  value={ventaAcumulada === 0 ? '' : ventaAcumulada}
+                  type="text"
+                  inputMode="decimal"
+                  value={ventaInput}
+                  onFocus={() => {
+                    editingFieldRef.current = 'venta';
+                  }}
                   onChange={(e) => {
-                    const val = e.target.value === '' ? 0 : Number(e.target.value);
-                    updateAndSaveGoals({ ventaAcumulada: val });
+                    const raw = e.target.value;
+                    setVentaInput(raw);
+                    if (raw.trim() === '') {
+                      ventaAcumuladaRef.current = 0;
+                      setVentaAcumulada(0);
+                      scheduleDebouncedSave({ ventaAcumulada: 0 });
+                      return;
+                    }
+                    const parsed = parseCurrencyInput(raw);
+                    if (parsed !== null && parsed >= 0) {
+                      ventaAcumuladaRef.current = parsed;
+                      setVentaAcumulada(parsed);
+                      scheduleDebouncedSave({ ventaAcumulada: parsed });
+                    }
+                  }}
+                  onBlur={() => {
+                    editingFieldRef.current = null;
+                    const parsed = parseCurrencyInput(ventaInput);
+                    const finalVal = parsed !== null && parsed >= 0 ? parsed : 0;
+                    ventaAcumuladaRef.current = finalVal;
+                    setVentaAcumulada(finalVal);
+                    setVentaInput(formatInputNumber(finalVal));
+                    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ventaAcumulada: finalVal };
+                    flushPendingUpdates();
                   }}
                   placeholder="0"
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
                 />
                 <div className="flex items-center gap-2">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="+ Sumar venta"
                     value={nuevaVenta}
                     onChange={(e) => setNuevaVenta(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSumarVenta()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSumarVenta();
+                      }
+                    }}
                     className="w-full bg-[#1A2E35]/40 hover:bg-[#1A2E35]/60 focus:bg-[#1A2E35]/80 border border-emerald-500/20 focus:border-emerald-400 text-emerald-300 font-bold text-sm rounded-xl px-3 py-2 focus:outline-none transition-all"
                   />
                   <button
+                    type="button"
                     onClick={handleSumarVenta}
                     className="bg-emerald-600/80 hover:bg-emerald-500 text-white p-2 rounded-xl transition-all flex-shrink-0"
                     title="Sumar al total"
@@ -302,10 +491,26 @@ export const LoreGoalsCalculator: React.FC = () => {
                   type="number"
                   min="1"
                   max="31"
-                  value={diasLaborablesRestantes}
+                  value={diasInput}
+                  onFocus={() => {
+                    editingFieldRef.current = 'dias';
+                  }}
                   onChange={(e) => {
-                    const val = Math.max(1, Number(e.target.value) || 1);
-                    updateAndSaveGoals({ diasLaborablesRestantes: val });
+                    const raw = e.target.value;
+                    setDiasInput(raw);
+                    if (raw.trim() === '') return;
+                    const val = Math.min(31, Math.max(1, Math.round(Number(raw) || 1)));
+                    setDiasLaborablesRestantes(val);
+                    scheduleDebouncedSave({ diasLaborablesRestantes: val });
+                  }}
+                  onBlur={() => {
+                    editingFieldRef.current = null;
+                    const parsed = Number(diasInput);
+                    const finalVal = Number.isFinite(parsed) && parsed >= 1 ? Math.min(31, Math.round(parsed)) : 1;
+                    setDiasLaborablesRestantes(finalVal);
+                    setDiasInput(String(finalVal));
+                    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, diasLaborablesRestantes: finalVal };
+                    flushPendingUpdates();
                   }}
                   className="w-full bg-[#1A2E35]/70 hover:bg-[#1A2E35] focus:bg-[#1A2E35] border border-emerald-500/30 focus:border-emerald-400 text-emerald-300 font-extrabold text-base rounded-2xl px-4 py-3 focus:outline-none transition-all shadow-inner"
                 />
