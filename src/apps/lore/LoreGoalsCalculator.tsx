@@ -109,6 +109,7 @@ export const LoreGoalsCalculator: React.FC = () => {
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef<boolean>(true);
   const saleSeqRef = useRef<number>(0);
+  const loadSeqRef = useRef<number>(0);
 
   const flushPendingUpdates = () => {
     if (saveDebounceRef.current) {
@@ -164,6 +165,7 @@ export const LoreGoalsCalculator: React.FC = () => {
     }
     const mergedUpdates = { ...pendingUpdatesRef.current, ...updates };
     pendingUpdatesRef.current = {};
+    loadSeqRef.current++;
 
     if (mergedUpdates.objetivoMensual !== undefined) {
       const obj = Math.max(0, roundCurrency(mergedUpdates.objetivoMensual));
@@ -196,6 +198,7 @@ export const LoreGoalsCalculator: React.FC = () => {
 
     flushPendingUpdates();
     const seq = ++saleSeqRef.current;
+    loadSeqRef.current++;
     const nuevoTotal = Math.max(0, roundCurrency(ventaAcumuladaRef.current + cantidad));
     ventaAcumuladaRef.current = nuevoTotal;
     setVentaAcumulada(nuevoTotal);
@@ -211,19 +214,18 @@ export const LoreGoalsCalculator: React.FC = () => {
   useEffect(() => {
     isMountedRef.current = true;
     let active = true;
-    storageService.getLoreGoalsConfig().then(cfg => {
-      if (active && cfg) {
-        applyConfigToState(cfg, true);
-      }
-    });
 
-    const unsubscribe = storageService.onSync(() => {
+    const loadLatestConfig = () => {
+      const loadSeq = ++loadSeqRef.current;
       storageService.getLoreGoalsConfig().then(cfg => {
-        if (active && cfg) {
+        if (active && cfg && loadSeq === loadSeqRef.current) {
           applyConfigToState(cfg, true);
         }
       });
-    });
+    };
+
+    loadLatestConfig();
+    const unsubscribe = storageService.onSync(loadLatestConfig);
 
     return () => {
       active = false;

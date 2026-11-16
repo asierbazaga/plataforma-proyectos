@@ -135,6 +135,11 @@ class StorageService {
   private loreGoalsSaveQueue: Promise<void> = Promise.resolve();
   private loreGoalsPendingSaves = 0;
   private loreGoalsRemoteDirty = false;
+  private loreGoalsWriteEpoch = 0;
+  private loreGoalsImageLoaded = false;
+  private loreGoalsImageFetching = false;
+  private loreGoalsImageCache: string | null = null;
+  private memoryFallback: Map<string, any> = new Map();
 
   private roundCurrency(value: number): number {
     if (!Number.isFinite(value)) return 0;
@@ -248,21 +253,47 @@ class StorageService {
 
   private getLocal<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
-    const raw = localStorage.getItem('plataforma_' + key);
-    if (!raw) {
-      localStorage.setItem('plataforma_' + key, JSON.stringify(fallback));
-      return fallback;
-    }
     try {
-      return JSON.parse(raw);
+      const raw = localStorage.getItem('plataforma_' + key);
+      if (!raw) {
+        if (this.memoryFallback.has(key)) {
+          return this.memoryFallback.get(key) as T;
+        }
+        try {
+          localStorage.setItem('plataforma_' + key, JSON.stringify(fallback));
+        } catch (e) {}
+        return fallback;
+      }
+      const parsed = JSON.parse(raw);
+      if (key === 'lore_goals_config' && this.loreGoalsImageCache && parsed && !parsed.incentiveImage) {
+        parsed.incentiveImage = this.loreGoalsImageCache;
+      }
+      return parsed;
     } catch {
+      if (this.memoryFallback.has(key)) {
+        return this.memoryFallback.get(key) as T;
+      }
       return fallback;
     }
   }
 
   private setLocal<T>(key: string, data: T): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem('plataforma_' + key, JSON.stringify(data));
+    this.memoryFallback.set(key, data);
+    if (key === 'lore_goals_config' && data && typeof data === 'object' && 'incentiveImage' in (data as any)) {
+      const img = (data as any).incentiveImage;
+      if (img) this.loreGoalsImageCache = img;
+    }
+    try {
+      localStorage.setItem('plataforma_' + key, JSON.stringify(data));
+    } catch (e) {
+      if (key === 'lore_goals_config' && data && typeof data === 'object') {
+        try {
+          const compact = { ...(data as any), incentiveImage: '' };
+          localStorage.setItem('plataforma_' + key, JSON.stringify(compact));
+        } catch (e2) {}
+      }
+    }
   }
 
   // ==========================================
@@ -1617,7 +1648,11 @@ class StorageService {
     this.broadcastChange();
   }
 
-  private mapLoreGoalsRow(g: any): LoreGoalsConfig {
+  private mapLoreGoalsRow(g: any, fallbackImage: string): LoreGoalsConfig {
+    const resolvedImage = g.incentive_image || fallbackImage || '/tabla-incentivos.png';
+    if (g.incentive_image) {
+      this.loreGoalsImageCache = g.incentive_image;
+    }
     return {
       objetivoMensual: g.objetivo_mensual !== null && g.objetivo_mensual !== undefined
         ? Math.max(0, this.roundCurrency(Number(g.objetivo_mensual)))
@@ -1628,30 +1663,43 @@ class StorageService {
       diasLaborablesRestantes: g.dias_laborables_restantes !== null && g.dias_laborables_restantes !== undefined
         ? Math.max(1, Math.round(Number(g.dias_laborables_restantes) || 1))
         : DEFAULT_LORE_GOALS.diasLaborablesRestantes,
-      incentiveImage: g.incentive_image || '/tabla-incentivos.png',
+      incentiveImage: resolvedImage,
       updated_at: g.updated_at
     };
   }
 
-  private async fetchRemoteLoreGoalsRow(): Promise<LoreGoalsConfig | null> {
+  private async fetchRemoteLoreGoalsRow(includeImage: boolean = false): Promise<LoreGoalsConfig | null> {
     if (!isSupabaseConfigured || !supabase) return null;
+    const fetchWithImage = includeImage && !this.loreGoalsImageFetching;
+    if (fetchWithImage) this.loreGoalsImageFetching = true;
+    const columns = fetchWithImage
+      ? '*'
+      : 'id,objetivo_mensual,venta_acumulada,dias_laborables_restantes,updated_at';
+    const localFallbackImg =
+      this.loreGoalsImageCache ||
+      this.getLocal<LoreGoalsConfig>('lore_goals_config', DEFAULT_LORE_GOALS).incentiveImage ||
+      '/tabla-incentivos.png';
+
     try {
       let { data, error } = await supabase
         .from('lore_goals')
-        .select('*')
+        .select(columns)
         .eq('id', 'current_goals')
         .limit(1);
 
       if (!error && (!data || data.length === 0)) {
-        const fallbackRes = await supabase.from('lore_goals').select('*').limit(1);
+        const fallbackRes = await supabase.from('lore_goals').select(columns).limit(1);
         data = fallbackRes.data;
         error = fallbackRes.error;
       }
 
       if (!error && data && data.length > 0) {
-        return this.mapLoreGoalsRow(data[0]);
+        if (fetchWithImage) this.loreGoalsImageLoaded = true;
+        return this.mapLoreGoalsRow(data[0], localFallbackImg);
       }
-    } catch (e) {}
+    } catch (e) {} finally {
+      if (fetchWithImage) this.loreGoalsImageFetching = false;
+    }
     return null;
   }
 
@@ -1676,7 +1724,7 @@ class StorageService {
         objetivo_mensual: Math.max(0, this.roundCurrency(Number(fullFallback.objetivoMensual) || 0)),
         venta_acumulada: Math.max(0, this.roundCurrency(Number(fullFallback.ventaAcumulada) || 0)),
         dias_laborables_restantes: Math.max(1, Math.round(Number(fullFallback.diasLaborablesRestantes) || 21)),
-        incentive_image: fullFallback.incentiveImage,
+        incentive_image: fullFallback.incentiveImage || this.loreGoalsImageCache || '/tabla-incentivos.png',
         updated_at: fullFallback.updated_at || new Date().toISOString()
       }, { onConflict: 'id' });
 
@@ -1697,6 +1745,8 @@ class StorageService {
       return localCfg;
     }
 
+    const startEpoch = this.loreGoalsWriteEpoch;
+
     if (isSupabaseConfigured && supabase && this.loreGoalsRemoteDirty) {
       const synced = await this.persistLoreGoalsToSupabase({
         objetivo_mensual: Math.max(0, this.roundCurrency(Number(localCfg.objetivoMensual) || 0)),
@@ -1705,16 +1755,22 @@ class StorageService {
         incentive_image: localCfg.incentiveImage,
         updated_at: localCfg.updated_at || new Date().toISOString()
       }, localCfg);
-      if (synced) {
+      if (synced && startEpoch === this.loreGoalsWriteEpoch) {
         this.loreGoalsRemoteDirty = false;
         this.broadcastChange();
       } else {
-        return localCfg;
+        return this.getLocal<LoreGoalsConfig>('lore_goals_config', DEFAULT_LORE_GOALS);
       }
     }
 
-    const remoteCfg = await this.fetchRemoteLoreGoalsRow();
-    if (remoteCfg && this.loreGoalsPendingSaves === 0 && !this.loreGoalsRemoteDirty) {
+    const shouldFetchImage = !this.loreGoalsImageLoaded;
+    const remoteCfg = await this.fetchRemoteLoreGoalsRow(shouldFetchImage);
+    if (
+      remoteCfg &&
+      startEpoch === this.loreGoalsWriteEpoch &&
+      this.loreGoalsPendingSaves === 0 &&
+      !this.loreGoalsRemoteDirty
+    ) {
       this.setLocal('lore_goals_config', remoteCfg);
       return remoteCfg;
     }
@@ -1722,6 +1778,7 @@ class StorageService {
   }
 
   async saveLoreGoalsConfig(config: Partial<LoreGoalsConfig>): Promise<LoreGoalsConfig> {
+    this.loreGoalsWriteEpoch++;
     const current = this.getLocal<LoreGoalsConfig>('lore_goals_config', DEFAULT_LORE_GOALS);
     const nowIso = new Date().toISOString();
     const updated: LoreGoalsConfig = {
@@ -1758,6 +1815,7 @@ class StorageService {
         const latestLocal = this.getLocal<LoreGoalsConfig>('lore_goals_config', updated);
         saveSucceeded = await this.persistLoreGoalsToSupabase(partialPayload, latestLocal);
         this.loreGoalsRemoteDirty = !saveSucceeded;
+        this.loreGoalsWriteEpoch++;
       } finally {
         this.loreGoalsPendingSaves = Math.max(0, this.loreGoalsPendingSaves - 1);
         if (saveSucceeded && this.loreGoalsPendingSaves === 0) {
@@ -1774,6 +1832,7 @@ class StorageService {
   }
 
   async addLoreSale(amount: number): Promise<LoreGoalsConfig> {
+    this.loreGoalsWriteEpoch++;
     const cleanAmount = this.roundCurrency(Number(amount) || 0);
     const current = this.getLocal<LoreGoalsConfig>('lore_goals_config', DEFAULT_LORE_GOALS);
     const nowIso = new Date().toISOString();
@@ -1799,7 +1858,7 @@ class StorageService {
         let nextTotal = optimisticTotal;
 
         if (!this.loreGoalsRemoteDirty) {
-          const remoteCfg = await this.fetchRemoteLoreGoalsRow();
+          const remoteCfg = await this.fetchRemoteLoreGoalsRow(false);
           if (remoteCfg) {
             baseCfg = remoteCfg;
             nextTotal = Math.max(0, this.roundCurrency(remoteCfg.ventaAcumulada + cleanAmount));
@@ -1818,6 +1877,7 @@ class StorageService {
         );
         this.loreGoalsRemoteDirty = !saveSucceeded;
         this.setLocal('lore_goals_config', mergedCfg);
+        this.loreGoalsWriteEpoch++;
       } finally {
         this.loreGoalsPendingSaves = Math.max(0, this.loreGoalsPendingSaves - 1);
         if (saveSucceeded && this.loreGoalsPendingSaves === 0) {
