@@ -16,6 +16,7 @@ import {
   Sparkles,
   Info,
   X,
+  Briefcase,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -24,12 +25,14 @@ import {
   TimeEntry,
   TimeDayType,
   TimePunch,
+  TimePunchType,
   timeToMinutes,
   minutesToTime,
   getDefaultTargetMinutes,
   getEntryPunches,
+  getPunchType,
+  getOpenPunch,
   getBreakMinutes,
-  hasOpenPunch,
   getWorkedMinutes,
   getBalanceMinutes,
   formatDuration,
@@ -117,8 +120,8 @@ export const TeamTimeTrackingView: React.FC = () => {
   const [formDate, setFormDate] = useState(todayStr);
   const [formDayType, setFormDayType] = useState<TimeDayType>('normal');
   const [formPunches, setFormPunches] = useState<TimePunch[]>([
-    { id: '1', start: '08:00', end: '13:00' },
-    { id: '2', start: '14:00', end: '17:00' },
+    { id: '1', start: '08:00', end: '13:00', type: 'work' },
+    { id: '2', start: '14:00', end: '17:00', type: 'work' },
   ]);
   const [formSingleLunch, setFormSingleLunch] = useState<number>(0);
   const [formNotes, setFormNotes] = useState('');
@@ -171,10 +174,14 @@ export const TeamTimeTrackingView: React.FC = () => {
     [todayEntry]
   );
 
-  const isTodayOpen = useMemo(
-    () => (todayEntry ? hasOpenPunch(todayEntry) : false),
+  const openPunch = useMemo(
+    () => (todayEntry ? getOpenPunch(todayEntry) : null),
     [todayEntry]
   );
+
+  const isTodayOpen = Boolean(openPunch);
+  const isTodayOnPause = openPunch ? getPunchType(openPunch) === 'pause' : false;
+  const isTodayWorking = isTodayOpen && !isTodayOnPause;
 
   // Resumen en vivo del día de hoy (incluye tramo abierto hasta `nowTime`)
   const todayLive = useMemo(() => {
@@ -184,10 +191,10 @@ export const TeamTimeTrackingView: React.FC = () => {
     const diff = workedSoFar - target;
     const nowMins = timeToMinutes(nowTime);
     const expectedExit =
-      isTodayOpen && nowMins !== null && diff < 0
+      isTodayWorking && nowMins !== null && diff < 0
         ? minutesToTime(nowMins + Math.abs(diff))
         : null;
-    const breakMins = getBreakMinutes(todayEntry);
+    const breakMins = getBreakMinutes(todayEntry, nowTime);
 
     return {
       workedSoFar,
@@ -196,7 +203,7 @@ export const TeamTimeTrackingView: React.FC = () => {
       expectedExit,
       breakMins,
     };
-  }, [todayEntry, nowTime, isTodayOpen]);
+  }, [todayEntry, nowTime, isTodayWorking]);
 
   // Cálculos globales, semanales y mensuales (sobre días cerrados; hoy se refleja en vivo en su tarjeta)
   const stats = useMemo(() => {
@@ -271,49 +278,92 @@ export const TeamTimeTrackingView: React.FC = () => {
     }
   };
 
-  // Fichar ENTRADA / VUELTA (abre un nuevo tramo con la hora actual)
-  const handlePunchInNow = async () => {
+  const saveTodayPunches = async (updatedPunches: TimePunch[], message: string) => {
     if (!currentUser?.id) return;
-    const now = getCurrentTimeStr();
-    const updatedPunches: TimePunch[] = [
-      ...todayPunches,
-      { id: crypto.randomUUID(), start: now, end: null },
-    ];
     await upsertAndMerge(
       {
         user_id: currentUser.id,
         entry_date: todayStr,
         punches: updatedPunches,
-        lunch_minutes: 0,
+        lunch_minutes:
+          updatedPunches.length === 1 && getPunchType(updatedPunches[0]) === 'work'
+            ? todayEntry?.lunch_minutes ?? 0
+            : 0,
         day_type: todayEntry?.day_type || 'normal',
         target_minutes: todayEntry?.target_minutes,
         notes: todayEntry?.notes,
       },
-      todayPunches.length === 0
-        ? `Entrada fichada a las ${now}`
-        : `Vuelta fichada a las ${now} (Tramo ${updatedPunches.length})`
+      message
     );
   };
 
-  // Fichar SALIDA / PAUSA (cierra el tramo abierto con la hora actual)
-  const handlePunchOutNow = async () => {
+  // Fichar ENTRADA / REANUDAR TRABAJO (si había una pausa abierta, la cierra y abre trabajo)
+  const handleStartWorkNow = async () => {
+    if (!currentUser?.id) return;
+    const now = getCurrentTimeStr();
+    const closedPrev = todayPunches.flatMap((p) => {
+      if (p.end) return [p];
+      // Si se abre trabajo en el mismo minuto que una pausa recién creada, descartamos la pausa 0m
+      if (getPunchType(p) === 'pause' && p.start === now) return [];
+      return [{ ...p, end: now }];
+    });
+    const updatedPunches: TimePunch[] = [
+      ...closedPrev,
+      { id: crypto.randomUUID(), start: now, end: null, type: 'work' },
+    ];
+    await saveTodayPunches(
+      updatedPunches,
+      todayPunches.length === 0
+        ? `Entrada fichada a las ${now}`
+        : isTodayOnPause
+        ? `Trabajo reanudado a las ${now}`
+        : `Vuelta al trabajo fichada a las ${now}`
+    );
+  };
+
+  // Iniciar PAUSA (si había trabajo abierto, lo cierra y abre un tramo de pausa)
+  const handleStartPauseNow = async () => {
+    if (!currentUser?.id) return;
+    const now = getCurrentTimeStr();
+    const closedPrev = todayPunches.flatMap((p) => {
+      if (p.end) return [p];
+      if (getPunchType(p) === 'work' && p.start === now) return [];
+      return [{ ...p, end: now }];
+    });
+    const updatedPunches: TimePunch[] = [
+      ...closedPrev,
+      { id: crypto.randomUUID(), start: now, end: null, type: 'pause' },
+    ];
+    await saveTodayPunches(updatedPunches, `Pausa iniciada a las ${now}`);
+  };
+
+  // Finalizar tramo abierto (cierra jornada sin abrir otro tramo)
+  const handleFinishPunchNow = async () => {
     if (!currentUser?.id || !todayEntry) return;
     const now = getCurrentTimeStr();
-    const updatedPunches = todayPunches.map((p, idx) =>
-      idx === todayPunches.length - 1 && !p.end ? { ...p, end: now } : p
+    const updatedPunches = todayPunches.flatMap((p) => {
+      if (p.end) return [p];
+      if (getPunchType(p) === 'pause' && p.start === now) return [];
+      return [{ ...p, end: now }];
+    });
+    if (updatedPunches.length === 0) {
+      await handleDeleteEntry(todayEntry);
+      return;
+    }
+    await saveTodayPunches(updatedPunches, `Jornada cerrada a las ${now}`);
+  };
+
+  // Cambiar rápido un tramo de hoy entre Trabajo y Pausa
+  const handleToggleTodayPunchType = async (punchId: string) => {
+    if (!currentUser?.id || !todayEntry) return;
+    const updated = todayPunches.map((p) =>
+      p.id === punchId
+        ? { ...p, type: (getPunchType(p) === 'pause' ? 'work' : 'pause') as TimePunchType }
+        : p
     );
-    await upsertAndMerge(
-      {
-        user_id: currentUser.id,
-        entry_date: todayStr,
-        punches: updatedPunches,
-        lunch_minutes: updatedPunches.length === 1 ? todayEntry.lunch_minutes : 0,
-        day_type: todayEntry.day_type,
-        target_minutes: todayEntry.target_minutes,
-        notes: todayEntry.notes,
-      },
-      `Salida / pausa fichada a las ${now}`
-    );
+    const target = updated.find((p) => p.id === punchId);
+    const newLabel = target && getPunchType(target) === 'pause' ? 'Pausa' : 'Trabajo';
+    await saveTodayPunches(updated, `Tramo cambiado a ${newLabel}`);
   };
 
   const handleRemoveTodayPunch = async (punchId: string) => {
@@ -323,18 +373,7 @@ export const TeamTimeTrackingView: React.FC = () => {
       await handleDeleteEntry(todayEntry);
       return;
     }
-    await upsertAndMerge(
-      {
-        user_id: currentUser.id,
-        entry_date: todayStr,
-        punches: remaining,
-        lunch_minutes: remaining.length === 1 ? todayEntry.lunch_minutes : 0,
-        day_type: todayEntry.day_type,
-        target_minutes: todayEntry.target_minutes,
-        notes: todayEntry.notes,
-      },
-      'Tramo eliminado'
-    );
+    await saveTodayPunches(remaining, 'Tramo eliminado');
   };
 
   const openModalForNew = (date = todayStr) => {
@@ -346,8 +385,8 @@ export const TeamTimeTrackingView: React.FC = () => {
     setFormDate(date);
     setFormDayType('normal');
     setFormPunches([
-      { id: crypto.randomUUID(), start: '08:00', end: '13:00' },
-      { id: crypto.randomUUID(), start: '14:00', end: '17:00' },
+      { id: crypto.randomUUID(), start: '08:00', end: '13:00', type: 'work' },
+      { id: crypto.randomUUID(), start: '14:00', end: '17:00', type: 'work' },
     ]);
     setFormSingleLunch(0);
     setFormNotes('');
@@ -360,26 +399,41 @@ export const TeamTimeTrackingView: React.FC = () => {
     setFormDayType(entry.day_type);
     setFormPunches(
       existingPunches.length > 0
-        ? existingPunches.map((p) => ({ ...p }))
-        : [{ id: crypto.randomUUID(), start: '08:00', end: '' }]
+        ? existingPunches.map((p) => ({
+            ...p,
+            type: getPunchType(p),
+            label: p.label || '',
+          }))
+        : [{ id: crypto.randomUUID(), start: '08:00', end: '', type: 'work', label: '' }]
     );
-    setFormSingleLunch(existingPunches.length <= 1 ? entry.lunch_minutes || 0 : 0);
+    const singleWork =
+      existingPunches.length === 1 && getPunchType(existingPunches[0]) === 'work';
+    setFormSingleLunch(singleWork ? entry.lunch_minutes || 0 : 0);
     setFormNotes(entry.notes || '');
     setIsModalOpen(true);
   };
 
-  const handleAddFormPunch = () => {
+  const handleAddFormPunch = (type: TimePunchType = 'work') => {
     const last = formPunches[formPunches.length - 1];
-    const nextStart = last?.end || '14:00';
+    const nextStart = last?.end || (type === 'pause' ? '13:00' : '14:00');
     setFormPunches((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), start: nextStart, end: '' },
+      { id: crypto.randomUUID(), start: nextStart, end: '', type, label: '' },
     ]);
   };
 
-  const handleUpdateFormPunch = (id: string, field: 'start' | 'end', value: string) => {
+  const handleUpdateFormPunch = (
+    id: string,
+    field: 'start' | 'end' | 'type' | 'label',
+    value: string
+  ) => {
     setFormPunches((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, [field]: value || null } : p))
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        if (field === 'end') return { ...p, end: value || null };
+        if (field === 'type') return { ...p, type: value as TimePunchType };
+        return { ...p, [field]: value };
+      })
     );
   };
 
@@ -393,7 +447,13 @@ export const TeamTimeTrackingView: React.FC = () => {
 
     const cleanPunches =
       formDayType === 'normal'
-        ? formPunches.filter((p) => p.start && p.start.trim() !== '')
+        ? formPunches
+            .filter((p) => p.start && p.start.trim() !== '')
+            .map((p) => ({
+              ...p,
+              type: getPunchType(p),
+              label: p.label?.trim() || undefined,
+            }))
         : [];
 
     if (formDayType === 'normal' && cleanPunches.length === 0) {
@@ -401,12 +461,14 @@ export const TeamTimeTrackingView: React.FC = () => {
       return;
     }
 
+    const isSingleWork = cleanPunches.length === 1 && getPunchType(cleanPunches[0]) === 'work';
+
     const ok = await upsertAndMerge(
       {
         user_id: currentUser.id,
         entry_date: formDate,
         punches: cleanPunches,
-        lunch_minutes: cleanPunches.length <= 1 ? formSingleLunch : 0,
+        lunch_minutes: isSingleWork ? formSingleLunch : 0,
         day_type: formDayType,
         notes: formNotes,
       },
@@ -436,7 +498,8 @@ export const TeamTimeTrackingView: React.FC = () => {
     if (formDayType !== 'normal') {
       return { worked: 0, target: 0, balance: 0, breaks: 0 };
     }
-    const lunchVal = formPunches.length <= 1 ? formSingleLunch : 0;
+    const isSingleWork = formPunches.length === 1 && getPunchType(formPunches[0]) === 'work';
+    const lunchVal = isSingleWork ? formSingleLunch : 0;
     const worked = getWorkedMinutes({
       punches: formPunches,
       start_time: formPunches[0]?.start || null,
@@ -630,11 +693,18 @@ export const TeamTimeTrackingView: React.FC = () => {
                 {renderBalanceBadge(todayLive.diff)}
               </div>
               <p className="mt-1 text-xs text-slate-400">
-                {todayLive.expectedExit ? (
+                {isTodayOnPause ? (
+                  <>
+                    En pausa · Pausas hoy:{' '}
+                    <span className="font-semibold text-amber-400">
+                      {formatDuration(todayLive.breakMins)}
+                    </span>
+                  </>
+                ) : todayLive.expectedExit ? (
                   <>
                     Para 8h sales a las <span className="font-bold text-cyan-400">{todayLive.expectedExit}</span>
                   </>
-                ) : isTodayOpen ? (
+                ) : isTodayWorking ? (
                   <span className="text-emerald-400 font-semibold">Objetivo diario superado</span>
                 ) : (
                   <>
@@ -652,20 +722,26 @@ export const TeamTimeTrackingView: React.FC = () => {
         </div>
       </div>
 
-      {/* Panel de Fichajes de Hoy (Múltiples tramos: Entrada -> Pausa -> Vuelta -> Salida) */}
+      {/* Panel de Fichajes de Hoy (Múltiples tramos: Trabajo y Pausa) */}
       <div className={`rounded-3xl border p-5 space-y-4 ${cardBg}`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div
               className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0 ${
-                isTodayOpen
+                isTodayWorking
                   ? 'bg-gradient-to-tr from-emerald-500 to-cyan-500 shadow-emerald-500/25'
+                  : isTodayOnPause
+                  ? 'bg-gradient-to-tr from-amber-500 to-orange-500 shadow-amber-500/25'
                   : todayPunches.length > 0
-                  ? 'bg-gradient-to-tr from-amber-500 to-orange-500 shadow-amber-500/20'
+                  ? 'bg-gradient-to-tr from-slate-600 to-slate-500'
                   : 'bg-gradient-to-tr from-slate-700 to-slate-600'
               }`}
             >
-              {isTodayOpen ? <Clock className="w-6 h-6 animate-pulse" /> : <Coffee className="w-6 h-6" />}
+              {isTodayWorking ? (
+                <Clock className="w-6 h-6 animate-pulse" />
+              ) : (
+                <Coffee className={`w-6 h-6 ${isTodayOnPause ? 'animate-pulse' : ''}`} />
+              )}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
@@ -673,48 +749,101 @@ export const TeamTimeTrackingView: React.FC = () => {
                 <span className="px-2.5 py-0.5 rounded-lg bg-slate-800 text-cyan-300 font-mono text-xs font-bold border border-slate-700">
                   {nowTime}
                 </span>
-                {isTodayOpen ? (
+                {isTodayWorking ? (
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
                     Trabajando ahora
                   </span>
-                ) : todayPunches.length > 0 ? (
+                ) : isTodayOnPause ? (
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] font-bold">
-                    En pausa / Jornada cerrada
+                    En pausa ahora
+                  </span>
+                ) : todayPunches.length > 0 ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-500/15 text-slate-300 border border-slate-500/30 text-[11px] font-bold">
+                    Jornada cerrada
                   </span>
                 ) : null}
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Marca cada entrada y salida del día (mañana, comida, tarde...). El tiempo de pausa y el balance diario se calculan solos.
+                Registra cada tramo como <strong>Trabajo</strong> o <strong>Pausa</strong> (también puedes pulsar su etiqueta abajo para cambiarlo).
               </p>
             </div>
           </div>
 
           {/* Botones principales de fichaje */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {isTodayOpen ? (
+            {todayPunches.length === 0 ? (
               <button
                 type="button"
                 disabled={saving}
-                onClick={handlePunchOutNow}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/20 transition-all disabled:opacity-50"
-              >
-                <Square className="w-4 h-4 fill-current" />
-                <span>Fichar Salida / Pausa ({nowTime})</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                disabled={saving}
-                onClick={handlePunchInNow}
+                onClick={handleStartWorkNow}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>
-                  {todayPunches.length === 0
-                    ? `Fichar Entrada (${nowTime})`
-                    : `Fichar Vuelta / Entrada (${nowTime})`}
-                </span>
+                <span>Fichar Entrada ({nowTime})</span>
               </button>
+            ) : isTodayWorking ? (
+              <>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleStartPauseNow}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50"
+                >
+                  <Coffee className="w-4 h-4" />
+                  <span>Iniciar Pausa ({nowTime})</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleFinishPunchNow}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/20 transition-all disabled:opacity-50"
+                >
+                  <Square className="w-4 h-4 fill-current" />
+                  <span>Finalizar Jornada ({nowTime})</span>
+                </button>
+              </>
+            ) : isTodayOnPause ? (
+              <>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleStartWorkNow}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Reanudar Trabajo ({nowTime})</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleFinishPunchNow}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/20 transition-all disabled:opacity-50"
+                >
+                  <Square className="w-4 h-4 fill-current" />
+                  <span>Finalizar Jornada ({nowTime})</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleStartWorkNow}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Fichar Vuelta / Entrada ({nowTime})</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleStartPauseNow}
+                  className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/15 transition-all disabled:opacity-50"
+                >
+                  <Coffee className="w-4 h-4" />
+                  <span>Iniciar Pausa ({nowTime})</span>
+                </button>
+              </>
             )}
 
             {todayEntry && (
@@ -741,52 +870,92 @@ export const TeamTimeTrackingView: React.FC = () => {
 
         {/* Línea temporal de tramos de hoy */}
         {todayPunches.length > 0 && (
-          <div className={`p-3.5 rounded-2xl border flex flex-wrap items-center gap-2 ${subCardBg}`}>
-            {todayPunches.map((punch, idx) => {
-              const segStart = timeToMinutes(punch.start);
-              const segEnd = timeToMinutes(punch.end ?? nowTime);
-              const segMins =
-                segStart !== null && segEnd !== null && segEnd > segStart ? segEnd - segStart : 0;
+          <div className={`p-3.5 rounded-2xl border space-y-2.5 ${subCardBg}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              {todayPunches.map((punch, idx) => {
+                const segStart = timeToMinutes(punch.start);
+                const segEnd = timeToMinutes(punch.end ?? nowTime);
+                const segMins =
+                  segStart !== null && segEnd !== null && segEnd > segStart ? segEnd - segStart : 0;
+                const isPause = getPunchType(punch) === 'pause';
 
-              // Pausa respecto al tramo anterior
-              let gapMins = 0;
-              if (idx > 0) {
-                const prevEnd = timeToMinutes(todayPunches[idx - 1].end);
-                if (prevEnd !== null && segStart !== null && segStart > prevEnd) {
-                  gapMins = segStart - prevEnd;
+                // Hueco sin fichar respecto al tramo anterior
+                let gapMins = 0;
+                if (idx > 0) {
+                  const prevEnd = timeToMinutes(todayPunches[idx - 1].end);
+                  if (prevEnd !== null && segStart !== null && segStart > prevEnd) {
+                    gapMins = segStart - prevEnd;
+                  }
                 }
-              }
 
-              return (
-                <React.Fragment key={punch.id}>
-                  {idx > 0 && gapMins > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold">
-                      <Coffee className="w-3 h-3" />
-                      Pausa {formatDuration(gapMins)}
-                    </span>
-                  )}
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-xs">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400">
-                      Tramo {idx + 1}
-                    </span>
-                    <span className="font-mono font-bold text-white">
-                      {punch.start} → {punch.end || <span className="text-emerald-400">en curso</span>}
-                    </span>
-                    <span className="text-[11px] font-bold text-cyan-400">
-                      ({formatDuration(segMins)})
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTodayPunch(punch.id)}
-                      className="text-slate-500 hover:text-rose-400 transition-colors"
-                      title="Eliminar tramo"
+                return (
+                  <React.Fragment key={punch.id}>
+                    {idx > 0 && gapMins > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold"
+                        title="Tiempo sin fichar entre tramos (se suma a Pausas)"
+                      >
+                        <Coffee className="w-3 h-3" />
+                        Pausa {formatDuration(gapMins)}
+                      </span>
+                    )}
+                    <div
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs ${
+                        isPause
+                          ? 'bg-amber-950/30 border-amber-500/35'
+                          : 'bg-slate-900/90 border-slate-700/80'
+                      }`}
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </React.Fragment>
-              );
-            })}
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => handleToggleTodayPunchType(punch.id)}
+                        title="Haz clic para cambiar entre Trabajo y Pausa"
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-extrabold uppercase transition-colors ${
+                          isPause
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                            : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/25'
+                        }`}
+                      >
+                        {isPause ? <Coffee className="w-3 h-3" /> : <Briefcase className="w-3 h-3" />}
+                        <span>{isPause ? 'Pausa' : 'Trabajo'}</span>
+                        {punch.label ? <span className="normal-case opacity-85">· {punch.label}</span> : null}
+                      </button>
+                      <span className="font-mono font-bold text-white">
+                        {punch.start} →{' '}
+                        {punch.end || (
+                          <span className={isPause ? 'text-amber-400' : 'text-emerald-400'}>en curso</span>
+                        )}
+                      </span>
+                      <span className={`text-[11px] font-bold ${isPause ? 'text-amber-400' : 'text-cyan-400'}`}>
+                        ({formatDuration(segMins)})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTodayPunch(punch.id)}
+                        className="text-slate-500 hover:text-rose-400 transition-colors"
+                        title="Eliminar tramo"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {todayLive && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-slate-800/70 text-[11px] text-slate-400">
+                <span>
+                  Trabajado hoy:{' '}
+                  <strong className="text-emerald-400">{formatDuration(todayLive.workedSoFar)}</strong>
+                </span>
+                <span>
+                  Tiempo total en pausas / sin trabajar:{' '}
+                  <strong className="text-amber-400">{formatDuration(todayLive.breakMins)}</strong>
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -888,19 +1057,42 @@ export const TeamTimeTrackingView: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono text-xs">
+                      <td
+                        className="py-3.5 px-4 font-mono text-xs cursor-pointer"
+                        onClick={() => openModalForEntry(entry)}
+                        title="Haz clic para editar los tramos de este día"
+                      >
                         {entry.day_type !== 'normal' && punches.length === 0 ? (
                           <span className="text-slate-500">—</span>
                         ) : (
                           <div className="flex flex-wrap items-center gap-1.5">
-                            {punches.map((p, i) => (
-                              <span
-                                key={p.id || i}
-                                className="px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60"
-                              >
-                                {p.start} → {p.end || 'En curso'}
-                              </span>
-                            ))}
+                            {punches.map((p, i) => {
+                              const isPause = getPunchType(p) === 'pause';
+                              return (
+                                <span
+                                  key={p.id || i}
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${
+                                    isPause
+                                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                                      : 'bg-slate-800/80 border-slate-700/60'
+                                  }`}
+                                >
+                                  {isPause && <Coffee className="w-3 h-3 flex-shrink-0" />}
+                                  {isPause ? (
+                                    <span className="font-sans text-[10px] font-bold uppercase tracking-wide">
+                                      {p.label || 'Pausa'}:
+                                    </span>
+                                  ) : p.label ? (
+                                    <span className="font-sans text-[10px] font-bold text-cyan-300">
+                                      {p.label}:
+                                    </span>
+                                  ) : null}
+                                  <span>
+                                    {p.start} → {p.end || 'En curso'}
+                                  </span>
+                                </span>
+                              );
+                            })}
                           </div>
                         )}
                       </td>
@@ -950,7 +1142,7 @@ export const TeamTimeTrackingView: React.FC = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
           <div
-            className={`w-full max-w-lg rounded-3xl border p-6 shadow-2xl space-y-5 my-auto ${
+            className={`w-full max-w-2xl rounded-3xl border p-6 shadow-2xl space-y-5 my-auto ${
               isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
@@ -1008,8 +1200,9 @@ export const TeamTimeTrackingView: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setFormPunches([
-                            { id: crypto.randomUUID(), start: '08:00', end: '13:00' },
-                            { id: crypto.randomUUID(), start: '14:00', end: '17:00' },
+                            { id: crypto.randomUUID(), start: '08:00', end: '13:00', type: 'work', label: 'Mañana' },
+                            { id: crypto.randomUUID(), start: '13:00', end: '14:00', type: 'pause', label: 'Comida' },
+                            { id: crypto.randomUUID(), start: '14:00', end: '17:00', type: 'work', label: 'Tarde' },
                           ]);
                           setFormSingleLunch(0);
                         }}
@@ -1021,8 +1214,9 @@ export const TeamTimeTrackingView: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setFormPunches([
-                            { id: crypto.randomUUID(), start: '08:00', end: '13:00' },
-                            { id: crypto.randomUUID(), start: '13:30', end: '17:00' },
+                            { id: crypto.randomUUID(), start: '08:00', end: '13:00', type: 'work', label: 'Mañana' },
+                            { id: crypto.randomUUID(), start: '13:00', end: '13:30', type: 'pause', label: 'Comida' },
+                            { id: crypto.randomUUID(), start: '13:30', end: '17:00', type: 'work', label: 'Tarde' },
                           ]);
                           setFormSingleLunch(0);
                         }}
@@ -1034,7 +1228,7 @@ export const TeamTimeTrackingView: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setFormPunches([
-                            { id: crypto.randomUUID(), start: '08:00', end: '15:00' },
+                            { id: crypto.randomUUID(), start: '08:00', end: '15:00', type: 'work' },
                           ]);
                           setFormSingleLunch(0);
                         }}
@@ -1047,54 +1241,116 @@ export const TeamTimeTrackingView: React.FC = () => {
 
                   {/* Lista de tramos */}
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <label className="text-xs font-bold text-slate-400">
                         Tramos del día ({formPunches.length})
                       </label>
-                      <button
-                        type="button"
-                        onClick={handleAddFormPunch}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Añadir tramo</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleAddFormPunch('work')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-xs font-bold text-cyan-400 hover:bg-cyan-500/20"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Añadir trabajo</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddFormPunch('pause')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs font-bold text-amber-400 hover:bg-amber-500/20"
+                        >
+                          <Coffee className="w-3.5 h-3.5" />
+                          <span>Añadir pausa</span>
+                        </button>
+                      </div>
                     </div>
 
-                    {formPunches.map((punch, idx) => (
-                      <div key={punch.id} className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-slate-500 w-14 flex-shrink-0">
-                          Tramo {idx + 1}
-                        </span>
-                        <input
-                          type="time"
-                          value={punch.start}
-                          onChange={(e) => handleUpdateFormPunch(punch.id, 'start', e.target.value)}
-                          className={`flex-1 px-3 py-2 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
-                        />
-                        <span className="text-slate-500 text-xs">→</span>
-                        <input
-                          type="time"
-                          value={punch.end || ''}
-                          onChange={(e) => handleUpdateFormPunch(punch.id, 'end', e.target.value)}
-                          className={`flex-1 px-3 py-2 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
-                        />
-                        {formPunches.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteFormPunch(punch.id)}
-                            className="p-2 rounded-xl text-slate-500 hover:text-rose-400"
-                            title="Quitar tramo"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                    {formPunches.map((punch, idx) => {
+                      const isPause = getPunchType(punch) === 'pause';
+                      return (
+                        <div
+                          key={punch.id}
+                          className={`p-2.5 rounded-2xl border space-y-2 ${
+                            isPause
+                              ? 'bg-amber-500/5 border-amber-500/30'
+                              : isDark
+                              ? 'bg-slate-950/50 border-slate-800'
+                              : 'bg-slate-50 border-slate-200'
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-500 w-14 flex-shrink-0">
+                              Tramo {idx + 1}
+                            </span>
+
+                            {/* Selector Trabajo / Pausa */}
+                            <div className="inline-flex rounded-xl border border-slate-700/70 overflow-hidden flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateFormPunch(punch.id, 'type', 'work')}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold transition-colors ${
+                                  !isPause
+                                    ? 'bg-cyan-600 text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                <Briefcase className="w-3 h-3" />
+                                <span>Trabajo</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateFormPunch(punch.id, 'type', 'pause')}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold transition-colors ${
+                                  isPause
+                                    ? 'bg-amber-600 text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                <Coffee className="w-3 h-3" />
+                                <span>Pausa</span>
+                              </button>
+                            </div>
+
+                            <input
+                              type="time"
+                              value={punch.start}
+                              onChange={(e) => handleUpdateFormPunch(punch.id, 'start', e.target.value)}
+                              className={`w-28 px-2.5 py-1.5 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
+                            />
+                            <span className="text-slate-500 text-xs">→</span>
+                            <input
+                              type="time"
+                              value={punch.end || ''}
+                              onChange={(e) => handleUpdateFormPunch(punch.id, 'end', e.target.value)}
+                              className={`w-28 px-2.5 py-1.5 rounded-xl border text-sm font-mono font-bold ${subCardBg}`}
+                            />
+
+                            <input
+                              type="text"
+                              value={punch.label || ''}
+                              onChange={(e) => handleUpdateFormPunch(punch.id, 'label', e.target.value)}
+                              placeholder={isPause ? 'Motivo (Comida, Café...)' : 'Etiqueta (opcional)'}
+                              className={`flex-1 min-w-[120px] px-2.5 py-1.5 rounded-xl border text-xs ${subCardBg}`}
+                            />
+
+                            {formPunches.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteFormPunch(punch.id)}
+                                className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400"
+                                title="Quitar tramo"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* Si solo hay 1 tramo, permitir descuento manual opcional */}
-                  {formPunches.length === 1 && (
+                  {/* Si solo hay 1 tramo de trabajo, permitir descuento manual opcional */}
+                  {formPunches.length === 1 && getPunchType(formPunches[0]) === 'work' && (
                     <div>
                       <label className="block text-xs font-bold text-slate-400 mb-1.5">
                         Descuento comida manual (solo si es 1 tramo continuo)
