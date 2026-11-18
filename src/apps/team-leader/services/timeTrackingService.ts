@@ -24,6 +24,7 @@ export interface TimeEntry {
   notes?: string | null;
   created_at?: string;
   updated_at?: string;
+  pending_sync?: boolean;
 }
 
 export interface UpsertTimeEntryInput {
@@ -134,6 +135,18 @@ export function getPunchType(punch: Pick<TimePunch, 'type'>): TimePunchType {
 }
 
 /**
+ * Normaliza la hora de fin de un tramo (convierte '' o espacios en null o fallback).
+ */
+export function resolvePunchEnd(
+  end: string | null | undefined,
+  liveNowTime?: string
+): string | null {
+  const trimmed = typeof end === 'string' ? end.trim() : '';
+  if (trimmed !== '') return trimmed;
+  return liveNowTime ?? null;
+}
+
+/**
  * Ordena cronológicamente una lista de tramos por hora de inicio (y fin).
  */
 export function sortPunches(punches: TimePunch[]): TimePunch[] {
@@ -141,8 +154,8 @@ export function sortPunches(punches: TimePunch[]): TimePunch[] {
     const aStart = timeToMinutes(a.start) ?? Number.MAX_SAFE_INTEGER;
     const bStart = timeToMinutes(b.start) ?? Number.MAX_SAFE_INTEGER;
     if (aStart !== bStart) return aStart - bStart;
-    const aEnd = timeToMinutes(a.end) ?? Number.MAX_SAFE_INTEGER;
-    const bEnd = timeToMinutes(b.end) ?? Number.MAX_SAFE_INTEGER;
+    const aEnd = timeToMinutes(resolvePunchEnd(a.end)) ?? Number.MAX_SAFE_INTEGER;
+    const bEnd = timeToMinutes(resolvePunchEnd(b.end)) ?? Number.MAX_SAFE_INTEGER;
     return aEnd - bEnd;
   });
 }
@@ -204,7 +217,7 @@ function extractIntervals(
   for (const p of punches) {
     const start = timeToMinutes(p.start);
     if (start === null) continue;
-    const end = timeToMinutes(p.end ?? liveNowTime ?? null);
+    const end = timeToMinutes(resolvePunchEnd(p.end, liveNowTime));
     if (end === null) {
       // Ancla de inicio para detectar pausas previas a un tramo aún abierto
       openStartAnchors.push({ start, end: start });
@@ -232,14 +245,19 @@ function extractIntervals(
  */
 export function getEntryPunches(entry: Pick<TimeEntry, 'punches' | 'start_time' | 'end_time'>): TimePunch[] {
   if (Array.isArray(entry.punches) && entry.punches.length > 0) {
-    return sortPunches(entry.punches);
+    return sortPunches(
+      entry.punches.map((p) => ({
+        ...p,
+        end: resolvePunchEnd(p.end),
+      }))
+    );
   }
   if (entry.start_time) {
     return [
       {
         id: 'legacy-1',
         start: entry.start_time,
-        end: entry.end_time || null,
+        end: resolvePunchEnd(entry.end_time),
         type: 'work',
       },
     ];
@@ -286,7 +304,7 @@ export function getOpenPunch(
 ): TimePunch | null {
   const punches = getEntryPunches(entry);
   for (let i = punches.length - 1; i >= 0; i--) {
-    if (punches[i].start && !punches[i].end) {
+    if (punches[i].start && !resolvePunchEnd(punches[i].end)) {
       return punches[i];
     }
   }
@@ -314,7 +332,7 @@ export function getWorkedMinutes(
 
   for (const punch of punches) {
     const start = timeToMinutes(punch.start);
-    const end = timeToMinutes(punch.end ?? liveNowTime ?? null);
+    const end = timeToMinutes(resolvePunchEnd(punch.end, liveNowTime));
     if (start === null || end === null) return null;
   }
 
@@ -323,6 +341,25 @@ export function getWorkedMinutes(
   let total = sumIntervals(effectiveWork);
 
   // Si solo hay 1 tramo de trabajo, descontamos el lunch_minutes manual si lo hubiera
+  if (punches.length === 1 && getPunchType(punches[0]) === 'work') {
+    total = Math.max(0, total - (entry.lunch_minutes || 0));
+  }
+
+  return total;
+}
+
+/**
+ * Calcula minutos trabajados de los tramos ya cerrados (indicativo cuando un día quedó abierto).
+ */
+export function getClosedWorkedMinutes(
+  entry: Pick<TimeEntry, 'punches' | 'start_time' | 'end_time' | 'lunch_minutes' | 'day_type'>
+): number {
+  const punches = getEntryPunches(entry).filter((p) => resolvePunchEnd(p.end) !== null);
+  if (punches.length === 0) return 0;
+
+  const { workIntervals, pauseIntervals } = extractIntervals(punches);
+  let total = sumIntervals(subtractIntervals(workIntervals, pauseIntervals));
+
   if (punches.length === 1 && getPunchType(punches[0]) === 'work') {
     total = Math.max(0, total - (entry.lunch_minutes || 0));
   }
@@ -358,23 +395,183 @@ export function formatDuration(minutes: number, showPlusSign = false): string {
   return `${sign}${h}h ${String(m).padStart(2, '0')}m`;
 }
 
-export const timeTrackingService = {
-  async getEntries(userId: string): Promise<TimeEntryLoadResult> {
-    const { data, error } = await supabase
-      .from('mecalux_time_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .order('entry_date', { ascending: false });
+const PUNCHES_TAG_REGEX = /\s*\[PUNCHES:(.*?)\]\s*$/;
 
-    if (error) {
-      console.warn('[timeTrackingService] Error consultando Supabase:', error);
-      if (isMissingTableError(error)) {
-        return { entries: readLocalEntries(userId), storageMode: 'local' };
+function encodeNotesWithPunchesFallback(notes: string | null, punches: TimePunch[]): string | null {
+  const clean = (notes || '').replace(PUNCHES_TAG_REGEX, '').trim();
+  if (!punches || punches.length === 0) return clean || null;
+  const tag = `[PUNCHES:${JSON.stringify(punches)}]`;
+  return clean ? `${clean} ${tag}` : tag;
+}
+
+function normalizeEntryFromDb(raw: TimeEntry): TimeEntry {
+  let notes = raw.notes ?? null;
+  let punches = Array.isArray(raw.punches) ? raw.punches : [];
+
+  if ( typeof notes === 'string' && PUNCHES_TAG_REGEX.test(notes)) {
+    const match = notes.match(PUNCHES_TAG_REGEX);
+    if (match && match[1] && punches.length === 0) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (Array.isArray(parsed)) {
+          punches = parsed;
+        }
+      } catch {
+        // Ignorar JSON malformado en fallback
       }
-      throw error;
+    }
+    const stripped = notes.replace(PUNCHES_TAG_REGEX, '').trim();
+    notes = stripped || null;
+  }
+
+  return {
+    ...raw,
+    notes,
+    punches: sortPunches(
+      punches.map((p) => ({
+        ...p,
+        end: resolvePunchEnd(p.end),
+        type: getPunchType(p),
+      }))
+    ),
+    pending_sync: Boolean(raw.pending_sync),
+  };
+}
+
+function upsertLocalMirror(userId: string, entry: TimeEntry, pendingSync: boolean): TimeEntry {
+  const existing = readLocalEntries(userId);
+  const idx = existing.findIndex((e) => e.entry_date === entry.entry_date);
+  const now = new Date().toISOString();
+  const saved: TimeEntry = normalizeEntryFromDb({
+    ...entry,
+    id: entry.id || (idx >= 0 ? existing[idx].id : crypto.randomUUID()),
+    created_at: entry.created_at || (idx >= 0 ? existing[idx].created_at : now),
+    updated_at: entry.updated_at || now,
+    pending_sync: pendingSync,
+  });
+
+  if (idx >= 0) {
+    existing[idx] = saved;
+  } else {
+    existing.push(saved);
+  }
+  writeLocalEntries(userId, existing);
+  return saved;
+}
+
+export const timeTrackingService = {
+  async getEntryByDate(userId: string, entryDate: string): Promise<TimeEntry | null> {
+    const localMatch =
+      readLocalEntries(userId).find((e) => e.entry_date === entryDate) || null;
+
+    if (!supabase) {
+      return localMatch ? normalizeEntryFromDb(localMatch) : null;
     }
 
-    return { entries: (data || []) as TimeEntry[], storageMode: 'supabase' };
+    try {
+      const { data, error } = await supabase
+        .from('mecalux_time_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('entry_date', entryDate)
+        .maybeSingle();
+
+      if (error || !data) {
+        return localMatch ? normalizeEntryFromDb(localMatch) : null;
+      }
+
+      const remote = normalizeEntryFromDb(data as TimeEntry);
+      if (
+        localMatch?.pending_sync &&
+        localMatch.updated_at &&
+        remote.updated_at &&
+        localMatch.updated_at > remote.updated_at
+      ) {
+        return normalizeEntryFromDb(localMatch);
+      }
+
+      upsertLocalMirror(userId, remote, false);
+      return remote;
+    } catch {
+      return localMatch ? normalizeEntryFromDb(localMatch) : null;
+    }
+  },
+
+  async getEntries(userId: string): Promise<TimeEntryLoadResult> {
+    const localEntries = readLocalEntries(userId).map(normalizeEntryFromDb);
+
+    if (!supabase) {
+      return { entries: localEntries, storageMode: 'local' };
+    }
+
+    // 1. Si hay fichajes guardados localmente pendientes de subir (ej. fallo de red en el móvil), sincronizarlos primero
+    const pendingEntries = localEntries.filter((e) => e.pending_sync);
+    for (const pending of pendingEntries) {
+      try {
+        await this.upsertEntry(
+          {
+            user_id: userId,
+            entry_date: pending.entry_date,
+            start_time: pending.start_time,
+            end_time: pending.end_time,
+            lunch_minutes: pending.lunch_minutes,
+            punches: pending.punches,
+            day_type: pending.day_type,
+            target_minutes: pending.target_minutes,
+            notes: pending.notes,
+          },
+          false
+        );
+      } catch {
+        // Si sigue sin red, se mantendrá con pending_sync: true
+      }
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('mecalux_time_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .order('entry_date', { ascending: false });
+
+      if (error) {
+        console.warn('[timeTrackingService] Error consultando Supabase:', error);
+        if (isMissingTableError(error)) {
+          return { entries: readLocalEntries(userId).map(normalizeEntryFromDb), storageMode: 'local' };
+        }
+        return { entries: readLocalEntries(userId).map(normalizeEntryFromDb), storageMode: 'local' };
+      }
+
+      const remoteEntries = ((data || []) as TimeEntry[]).map(normalizeEntryFromDb);
+      const refreshedLocal = readLocalEntries(userId).map(normalizeEntryFromDb);
+      const stillPending = refreshedLocal.filter((e) => e.pending_sync);
+
+      // Combinar dando prioridad a entradas locales aún pendientes que sean más recientes
+      const mergedMap = new Map<string, TimeEntry>();
+      for (const r of remoteEntries) {
+        mergedMap.set(r.entry_date, r);
+      }
+      for (const p of stillPending) {
+        const existingRemote = mergedMap.get(p.entry_date);
+        if (
+          !existingRemote ||
+          !existingRemote.updated_at ||
+          (p.updated_at && p.updated_at >= existingRemote.updated_at)
+        ) {
+          mergedMap.set(p.entry_date, p);
+        }
+      }
+
+      const merged = Array.from(mergedMap.values()).sort((a, b) =>
+        b.entry_date.localeCompare(a.entry_date)
+      );
+      writeLocalEntries(userId, merged);
+
+      return { entries: merged, storageMode: 'supabase' };
+    } catch (err) {
+      console.warn('[timeTrackingService] Fallo de red consultando Supabase, usando caché local:', err);
+      return { entries: readLocalEntries(userId).map(normalizeEntryFromDb), storageMode: 'local' };
+    }
   },
 
   async upsertEntry(
@@ -389,12 +586,12 @@ export const timeTrackingService = {
         ? input.punches.map((p) => ({
             id: p.id || crypto.randomUUID(),
             start: p.start,
-            end: p.end ?? null,
+            end: resolvePunchEnd(p.end),
             type: getPunchType(p),
             ...(p.label?.trim() ? { label: p.label.trim() } : {}),
           }))
         : input.start_time
-        ? [{ id: crypto.randomUUID(), start: input.start_time, end: input.end_time ?? null, type: 'work' }]
+        ? [{ id: crypto.randomUUID(), start: input.start_time, end: resolvePunchEnd(input.end_time), type: 'work' }]
         : [];
 
     const punches = sortPunches(rawPunches);
@@ -406,6 +603,8 @@ export const timeTrackingService = {
         ? getBreakMinutes({ punches, start_time: firstStart, end_time: lastEnd, lunch_minutes: 0 })
         : input.lunch_minutes ?? 0;
 
+    const cleanNotes = (input.notes || '').replace(PUNCHES_TAG_REGEX, '').trim() || null;
+
     const payload = {
       user_id: input.user_id,
       entry_date: input.entry_date,
@@ -415,76 +614,89 @@ export const timeTrackingService = {
       punches: input.day_type === 'normal' ? punches : punches,
       day_type: input.day_type,
       target_minutes: targetMinutes,
-      notes: input.notes?.trim() || null,
+      notes: cleanNotes,
       updated_at: new Date().toISOString(),
     };
 
-    if (!preferLocal) {
-      const { data, error } = await supabase
-        .from('mecalux_time_entries')
-        .upsert(payload, { onConflict: 'user_id,entry_date' })
-        .select()
-        .single();
-
-      if (!error && data) {
-        return { entry: data as TimeEntry, storageMode: 'supabase' };
-      }
-
-      // Si la columna 'punches' aún no existe en Supabase, reintentar sin ella y avisar por consola
-      const errMsg = (error as { message?: string })?.message || '';
-      if (error && errMsg.includes('punches')) {
-        const { punches: _omit, ...legacyPayload } = payload;
-        const retry = await supabase
+    if (!preferLocal && supabase) {
+      try {
+        const { data, error } = await supabase
           .from('mecalux_time_entries')
-          .upsert(legacyPayload, { onConflict: 'user_id,entry_date' })
+          .upsert(payload, { onConflict: 'user_id,entry_date' })
           .select()
           .single();
-        if (!retry.error && retry.data) {
-          return {
-            entry: { ...(retry.data as TimeEntry), punches },
-            storageMode: 'supabase',
-          };
+
+        if (!error && data) {
+          const saved = upsertLocalMirror(input.user_id, data as TimeEntry, false);
+          return { entry: saved, storageMode: 'supabase' };
         }
-      }
 
-      if (error && !isMissingTableError(error)) {
-        throw error;
+        // Si la columna 'punches' aún no existe en Supabase, embeber punches en notes y reintentar
+        const errMsg = (error as { message?: string })?.message || '';
+        if (error && errMsg.includes('punches')) {
+          const { punches: _omit, ...legacyPayload } = payload;
+          const retryPayload = {
+            ...legacyPayload,
+            notes: encodeNotesWithPunchesFallback(cleanNotes, punches),
+          };
+          const retry = await supabase
+            .from('mecalux_time_entries')
+            .upsert(retryPayload, { onConflict: 'user_id,entry_date' })
+            .select()
+            .single();
+          if (!retry.error && retry.data) {
+            const saved = upsertLocalMirror(
+              input.user_id,
+              { ...(retry.data as TimeEntry), punches },
+              false
+            );
+            return { entry: saved, storageMode: 'supabase' };
+          }
+        }
+
+        console.warn('[timeTrackingService] Error guardando en Supabase, guardando en cola local:', error);
+      } catch (err) {
+        console.warn('[timeTrackingService] Fallo de red al guardar en Supabase, guardando en cola local:', err);
       }
     }
 
-    // Fallback local
-    const existing = readLocalEntries(input.user_id);
-    const idx = existing.findIndex((e) => e.entry_date === input.entry_date);
-    const now = new Date().toISOString();
-    const saved: TimeEntry = {
-      id: idx >= 0 ? existing[idx].id : crypto.randomUUID(),
-      created_at: idx >= 0 ? existing[idx].created_at : now,
-      ...payload,
-    };
-    if (idx >= 0) {
-      existing[idx] = saved;
-    } else {
-      existing.push(saved);
-    }
-    writeLocalEntries(input.user_id, existing);
-    return { entry: saved, storageMode: 'local' };
+    // Fallback local con marca pending_sync para subir en cuanto vuelva la conexión
+    const savedLocal = upsertLocalMirror(
+      input.user_id,
+      {
+        id: crypto.randomUUID(),
+        ...payload,
+      },
+      !preferLocal
+    );
+    return { entry: savedLocal, storageMode: 'local' };
   },
 
   async deleteEntry(userId: string, entryId: string, preferLocal = false): Promise<void> {
-    if (!preferLocal) {
-      const { error } = await supabase
+    const existing = readLocalEntries(userId);
+    const target = existing.find((e) => e.id === entryId);
+
+    if (!preferLocal && supabase) {
+      let query = supabase
         .from('mecalux_time_entries')
         .delete()
-        .eq('id', entryId)
         .eq('user_id', userId);
 
-      if (!error) return;
-      if (!isMissingTableError(error)) {
-        throw error;
+      if (target?.entry_date) {
+        query = query.eq('entry_date', target.entry_date);
+      } else {
+        query = query.eq('id', entryId);
+      }
+
+      const { error } = await query;
+      if (error && !isMissingTableError(error)) {
+        console.warn('[timeTrackingService] Error eliminando en Supabase:', error);
       }
     }
 
-    const existing = readLocalEntries(userId).filter((e) => e.id !== entryId);
-    writeLocalEntries(userId, existing);
+    const filtered = existing.filter(
+      (e) => e.id !== entryId && (!target || e.entry_date !== target.entry_date)
+    );
+    writeLocalEntries(userId, filtered);
   },
 };

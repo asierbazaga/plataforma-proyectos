@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS public.mecalux_time_entries (
   UNIQUE (user_id, entry_date)
 );
 
+-- Asegurar que la columna punches existe aunque la tabla se hubiera creado en una versión previa
+ALTER TABLE public.mecalux_time_entries
+  ADD COLUMN IF NOT EXISTS punches JSONB NOT NULL DEFAULT '[]'::jsonb;
+
 -- Índice para consultas por usuario y fecha
 CREATE INDEX IF NOT EXISTS idx_mecalux_time_entries_user_date
   ON public.mecalux_time_entries (user_id, entry_date DESC);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Clock,
   Play,
@@ -17,9 +17,12 @@ import {
   Info,
   X,
   Briefcase,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
+import { supabase } from '../../../lib/supabase';
+import { storageService } from '../../../services/storageService';
 import {
   timeTrackingService,
   TimeEntry,
@@ -31,9 +34,11 @@ import {
   getDefaultTargetMinutes,
   getEntryPunches,
   getPunchType,
+  resolvePunchEnd,
   getOpenPunch,
   getBreakMinutes,
   getWorkedMinutes,
+  getClosedWorkedMinutes,
   getBalanceMinutes,
   formatDuration,
 } from '../services/timeTrackingService';
@@ -103,12 +108,13 @@ export const TeamTimeTrackingView: React.FC = () => {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [storageMode, setStorageMode] = useState<'supabase' | 'local'>('supabase');
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Reloj en vivo (actualiza cada 15s)
+  // Reloj en vivo (actualiza cada 15s) y fecha reactiva
   const [nowTime, setNowTime] = useState<string>(getCurrentTimeStr());
-  const todayStr = getTodayDateStr();
+  const [todayStr, setTodayStr] = useState<string>(getTodayDateStr());
 
   // Mes seleccionado para la tabla
   const initialDate = new Date();
@@ -126,37 +132,104 @@ export const TeamTimeTrackingView: React.FC = () => {
   const [formSingleLunch, setFormSingleLunch] = useState<number>(0);
   const [formNotes, setFormNotes] = useState('');
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setNowTime(getCurrentTimeStr());
-    }, 15000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    let active = true;
-    const load = async () => {
-      setLoading(true);
+  const refreshEntries = useCallback(
+    async (silent = false) => {
+      if (!currentUser?.id) return;
+      if (silent) {
+        setSyncing(true);
+      } else {
+        setLoading(true);
+      }
       try {
         const res = await timeTrackingService.getEntries(currentUser.id);
-        if (!active) return;
         setEntries(res.entries);
         setStorageMode(res.storageMode);
       } catch (err) {
         console.error('Error cargando fichajes:', err);
-        if (active) {
+        if (!silent) {
           setFeedback({ type: 'error', text: 'No se pudieron cargar los fichajes.' });
         }
       } finally {
-        if (active) setLoading(false);
+        setLoading(false);
+        setSyncing(false);
+      }
+    },
+    [currentUser?.id]
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTime(getCurrentTimeStr());
+      const nextToday = getTodayDateStr();
+      setTodayStr((prev) => {
+        if (prev !== nextToday) {
+          refreshEntries(true);
+        }
+        return nextToday;
+      });
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [refreshEntries]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    refreshEntries(false);
+
+    // Sincronización automática multidispositivo al volver a la pestaña, recuperar red o recibir eventos
+    const handleFocusOrOnline = () => {
+      refreshEntries(true);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshEntries(true);
       }
     };
-    load();
+
+    window.addEventListener('focus', handleFocusOrOnline);
+    window.addEventListener('online', handleFocusOrOnline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const unsubscribeStorageSync = storageService.onSync(() => {
+      refreshEntries(true);
+    });
+
+    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null;
+    if (supabase) {
+      try {
+        channel = supabase
+          .channel(`mecalux-time-entries-${currentUser.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'mecalux_time_entries',
+              filter: `user_id=eq.${currentUser.id}`,
+            },
+            () => {
+              refreshEntries(true);
+            }
+          )
+          .subscribe();
+      } catch (e) {
+        console.warn('Error suscribiendo realtime de fichajes:', e);
+      }
+    }
+
     return () => {
-      active = false;
+      window.removeEventListener('focus', handleFocusOrOnline);
+      window.removeEventListener('online', handleFocusOrOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      unsubscribeStorageSync();
+      if (channel && supabase) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          // ignore
+        }
+      }
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refreshEntries]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -267,7 +340,14 @@ export const TeamTimeTrackingView: React.FC = () => {
         const filtered = prev.filter((e) => e.entry_date !== res.entry.entry_date);
         return [res.entry, ...filtered].sort((a, b) => b.entry_date.localeCompare(a.entry_date));
       });
-      setFeedback({ type: 'success', text: successMsg });
+      storageService.syncFromCloud().catch(() => {});
+      setFeedback({
+        type: 'success',
+        text:
+          res.storageMode === 'local'
+            ? `${successMsg} (guardado en móvil/local, se subirá al reconectar)`
+            : successMsg,
+      });
       return true;
     } catch (err) {
       console.error('Error guardando fichaje:', err);
@@ -278,8 +358,30 @@ export const TeamTimeTrackingView: React.FC = () => {
     }
   };
 
-  const saveTodayPunches = async (updatedPunches: TimePunch[], message: string) => {
+  // Obtiene la versión más reciente del día de hoy desde Supabase antes de mutar tramos (evita pisar cambios de otro dispositivo)
+  const resolveLatestTodayBase = async (): Promise<{
+    baseEntry: TimeEntry | null;
+    basePunches: TimePunch[];
+  }> => {
+    if (!currentUser?.id) return { baseEntry: todayEntry, basePunches: todayPunches };
+    try {
+      const remoteToday = await timeTrackingService.getEntryByDate(currentUser.id, todayStr);
+      if (remoteToday) {
+        return { baseEntry: remoteToday, basePunches: getEntryPunches(remoteToday) };
+      }
+    } catch {
+      // Fallback al estado en memoria si no hay red
+    }
+    return { baseEntry: todayEntry, basePunches: todayPunches };
+  };
+
+  const saveTodayPunches = async (
+    updatedPunches: TimePunch[],
+    message: string,
+    baseEntryOverride?: TimeEntry | null
+  ) => {
     if (!currentUser?.id) return;
+    const refEntry = baseEntryOverride !== undefined ? baseEntryOverride : todayEntry;
     await upsertAndMerge(
       {
         user_id: currentUser.id,
@@ -287,11 +389,11 @@ export const TeamTimeTrackingView: React.FC = () => {
         punches: updatedPunches,
         lunch_minutes:
           updatedPunches.length === 1 && getPunchType(updatedPunches[0]) === 'work'
-            ? todayEntry?.lunch_minutes ?? 0
+            ? refEntry?.lunch_minutes ?? 0
             : 0,
-        day_type: todayEntry?.day_type || 'normal',
-        target_minutes: todayEntry?.target_minutes,
-        notes: todayEntry?.notes,
+        day_type: refEntry?.day_type || 'normal',
+        target_minutes: refEntry?.target_minutes,
+        notes: refEntry?.notes,
       },
       message
     );
@@ -301,8 +403,10 @@ export const TeamTimeTrackingView: React.FC = () => {
   const handleStartWorkNow = async () => {
     if (!currentUser?.id) return;
     const now = getCurrentTimeStr();
-    const closedPrev = todayPunches.flatMap((p) => {
-      if (p.end) return [p];
+    const { baseEntry, basePunches } = await resolveLatestTodayBase();
+    const wasOnPause = baseEntry ? getPunchType(getOpenPunch(baseEntry) || {}) === 'pause' : false;
+    const closedPrev = basePunches.flatMap((p) => {
+      if (resolvePunchEnd(p.end)) return [p];
       // Si se abre trabajo en el mismo minuto que una pausa recién creada, descartamos la pausa 0m
       if (getPunchType(p) === 'pause' && p.start === now) return [];
       return [{ ...p, end: now }];
@@ -313,11 +417,12 @@ export const TeamTimeTrackingView: React.FC = () => {
     ];
     await saveTodayPunches(
       updatedPunches,
-      todayPunches.length === 0
+      basePunches.length === 0
         ? `Entrada fichada a las ${now}`
-        : isTodayOnPause
+        : wasOnPause
         ? `Trabajo reanudado a las ${now}`
-        : `Vuelta al trabajo fichada a las ${now}`
+        : `Vuelta al trabajo fichada a las ${now}`,
+      baseEntry
     );
   };
 
@@ -325,8 +430,9 @@ export const TeamTimeTrackingView: React.FC = () => {
   const handleStartPauseNow = async () => {
     if (!currentUser?.id) return;
     const now = getCurrentTimeStr();
-    const closedPrev = todayPunches.flatMap((p) => {
-      if (p.end) return [p];
+    const { baseEntry, basePunches } = await resolveLatestTodayBase();
+    const closedPrev = basePunches.flatMap((p) => {
+      if (resolvePunchEnd(p.end)) return [p];
       if (getPunchType(p) === 'work' && p.start === now) return [];
       return [{ ...p, end: now }];
     });
@@ -334,46 +440,52 @@ export const TeamTimeTrackingView: React.FC = () => {
       ...closedPrev,
       { id: crypto.randomUUID(), start: now, end: null, type: 'pause' },
     ];
-    await saveTodayPunches(updatedPunches, `Pausa iniciada a las ${now}`);
+    await saveTodayPunches(updatedPunches, `Pausa iniciada a las ${now}`, baseEntry);
   };
 
   // Finalizar tramo abierto (cierra jornada sin abrir otro tramo)
   const handleFinishPunchNow = async () => {
-    if (!currentUser?.id || !todayEntry) return;
+    if (!currentUser?.id) return;
     const now = getCurrentTimeStr();
-    const updatedPunches = todayPunches.flatMap((p) => {
-      if (p.end) return [p];
+    const { baseEntry, basePunches } = await resolveLatestTodayBase();
+    if (!baseEntry && basePunches.length === 0) return;
+    const updatedPunches = basePunches.flatMap((p) => {
+      if (resolvePunchEnd(p.end)) return [p];
       if (getPunchType(p) === 'pause' && p.start === now) return [];
       return [{ ...p, end: now }];
     });
-    if (updatedPunches.length === 0) {
-      await handleDeleteEntry(todayEntry);
+    if (updatedPunches.length === 0 && baseEntry) {
+      await handleDeleteEntry(baseEntry);
       return;
     }
-    await saveTodayPunches(updatedPunches, `Jornada cerrada a las ${now}`);
+    await saveTodayPunches(updatedPunches, `Jornada cerrada a las ${now}`, baseEntry);
   };
 
   // Cambiar rápido un tramo de hoy entre Trabajo y Pausa
   const handleToggleTodayPunchType = async (punchId: string) => {
-    if (!currentUser?.id || !todayEntry) return;
-    const updated = todayPunches.map((p) =>
+    if (!currentUser?.id) return;
+    const { baseEntry, basePunches } = await resolveLatestTodayBase();
+    if (!baseEntry && basePunches.length === 0) return;
+    const updated = basePunches.map((p) =>
       p.id === punchId
         ? { ...p, type: (getPunchType(p) === 'pause' ? 'work' : 'pause') as TimePunchType }
         : p
     );
     const target = updated.find((p) => p.id === punchId);
     const newLabel = target && getPunchType(target) === 'pause' ? 'Pausa' : 'Trabajo';
-    await saveTodayPunches(updated, `Tramo cambiado a ${newLabel}`);
+    await saveTodayPunches(updated, `Tramo cambiado a ${newLabel}`, baseEntry);
   };
 
   const handleRemoveTodayPunch = async (punchId: string) => {
-    if (!currentUser?.id || !todayEntry) return;
-    const remaining = todayPunches.filter((p) => p.id !== punchId);
-    if (remaining.length === 0) {
-      await handleDeleteEntry(todayEntry);
+    if (!currentUser?.id) return;
+    const { baseEntry, basePunches } = await resolveLatestTodayBase();
+    if (!baseEntry && basePunches.length === 0) return;
+    const remaining = basePunches.filter((p) => p.id !== punchId);
+    if (remaining.length === 0 && baseEntry) {
+      await handleDeleteEntry(baseEntry);
       return;
     }
-    await saveTodayPunches(remaining, 'Tramo eliminado');
+    await saveTodayPunches(remaining, 'Tramo eliminado', baseEntry);
   };
 
   const openModalForNew = (date = todayStr) => {
@@ -401,10 +513,11 @@ export const TeamTimeTrackingView: React.FC = () => {
       existingPunches.length > 0
         ? existingPunches.map((p) => ({
             ...p,
+            end: resolvePunchEnd(p.end),
             type: getPunchType(p),
             label: p.label || '',
           }))
-        : [{ id: crypto.randomUUID(), start: '08:00', end: '', type: 'work', label: '' }]
+        : [{ id: crypto.randomUUID(), start: '08:00', end: null, type: 'work', label: '' }]
     );
     const singleWork =
       existingPunches.length === 1 && getPunchType(existingPunches[0]) === 'work';
@@ -415,10 +528,10 @@ export const TeamTimeTrackingView: React.FC = () => {
 
   const handleAddFormPunch = (type: TimePunchType = 'work') => {
     const last = formPunches[formPunches.length - 1];
-    const nextStart = last?.end || (type === 'pause' ? '13:00' : '14:00');
+    const nextStart = resolvePunchEnd(last?.end) || (type === 'pause' ? '13:00' : '14:00');
     setFormPunches((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), start: nextStart, end: '', type, label: '' },
+      { id: crypto.randomUUID(), start: nextStart, end: null, type, label: '' },
     ]);
   };
 
@@ -484,7 +597,8 @@ export const TeamTimeTrackingView: React.FC = () => {
     if (!currentUser?.id) return;
     try {
       await timeTrackingService.deleteEntry(currentUser.id, entry.id, false);
-      setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+      setEntries((prev) => prev.filter((e) => e.id !== entry.id && e.entry_date !== entry.entry_date));
+      storageService.syncFromCloud().catch(() => {});
       setFeedback({ type: 'success', text: `Fichaje del ${formatDisplayDate(entry.entry_date)} eliminado` });
     } catch (err) {
       console.error('Error eliminando fichaje:', err);
@@ -496,30 +610,33 @@ export const TeamTimeTrackingView: React.FC = () => {
   const modalPreview = useMemo(() => {
     const target = getDefaultTargetMinutes(formDate, formDayType);
     if (formDayType !== 'normal') {
-      return { worked: 0, target: 0, balance: 0, breaks: 0 };
+      return { worked: 0, indicativeWorked: null as number | null, target: 0, balance: 0, breaks: 0 };
     }
     const isSingleWork = formPunches.length === 1 && getPunchType(formPunches[0]) === 'work';
     const lunchVal = isSingleWork ? formSingleLunch : 0;
-    const worked = getWorkedMinutes({
+    const baseEntry = {
       punches: formPunches,
       start_time: formPunches[0]?.start || null,
       end_time: formPunches[formPunches.length - 1]?.end || null,
       lunch_minutes: lunchVal,
       day_type: formDayType,
-    });
-    const breaks = getBreakMinutes({
-      punches: formPunches,
-      start_time: formPunches[0]?.start || null,
-      end_time: formPunches[formPunches.length - 1]?.end || null,
-      lunch_minutes: lunchVal,
-    });
+    };
+    const worked = getWorkedMinutes(baseEntry);
+    const indicativeWorked =
+      worked === null
+        ? formDate === todayStr
+          ? getWorkedMinutes(baseEntry, nowTime) ?? getClosedWorkedMinutes(baseEntry)
+          : getClosedWorkedMinutes(baseEntry)
+        : null;
+    const breaks = getBreakMinutes(baseEntry, formDate === todayStr ? nowTime : undefined);
     return {
       worked,
+      indicativeWorked,
       target,
       breaks,
       balance: worked !== null ? worked - target : null,
     };
-  }, [formDate, formDayType, formPunches, formSingleLunch]);
+  }, [formDate, formDayType, formPunches, formSingleLunch, todayStr, nowTime]);
 
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
@@ -874,7 +991,8 @@ export const TeamTimeTrackingView: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               {todayPunches.map((punch, idx) => {
                 const segStart = timeToMinutes(punch.start);
-                const segEnd = timeToMinutes(punch.end ?? nowTime);
+                const resolvedEnd = resolvePunchEnd(punch.end);
+                const segEnd = timeToMinutes(resolvedEnd ?? nowTime);
                 const segMins =
                   segStart !== null && segEnd !== null && segEnd > segStart ? segEnd - segStart : 0;
                 const isPause = getPunchType(punch) === 'pause';
@@ -882,7 +1000,7 @@ export const TeamTimeTrackingView: React.FC = () => {
                 // Hueco sin fichar respecto al tramo anterior
                 let gapMins = 0;
                 if (idx > 0) {
-                  const prevEnd = timeToMinutes(todayPunches[idx - 1].end);
+                  const prevEnd = timeToMinutes(resolvePunchEnd(todayPunches[idx - 1].end));
                   if (prevEnd !== null && segStart !== null && segStart > prevEnd) {
                     gapMins = segStart - prevEnd;
                   }
@@ -972,6 +1090,16 @@ export const TeamTimeTrackingView: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              onClick={() => refreshEntries(true)}
+              disabled={syncing || loading}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold ${subCardBg} hover:border-cyan-500/50 transition-colors disabled:opacity-50`}
+              title="Sincronizar fichajes con la nube"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-cyan-400' : ''}`} />
+              <span>{syncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+            </button>
+            <button
               onClick={handlePrevMonth}
               className={`p-2 rounded-xl border ${subCardBg} hover:border-slate-600`}
               title="Mes anterior"
@@ -1023,10 +1151,20 @@ export const TeamTimeTrackingView: React.FC = () => {
               <tbody className="divide-y divide-slate-800/60 text-sm">
                 {monthEntries.map((entry) => {
                   const punches = getEntryPunches(entry);
-                  const breakMins = getBreakMinutes(entry);
+                  const isToday = entry.entry_date === todayStr;
+                  const breakMins = getBreakMinutes(entry, isToday ? nowTime : undefined);
                   const worked = getWorkedMinutes(entry);
                   const balance = getBalanceMinutes(entry);
-                  const isToday = entry.entry_date === todayStr;
+                  const indicativeWorked =
+                    worked === null && entry.day_type === 'normal'
+                      ? isToday
+                        ? getWorkedMinutes(entry, nowTime) ?? getClosedWorkedMinutes(entry)
+                        : getClosedWorkedMinutes(entry)
+                      : null;
+                  const indicativeBalance =
+                    balance === null && isToday && indicativeWorked !== null
+                      ? indicativeWorked - entry.target_minutes
+                      : null;
 
                   return (
                     <tr
@@ -1102,10 +1240,34 @@ export const TeamTimeTrackingView: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 whitespace-nowrap font-bold">
-                        {worked !== null ? formatDuration(worked) : '—'}
+                        {worked !== null ? (
+                          formatDuration(worked)
+                        ) : indicativeWorked !== null ? (
+                          <div className="leading-tight" title="Tiempo acumulado indicativo hasta ahora">
+                            <span className="text-cyan-400">~{formatDuration(indicativeWorked)}</span>
+                            <span className="block text-[10px] font-semibold text-slate-400">
+                              {isToday ? 'en curso' : 'sin cerrar'}
+                            </span>
+                          </div>
+                        ) : (
+                          '—'
+                        )}
                       </td>
 
-                      <td className="py-3.5 px-4 whitespace-nowrap">{renderBalanceBadge(balance)}</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="flex flex-col items-start gap-0.5">
+                          {renderBalanceBadge(balance)}
+                          {indicativeBalance !== null && (
+                            <span
+                              className={`text-[10px] font-bold ${
+                                indicativeBalance >= 0 ? 'text-emerald-400' : 'text-slate-400'
+                              }`}
+                            >
+                              indicativo: {formatDuration(indicativeBalance, true)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
                       <td className="py-3.5 px-4 text-xs text-slate-400 max-w-[200px] truncate">
                         {entry.notes || '—'}
@@ -1395,7 +1557,15 @@ export const TeamTimeTrackingView: React.FC = () => {
                   <div>
                     Trabajado:{' '}
                     <span className="font-bold text-white">
-                      {modalPreview.worked !== null ? formatDuration(modalPreview.worked) : 'En curso'}
+                      {modalPreview.worked !== null ? (
+                        formatDuration(modalPreview.worked)
+                      ) : modalPreview.indicativeWorked !== null ? (
+                        <span className="text-cyan-400">
+                          ~{formatDuration(modalPreview.indicativeWorked)} (en curso)
+                        </span>
+                      ) : (
+                        'En curso'
+                      )}
                     </span>
                   </div>
                   <div>
