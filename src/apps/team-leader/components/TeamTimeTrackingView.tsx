@@ -6,14 +6,12 @@ import {
   Plus,
   Edit3,
   Trash2,
-  Calendar,
   TrendingUp,
   TrendingDown,
   Coffee,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   Info,
   X,
   Briefcase,
@@ -367,7 +365,7 @@ export const TeamTimeTrackingView: React.FC = () => {
     };
   }, [todayEntry, nowTime, isTodayWorking]);
 
-  // Cálculos globales, semanales, mensuales y objetivo de +2h extra (L-J) para salir el viernes a las 15:00
+  // Cálculos semanales y objetivo de salida anticipada del viernes (sin acumular entre semanas)
   const stats = useMemo(() => {
     const entriesByDate = new Map<string, TimeEntry>();
     for (const entry of entries) {
@@ -376,65 +374,21 @@ export const TeamTimeTrackingView: React.FC = () => {
 
     const weekInfo = getWeekInfo(todayStr);
     const isTodayClosed = todayEntry ? getBalanceMinutes(todayEntry) !== null : false;
-    const todayOpenWorked =
-      todayEntry && !isTodayClosed ? getWorkedMinutes(todayEntry, nowTime) ?? 0 : 0;
-
-    const weekTargetMinutes = weekInfo.weekdays.reduce(
-      (sum, d) => sum + (entriesByDate.get(d)?.target_minutes ?? 480),
-      0
-    );
-
-    let totalBalance = 0;
-    let totalClosedDays = 0;
 
     let weekBalance = 0;
-    let weekWorkedClosed = 0;
-    let weekClosedDays = 0;
-
     let monThuClosedBalance = 0;
-    let monThuClosedDays = 0;
-
-    const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
-    let monthBalance = 0;
-    let monthWorked = 0;
 
     for (const entry of entries) {
       const bal = getBalanceMinutes(entry);
-      const worked = getWorkedMinutes(entry);
-
       if (bal !== null) {
-        totalBalance += bal;
-        totalClosedDays += 1;
-
         if (entry.entry_date >= weekInfo.start && entry.entry_date <= weekInfo.end) {
           weekBalance += bal;
-          weekClosedDays += 1;
-          if (worked !== null) weekWorkedClosed += worked;
         }
-
         if (entry.entry_date >= weekInfo.start && entry.entry_date <= weekInfo.thursday) {
           monThuClosedBalance += bal;
-          monThuClosedDays += 1;
-        }
-
-        if (entry.entry_date.startsWith(monthPrefix)) {
-          monthBalance += bal;
-          if (worked !== null) monthWorked += worked;
         }
       }
     }
-
-    const weekWorkedTotal = weekWorkedClosed + todayOpenWorked;
-    const weekRemainingMinutes = Math.max(0, weekTargetMinutes - weekWorkedTotal);
-    const weekClosedPct =
-      weekTargetMinutes > 0
-        ? Math.min(100, Math.round((weekWorkedClosed / weekTargetMinutes) * 100))
-        : 0;
-    const weekTotalPct =
-      weekTargetMinutes > 0
-        ? Math.min(100, Math.round((weekWorkedTotal / weekTargetMinutes) * 100))
-        : 0;
-    const weekLiveSegmentPct = Math.max(0, weekTotalPct - weekClosedPct);
 
     const todayIsMonToThu = weekInfo.dayOfWeek >= 1 && weekInfo.dayOfWeek <= 4;
     const todayIsFriday = weekInfo.dayOfWeek === 5;
@@ -514,22 +468,10 @@ export const TeamTimeTrackingView: React.FC = () => {
         : null;
 
     return {
-      totalBalance,
-      totalClosedDays,
       weekBalance,
-      weekWorkedClosed,
-      weekWorkedTotal,
-      weekTargetMinutes,
-      weekRemainingMinutes,
-      weekClosedDays,
-      weekClosedPct,
-      weekTotalPct,
-      weekLiveSegmentPct,
       monThuClosedBalance,
-      monThuClosedDays,
       todayIsMonToThu,
       todayIsFriday,
-      todayOpenWorked,
       todayLiveExtraBonus,
       isFridayEarlyGoalActive,
       fridayGoalMinutes,
@@ -546,20 +488,8 @@ export const TeamTimeTrackingView: React.FC = () => {
       fridayNeededMinutes,
       fridayRemainingToday,
       fridayExitFor40h,
-      monthBalance,
-      monthWorked,
     };
-  }, [
-    entries,
-    todayStr,
-    viewYear,
-    viewMonth,
-    todayEntry,
-    todayLive,
-    isTodayWorking,
-    nowTime,
-    fridayGoalMinutes,
-  ]);
+  }, [entries, todayStr, todayEntry, todayLive, isTodayWorking, nowTime, fridayGoalMinutes]);
 
   const monthEntries = useMemo(() => {
     const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
@@ -1015,68 +945,67 @@ export const TeamTimeTrackingView: React.FC = () => {
         </div>
       )}
 
-      {/* 4 Tarjetas KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Principal: Objetivo Viernes (Normal / 16:00 / 15:00) y Saldo Extra Semanal */}
-        <div
-          className={`rounded-3xl border p-5 flex flex-col justify-between ${
-            stats.isFridayEarlyGoalActive && stats.isFridayGoalMet
-              ? isDark
-                ? 'bg-emerald-950/20 border-emerald-500/40 text-white'
-                : 'bg-emerald-50/60 border-emerald-300 text-slate-900 shadow-sm'
-              : stats.isFridayEarlyGoalActive
-              ? `${cardSurface} ${isDark ? 'border-cyan-500/35' : 'border-cyan-300'}`
-              : cardBg
-          }`}
-        >
-          <div>
-            <div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-              <span>
-                {stats.isFridayEarlyGoalActive
-                  ? `Viernes ${activeFridayOption.shortLabel} · Extra`
-                  : 'Saldo Extra Semana'}
+      {/* Tarjeta principal: Objetivo Viernes (Normal / 16:00 / 15:00) y Saldo Extra Semanal */}
+      <div
+        className={`rounded-3xl border p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+          stats.isFridayEarlyGoalActive && stats.isFridayGoalMet
+            ? isDark
+              ? 'bg-emerald-950/20 border-emerald-500/40 text-white'
+              : 'bg-emerald-50/60 border-emerald-300 text-slate-900 shadow-sm'
+            : stats.isFridayEarlyGoalActive
+            ? `${cardSurface} ${isDark ? 'border-cyan-500/35' : 'border-cyan-300'}`
+            : cardBg
+        }`}
+      >
+        <div className="flex-1 min-w-0 space-y-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span>
+              {stats.isFridayEarlyGoalActive
+                ? `Viernes ${activeFridayOption.shortLabel} · Extra`
+                : 'Saldo Extra Semana'}
+            </span>
+            {!stats.isFridayEarlyGoalActive ? (
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold normal-case ${
+                  isDark
+                    ? 'bg-slate-800 text-slate-300 border-slate-700'
+                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}
+              >
+                Viernes 8h
               </span>
-              {!stats.isFridayEarlyGoalActive ? (
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold normal-case ${
-                    isDark
-                      ? 'bg-slate-800 text-slate-300 border-slate-700'
-                      : 'bg-slate-100 text-slate-700 border-slate-300'
-                  }`}
-                >
-                  Viernes 8h
-                </span>
-              ) : stats.isFridayGoalMet ? (
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold normal-case ${
-                    isDark
-                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                      : 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                  }`}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {stats.surplusOverFridayGoal > 0
-                    ? `+${formatDuration(stats.surplusOverFridayGoal)} margen`
-                    : 'Cubierto'}
-                </span>
-              ) : (
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold normal-case ${
-                    stats.weekExtraDisplay < 0
-                      ? isDark
-                        ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                        : 'bg-rose-100 text-rose-700 border-rose-300'
-                      : isDark
-                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                      : 'bg-amber-100 text-amber-800 border-amber-300'
-                  }`}
-                >
-                  Faltan {formatDuration(stats.remainingForFridayGoal)}
-                </span>
-              )}
-            </div>
+            ) : stats.isFridayGoalMet ? (
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold normal-case ${
+                  isDark
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                    : 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {stats.surplusOverFridayGoal > 0
+                  ? `+${formatDuration(stats.surplusOverFridayGoal)} margen`
+                  : 'Cubierto'}
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold normal-case ${
+                  stats.weekExtraDisplay < 0
+                    ? isDark
+                      ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                      : 'bg-rose-100 text-rose-700 border-rose-300'
+                    : isDark
+                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}
+              >
+                Faltan {formatDuration(stats.remainingForFridayGoal)}
+              </span>
+            )}
+          </div>
 
-            <div className="mt-2 flex items-baseline gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <div className="flex items-baseline gap-2">
               <span
                 className={`text-3xl font-black tracking-tight ${
                   stats.isFridayEarlyGoalActive
@@ -1117,24 +1046,7 @@ export const TeamTimeTrackingView: React.FC = () => {
               )}
             </div>
 
-            {stats.isFridayEarlyGoalActive && (
-              <div
-                className={`mt-2.5 h-2 rounded-full overflow-hidden ${
-                  isDark ? 'bg-slate-800' : 'bg-slate-200'
-                }`}
-              >
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    stats.isFridayGoalMet
-                      ? 'bg-emerald-500'
-                      : 'bg-gradient-to-r from-cyan-500 to-emerald-500'
-                  }`}
-                  style={{ width: `${stats.fridayGoalPct}%` }}
-                />
-              </div>
-            )}
-
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="text-xs text-slate-400">
               {!stats.isFridayEarlyGoalActive ? (
                 stats.weekExtraDisplay < 0 ? (
                   <>Viernes normal (8h) · déficit actual esta semana</>
@@ -1234,250 +1146,64 @@ export const TeamTimeTrackingView: React.FC = () => {
             </p>
           </div>
 
-          <div
-            className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
-              isDark ? 'border-slate-800/80' : 'border-slate-200/80'
-            }`}
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Viernes:
-            </span>
+          {stats.isFridayEarlyGoalActive && (
             <div
-              className={`inline-flex items-center gap-0.5 p-0.5 rounded-xl border ${
-                isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-100 border-slate-200'
+              className={`max-w-md h-2 rounded-full overflow-hidden ${
+                isDark ? 'bg-slate-800' : 'bg-slate-200'
               }`}
-              role="group"
-              aria-label="Objetivo de salida del viernes"
             >
-              {FRIDAY_GOAL_OPTIONS.map((opt) => {
-                const isSelected = fridayGoalMinutes === opt.minutes;
-                const activeClass =
-                  opt.minutes === 0
-                    ? isDark
-                      ? 'bg-slate-700 text-white shadow-sm'
-                      : 'bg-white text-slate-900 shadow-sm'
-                    : stats.isFridayGoalMet
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-sm';
-                const idleClass = isDark
-                  ? 'text-slate-400 hover:text-white'
-                  : 'text-slate-600 hover:text-slate-900';
-
-                return (
-                  <button
-                    key={opt.minutes}
-                    type="button"
-                    title={opt.title}
-                    aria-pressed={isSelected}
-                    onClick={() => handleSelectFridayGoal(opt.minutes)}
-                    className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                      isSelected ? activeClass : idleClass
-                    }`}
-                  >
-                    {opt.shortLabel}
-                  </button>
-                );
-              })}
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  stats.isFridayGoalMet
+                    ? 'bg-emerald-500'
+                    : 'bg-gradient-to-r from-cyan-500 to-emerald-500'
+                }`}
+                style={{ width: `${stats.fridayGoalPct}%` }}
+              />
             </div>
-          </div>
-        </div>
-
-        {/* 2. Hoy en tiempo real */}
-        <div
-          className={`rounded-3xl border p-5 ${cardSurface} ${
-            isTodayWorking
-              ? isDark
-                ? 'border-emerald-500/35'
-                : 'border-emerald-300'
-              : isTodayOnPause
-              ? isDark
-                ? 'border-amber-500/35'
-                : 'border-amber-300'
-              : defaultCardBorder
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span className="inline-flex items-center gap-2">
-              {isTodayOpen && (
-                <span className="relative flex h-2.5 w-2.5">
-                  <span
-                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      isTodayWorking ? 'bg-emerald-400' : 'bg-amber-400'
-                    }`}
-                  />
-                  <span
-                    className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                      isTodayWorking ? 'bg-emerald-500' : 'bg-amber-500'
-                    }`}
-                  />
-                </span>
-              )}
-              <span>Hoy (en vivo)</span>
-            </span>
-            <Sparkles className="w-4 h-4 text-amber-400" />
-          </div>
-          {todayEntry && todayLive ? (
-            <>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-2xl font-black">{formatDuration(todayLive.workedSoFar)}</span>
-                {renderBalanceBadge(todayLive.diff)}
-              </div>
-              <p className="mt-1.5 text-xs text-slate-400">
-                {isTodayOnPause ? (
-                  <>
-                    En pausa · Pausas hoy:{' '}
-                    <span className="font-semibold text-amber-400">
-                      {formatDuration(todayLive.breakMins)}
-                    </span>
-                  </>
-                ) : stats.isFridayEarlyGoalActive &&
-                  stats.todayIsFriday &&
-                  stats.fridayExitFor40h &&
-                  stats.monThuClosedBalance !== 0 ? (
-                  <>
-                    Para cerrar semana ({formatDuration(stats.fridayNeededMinutes)}) sales a las{' '}
-                    <span className={`font-bold ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`}>
-                      {stats.fridayExitFor40h}
-                    </span>
-                  </>
-                ) : stats.isFridayEarlyGoalActive &&
-                  stats.todayIsFriday &&
-                  !stats.isFridayClosed &&
-                  stats.fridayRemainingToday <= 0 &&
-                  isTodayWorking ? (
-                  <span className={isDark ? 'text-emerald-400 font-semibold' : 'text-emerald-600 font-semibold'}>
-                    ¡Objetivo semanal completado!
-                  </span>
-                ) : todayLive.expectedExit ? (
-                  <>
-                    Para 8h sales a las{' '}
-                    <span className={`font-bold ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`}>
-                      {todayLive.expectedExit}
-                    </span>
-                  </>
-                ) : isTodayWorking ? (
-                  <span className={isDark ? 'text-emerald-400 font-semibold' : 'text-emerald-600 font-semibold'}>
-                    Objetivo diario superado ({formatDuration(todayLive.diff, true)})
-                  </span>
-                ) : (
-                  <>
-                    Pausas hoy: <span className="font-semibold">{formatDuration(todayLive.breakMins)}</span>
-                  </>
-                )}
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="mt-2 text-2xl font-black text-slate-400">Sin fichar</div>
-              <p className="mt-1.5 text-xs text-slate-400">
-                {stats.isFridayEarlyGoalActive && stats.todayIsFriday
-                  ? `Hoy necesitas ${formatDuration(stats.fridayNeededMinutes)} para 40h`
-                  : 'Objetivo hoy: 8h (L-V)'}
-              </p>
-            </>
           )}
         </div>
 
-        {/* 3. Esta semana (cerrados + hoy en vivo) */}
-        <div className={`rounded-3xl border p-5 ${cardBg}`}>
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Esta Semana (L-V)</span>
-            {renderBalanceBadge(stats.weekBalance)}
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black">{formatDuration(stats.weekWorkedTotal)}</span>
-            <span className="text-xs text-slate-400 font-semibold">
-              / {formatDuration(stats.weekTargetMinutes)} objetivo
-            </span>
-          </div>
+        <div className="flex-shrink-0 flex items-center gap-2.5 self-start md:self-center">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Viernes:
+          </span>
           <div
-            className={`mt-2.5 h-2 rounded-full flex overflow-hidden ${
-              isDark ? 'bg-slate-800' : 'bg-slate-200'
+            className={`inline-flex items-center gap-0.5 p-1 rounded-xl border ${
+              isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-100 border-slate-200'
             }`}
+            role="group"
+            aria-label="Objetivo de salida del viernes"
           >
-            {stats.weekClosedPct > 0 && (
-              <div
-                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-500"
-                style={{ width: `${stats.weekClosedPct}%` }}
-              />
-            )}
-            {stats.weekLiveSegmentPct > 0 && (
-              <div
-                className="h-full bg-cyan-400/55 animate-pulse transition-all duration-500"
-                style={{ width: `${stats.weekLiveSegmentPct}%` }}
-              />
-            )}
-          </div>
-          <p className="mt-1.5 text-xs text-slate-400">
-            {stats.todayOpenWorked > 0 ? (
-              <>
-                {formatDuration(stats.weekWorkedClosed)} cerrados + {formatDuration(stats.todayOpenWorked)} hoy ·{' '}
-                {stats.weekRemainingMinutes > 0
-                  ? `faltan ${formatDuration(stats.weekRemainingMinutes)}`
-                  : 'semana completa'}
-              </>
-            ) : (
-              <>
-                {stats.weekRemainingMinutes > 0
-                  ? `Faltan ${formatDuration(stats.weekRemainingMinutes)}`
-                  : 'Semana completada'}{' '}
-                · {stats.weekClosedDays} {stats.weekClosedDays === 1 ? 'día cerrado' : 'días cerrados'}
-              </>
-            )}
-          </p>
-        </div>
+            {FRIDAY_GOAL_OPTIONS.map((opt) => {
+              const isSelected = fridayGoalMinutes === opt.minutes;
+              const activeClass =
+                opt.minutes === 0
+                  ? isDark
+                    ? 'bg-slate-700 text-white shadow-sm'
+                    : 'bg-white text-slate-900 shadow-sm'
+                  : stats.isFridayGoalMet
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-sm';
+              const idleClass = isDark
+                ? 'text-slate-400 hover:text-white'
+                : 'text-slate-600 hover:text-slate-900';
 
-        {/* 4. Resumen mes + histórico total */}
-        <div className={`rounded-3xl border p-5 ${cardBg}`}>
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Balance {formatMonthYear(viewYear, viewMonth).split(' ')[0]}</span>
-            <Calendar className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div
-            className={`mt-2 text-3xl font-black tracking-tight ${
-              stats.monthBalance > 0
-                ? isDark
-                  ? 'text-emerald-400'
-                  : 'text-emerald-600'
-                : stats.monthBalance < 0
-                ? isDark
-                  ? 'text-rose-400'
-                  : 'text-rose-600'
-                : isDark
-                ? 'text-white'
-                : 'text-slate-900'
-            }`}
-          >
-            {formatDuration(stats.monthBalance, true)}
-          </div>
-          <div className="mt-1.5 space-y-0.5 text-xs text-slate-400">
-            <p>
-              Trabajado mes:{' '}
-              <span className={`font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                {formatDuration(stats.monthWorked)}
-              </span>
-            </p>
-            <p>
-              Histórico total:{' '}
-              <span
-                className={`font-bold ${
-                  stats.totalBalance > 0
-                    ? isDark
-                      ? 'text-emerald-400'
-                      : 'text-emerald-600'
-                    : stats.totalBalance < 0
-                    ? isDark
-                      ? 'text-rose-400'
-                      : 'text-rose-600'
-                    : isDark
-                    ? 'text-slate-300'
-                    : 'text-slate-700'
-                }`}
-              >
-                {formatDuration(stats.totalBalance, true)}
-              </span>{' '}
-              ({stats.totalClosedDays} {stats.totalClosedDays === 1 ? 'día' : 'días'})
-            </p>
+              return (
+                <button
+                  key={opt.minutes}
+                  type="button"
+                  title={opt.title}
+                  aria-pressed={isSelected}
+                  onClick={() => handleSelectFridayGoal(opt.minutes)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    isSelected ? activeClass : idleClass
+                  }`}
+                >
+                  {opt.shortLabel}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1715,6 +1441,39 @@ export const TeamTimeTrackingView: React.FC = () => {
                   Tiempo total en pausas / sin trabajar:{' '}
                   <strong className="text-amber-400">{formatDuration(todayLive.breakMins)}</strong>
                 </span>
+                {isTodayWorking && (
+                  <span>
+                    {stats.isFridayEarlyGoalActive &&
+                    stats.todayIsFriday &&
+                    stats.fridayExitFor40h &&
+                    stats.monThuClosedBalance !== 0 ? (
+                      <>
+                        Para cerrar semana ({formatDuration(stats.fridayNeededMinutes)}) sales a las{' '}
+                        <strong className={isDark ? 'text-cyan-400' : 'text-cyan-600'}>
+                          {stats.fridayExitFor40h}
+                        </strong>
+                      </>
+                    ) : stats.isFridayEarlyGoalActive &&
+                      stats.todayIsFriday &&
+                      !stats.isFridayClosed &&
+                      stats.fridayRemainingToday <= 0 ? (
+                      <strong className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>
+                        ¡Objetivo semanal completado!
+                      </strong>
+                    ) : todayLive.expectedExit ? (
+                      <>
+                        Para 8h sales a las{' '}
+                        <strong className={isDark ? 'text-cyan-400' : 'text-cyan-600'}>
+                          {todayLive.expectedExit}
+                        </strong>
+                      </>
+                    ) : (
+                      <strong className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>
+                        Objetivo 8h superado ({formatDuration(todayLive.diff, true)})
+                      </strong>
+                    )}
+                  </span>
+                )}
               </div>
             )}
           </div>
