@@ -70,6 +70,9 @@ const FRIDAY_GOAL_OPTIONS: {
   { minutes: 120, shortLabel: '15:00', title: 'Salir el viernes a las 15:00 (+2h extra L–J)' },
 ];
 
+const STANDARD_EXIT_MINUTES = 17 * 60; // 17:00
+const STANDARD_EXIT_LABEL = '17:00';
+
 function readWeekFridayGoal(userId: string | undefined, weekStart: string): FridayGoalMinutes {
   try {
     const raw = localStorage.getItem(`${FRIDAY_GOAL_STORAGE_PREFIX}${userId || 'anon'}`);
@@ -351,10 +354,19 @@ export const TeamTimeTrackingView: React.FC = () => {
     const diff = workedSoFar - target;
     const nowMins = timeToMinutes(nowTime);
     const expectedExit =
-      isTodayWorking && nowMins !== null && diff < 0
+      isTodayOpen && nowMins !== null && diff < 0
         ? minutesToTime(nowMins + Math.abs(diff))
         : null;
     const breakMins = getBreakMinutes(todayEntry, nowTime);
+    const isBeforeStandardExit = nowMins !== null && nowMins < STANDARD_EXIT_MINUTES;
+    const projectedBalanceAt17 =
+      isTodayOpen &&
+      todayEntry.day_type === 'normal' &&
+      target > 0 &&
+      nowMins !== null &&
+      isBeforeStandardExit
+        ? workedSoFar + (STANDARD_EXIT_MINUTES - nowMins) - target
+        : null;
 
     return {
       workedSoFar,
@@ -362,8 +374,10 @@ export const TeamTimeTrackingView: React.FC = () => {
       diff,
       expectedExit,
       breakMins,
+      isBeforeStandardExit,
+      projectedBalanceAt17,
     };
-  }, [todayEntry, nowTime, isTodayWorking]);
+  }, [todayEntry, nowTime, isTodayOpen]);
 
   // Cálculos semanales y objetivo de salida anticipada del viernes (sin acumular entre semanas)
   const stats = useMemo(() => {
@@ -459,7 +473,7 @@ export const TeamTimeTrackingView: React.FC = () => {
     const fridayExitFor40h =
       isFridayEarlyGoalActive &&
       todayIsFriday &&
-      isTodayWorking &&
+      isTodayOpen &&
       todayLive &&
       !isFridayClosed &&
       fridayRemainingToday > 0 &&
@@ -489,7 +503,13 @@ export const TeamTimeTrackingView: React.FC = () => {
       fridayRemainingToday,
       fridayExitFor40h,
     };
-  }, [entries, todayStr, todayEntry, todayLive, isTodayWorking, nowTime, fridayGoalMinutes]);
+  }, [entries, todayStr, todayEntry, todayLive, isTodayOpen, nowTime, fridayGoalMinutes]);
+
+  const showProjectedAt17 = Boolean(
+    todayLive &&
+      todayLive.projectedBalanceAt17 !== null &&
+      !(stats.todayIsFriday && stats.isFridayEarlyGoalActive)
+  );
 
   const monthEntries = useMemo(() => {
     const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
@@ -1432,7 +1452,11 @@ export const TeamTimeTrackingView: React.FC = () => {
             </div>
 
             {todayLive && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-slate-800/70 text-[11px] text-slate-400">
+              <div
+                className={`flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t text-[11px] text-slate-400 ${
+                  isDark ? 'border-slate-800/70' : 'border-slate-200'
+                }`}
+              >
                 <span>
                   Trabajado hoy:{' '}
                   <strong className="text-emerald-400">{formatDuration(todayLive.workedSoFar)}</strong>
@@ -1441,28 +1465,82 @@ export const TeamTimeTrackingView: React.FC = () => {
                   Tiempo total en pausas / sin trabajar:{' '}
                   <strong className="text-amber-400">{formatDuration(todayLive.breakMins)}</strong>
                 </span>
-                {isTodayWorking && (
-                  <span>
+                {isTodayOpen && (
+                  <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
                     {stats.isFridayEarlyGoalActive &&
                     stats.todayIsFriday &&
-                    stats.fridayExitFor40h &&
-                    stats.monThuClosedBalance !== 0 ? (
-                      <>
-                        Para cerrar semana ({formatDuration(stats.fridayNeededMinutes)}) sales a las{' '}
-                        <strong className={isDark ? 'text-cyan-400' : 'text-cyan-600'}>
-                          {stats.fridayExitFor40h}
+                    !stats.isFridayClosed ? (
+                      stats.fridayExitFor40h && stats.monThuClosedBalance !== 0 ? (
+                        <>
+                          {isTodayOnPause
+                            ? `Si vuelves ahora, cierras semana (${formatDuration(stats.fridayNeededMinutes)}) a las`
+                            : `Para cerrar semana (${formatDuration(stats.fridayNeededMinutes)}) sales a las`}{' '}
+                          <strong className={isDark ? 'text-cyan-400' : 'text-cyan-600'}>
+                            {stats.fridayExitFor40h}
+                          </strong>
+                        </>
+                      ) : stats.fridayRemainingToday <= 0 ? (
+                        <strong className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>
+                          ¡Objetivo semanal completado!
                         </strong>
+                      ) : todayLive.expectedExit ? (
+                        <>
+                          {isTodayOnPause
+                            ? 'Si vuelves ahora, 8h a las'
+                            : 'Para 8h sales a las'}{' '}
+                          <strong className={isDark ? 'text-cyan-400' : 'text-cyan-600'}>
+                            {todayLive.expectedExit}
+                          </strong>
+                        </>
+                      ) : (
+                        <strong className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>
+                          Objetivo 8h superado ({formatDuration(todayLive.diff, true)})
+                        </strong>
+                      )
+                    ) : showProjectedAt17 && todayLive.projectedBalanceAt17 !== null ? (
+                      <>
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-bold ${
+                            todayLive.projectedBalanceAt17 > 0
+                              ? isDark
+                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/35'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                              : todayLive.projectedBalanceAt17 < 0
+                              ? isDark
+                                ? 'bg-rose-500/15 text-rose-300 border-rose-500/35'
+                                : 'bg-rose-50 text-rose-700 border-rose-300'
+                              : isDark
+                              ? 'bg-slate-800/80 text-slate-200 border-slate-700'
+                              : 'bg-slate-100 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          <span>
+                            {isTodayOnPause
+                              ? `Si vuelves ahora (${STANDARD_EXIT_LABEL}):`
+                              : `Si sales a las ${STANDARD_EXIT_LABEL}:`}
+                          </span>
+                          <strong className="font-extrabold">
+                            {formatDuration(todayLive.projectedBalanceAt17, true)}
+                          </strong>
+                        </span>
+                        {todayLive.expectedExit ? (
+                          <span>
+                            8h a las{' '}
+                            <strong className={isDark ? 'text-cyan-400' : 'text-cyan-600'}>
+                              {todayLive.expectedExit}
+                            </strong>
+                          </span>
+                        ) : (
+                          <strong className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>
+                            8h superadas ({formatDuration(todayLive.diff, true)} ahora)
+                          </strong>
+                        )}
                       </>
-                    ) : stats.isFridayEarlyGoalActive &&
-                      stats.todayIsFriday &&
-                      !stats.isFridayClosed &&
-                      stats.fridayRemainingToday <= 0 ? (
-                      <strong className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>
-                        ¡Objetivo semanal completado!
-                      </strong>
                     ) : todayLive.expectedExit ? (
                       <>
-                        Para 8h sales a las{' '}
+                        {isTodayOnPause
+                          ? 'Si vuelves ahora, 8h a las'
+                          : 'Para 8h sales a las'}{' '}
                         <strong className={isDark ? 'text-cyan-400' : 'text-cyan-600'}>
                           {todayLive.expectedExit}
                         </strong>
@@ -1733,14 +1811,94 @@ export const TeamTimeTrackingView: React.FC = () => {
                               ? 'pause'
                               : undefined
                           )}
-                          {indicativeBalance !== null && (
-                            <span
-                              className={`text-[10px] font-bold ${
-                                indicativeBalance >= 0 ? 'text-emerald-400' : 'text-slate-400'
-                              }`}
-                            >
-                              indicativo: {formatDuration(indicativeBalance, true)}
-                            </span>
+                          {isToday && isRowOpen && entry.day_type === 'normal' ? (
+                            showProjectedAt17 && todayLive?.projectedBalanceAt17 !== null ? (
+                              <span
+                                className={`text-[10px] font-bold ${
+                                  todayLive.projectedBalanceAt17 > 0
+                                    ? isDark
+                                      ? 'text-emerald-400'
+                                      : 'text-emerald-600'
+                                    : todayLive.projectedBalanceAt17 < 0
+                                    ? isDark
+                                      ? 'text-rose-400'
+                                      : 'text-rose-600'
+                                    : isDark
+                                    ? 'text-slate-400'
+                                    : 'text-slate-500'
+                                }`}
+                                title={`Saldo estimado si sales a las ${STANDARD_EXIT_LABEL} según los fichajes actuales`}
+                              >
+                                a las {STANDARD_EXIT_LABEL}:{' '}
+                                {formatDuration(todayLive.projectedBalanceAt17, true)}
+                              </span>
+                            ) : stats.isFridayEarlyGoalActive &&
+                              stats.todayIsFriday &&
+                              !stats.isFridayClosed ? (
+                              stats.fridayExitFor40h ? (
+                                <span
+                                  className={`text-[10px] font-bold ${
+                                    isDark ? 'text-cyan-400' : 'text-cyan-600'
+                                  }`}
+                                >
+                                  40h a las {stats.fridayExitFor40h}
+                                </span>
+                              ) : stats.fridayRemainingToday <= 0 ? (
+                                <span
+                                  className={`text-[10px] font-bold ${
+                                    isDark ? 'text-emerald-400' : 'text-emerald-600'
+                                  }`}
+                                >
+                                  40h cumplidas
+                                </span>
+                              ) : indicativeBalance !== null ? (
+                                <span
+                                  className={`text-[10px] font-bold ${
+                                    indicativeBalance > 0
+                                      ? isDark
+                                        ? 'text-emerald-400'
+                                        : 'text-emerald-600'
+                                      : indicativeBalance < 0
+                                      ? isDark
+                                        ? 'text-rose-400'
+                                        : 'text-rose-600'
+                                      : isDark
+                                      ? 'text-slate-400'
+                                      : 'text-slate-500'
+                                  }`}
+                                >
+                                  ahora: {formatDuration(indicativeBalance, true)}
+                                </span>
+                              ) : null
+                            ) : indicativeBalance !== null ? (
+                              <span
+                                className={`text-[10px] font-bold ${
+                                  indicativeBalance > 0
+                                    ? isDark
+                                      ? 'text-emerald-400'
+                                      : 'text-emerald-600'
+                                    : indicativeBalance < 0
+                                    ? isDark
+                                      ? 'text-rose-400'
+                                      : 'text-rose-600'
+                                    : isDark
+                                    ? 'text-slate-400'
+                                    : 'text-slate-500'
+                                }`}
+                              >
+                                ahora: {formatDuration(indicativeBalance, true)}
+                              </span>
+                            ) : null
+                          ) : (
+                            indicativeBalance !== null && (
+                              <span
+                                className={`text-[10px] font-bold ${
+                                  indicativeBalance >= 0 ? 'text-emerald-400' : 'text-slate-400'
+                                }`}
+                              >
+                                indicativo: {formatDuration(indicativeBalance, true)}
+                              </span>
+                            )
                           )}
                         </div>
                       </td>
